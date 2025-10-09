@@ -1,0 +1,38 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: manager-role
+rules:
+- apiGroups:
+  - networking.networking.metal.ironcore.dev
+  resources:
+  - switchcredentials
+  - switches
+  - switchinterfaces
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - networking.networking.metal.ironcore.dev
+  resources:
+  - switchcredentials/finalizers
+  - switches/finalizers
+  - switchinterfaces/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - networking.networking.metal.ironcore.dev
+  resources:
+  - switchcredentials/status
+  - switches/status
+  - switchinterfaces/status
+  verbs:
+  - get
+  - patch
+  - update
