@@ -47,6 +47,9 @@ spec:
                 description: AdminState represents the desired administrative state
                   of the interface.
                 type: string
+              handle:
+                description: Handle uniquely identifies this interface on the switch.
+                type: string
               switchRef:
                 description: SwitchRef is a reference to the Switch this interface
                   is connected to.
@@ -63,6 +66,7 @@ spec:
                 type: object
                 x-kubernetes-map-type: atomic
             required:
+            - handle
             - switchRef
             type: object
           status:
@@ -140,6 +144,10 @@ spec:
                 description: Neighbor is a reference to the connected neighbor device,
                   if any.
                 properties:
+                  interfaceHandle:
+                    description: InterfaceHandle is the name of the remote switch
+                      interface.
+                    type: string
                   macAddress:
                     description: MacAddress is the MAC address of the neighbor device.
                     type: string
