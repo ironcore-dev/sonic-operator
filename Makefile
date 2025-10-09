@@ -50,16 +50,22 @@ generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
 
 .PHONY: fmt
-fmt: ## Run go fmt against code.
-	go fmt ./...
+fmt: goimports ## Run goimports against code.
+	$(GOIMPORTS) -w .
 
 .PHONY: vet
 vet: ## Run go vet against code.
 	go vet ./...
 
-.PHONY: test
-test: manifests generate fmt vet setup-envtest ## Run tests.
+.PHONY: check-gen
+check-gen: generate manifests docs fmt ## Run code generation, manifests generation, documentation generation, helm plugin setup, and formatting checks.
+
+.PHONY: test-only
+test-only: setup-envtest ## Run tests without generating manifests or code.
 	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" go test $$(go list ./... | grep -v /e2e) -coverprofile cover.out
+
+.PHONY: test
+test: manifests generate fmt vet setup-envtest test-only ## Run tests.
 
 # TODO(user): To use a different vendor for e2e tests, modify the setup under 'tests/e2e'.
 # The default setup assumes Kind is pre-installed and builds/loads the Manager Docker image locally.
@@ -213,6 +219,11 @@ ADDLICENSE_VERSION ?= v1.1.1
 GOIMPORTS_VERSION ?= v0.31.0
 GEN_CRD_API_REFERENCE_DOCS_VERSION ?= v0.3.0
 
+.PHONY: kustomize
+kustomize: $(KUSTOMIZE) ## Download kustomize locally if necessary.
+$(KUSTOMIZE): $(LOCALBIN)
+	$(call go-install-tool,$(KUSTOMIZE),sigs.k8s.io/kustomize/kustomize/v5,$(KUSTOMIZE_VERSION))
+
 .PHONY: addlicense
 addlicense: $(ADDLICENSE) ## Download addlicense locally if necessary.
 $(ADDLICENSE): $(LOCALBIN)
@@ -245,6 +256,11 @@ $(ENVTEST): $(LOCALBIN)
 golangci-lint: $(GOLANGCI_LINT) ## Download golangci-lint locally if necessary.
 $(GOLANGCI_LINT): $(LOCALBIN)
 	$(call go-install-tool,$(GOLANGCI_LINT),github.com/golangci/golangci-lint/v2/cmd/golangci-lint,$(GOLANGCI_LINT_VERSION))
+
+.PHONY: goimports
+goimports: $(GOIMPORTS) ## Download goimports locally if necessary.
+$(GOIMPORTS): $(LOCALBIN)
+	$(call go-install-tool,$(GOIMPORTS),golang.org/x/tools/cmd/goimports,$(GOIMPORTS_VERSION))
 
 .PHONY: gen-crd-api-reference-docs
 gen-crd-api-reference-docs: $(GEN_CRD_API_REFERENCE_DOCS) ## Download gen-crd-api-reference-docs locally if necessary.
