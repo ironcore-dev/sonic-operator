@@ -17,6 +17,10 @@ const (
 
 // SwitchInterfaceSpec defines the desired state of SwitchInterface
 type SwitchInterfaceSpec struct {
+	// Handle uniquely identifies this interface on the switch.
+	// +required
+	Handle string `json:"handle"`
+
 	// SwitchRef is a reference to the Switch this interface is connected to.
 	// +required
 	SwitchRef v1.LocalObjectReference `json:"switchRef"`
@@ -48,6 +52,9 @@ type Neighbor struct {
 
 	// SystemName is the name of the neighbor device.
 	SystemName string `json:"systemName,omitempty"`
+
+	// InterfaceHandle is the name of the remote switch interface.
+	InterfaceHandle string `json:"interfaceHandle,omitempty"`
 }
 
 // SwitchInterfaceStatus defines the observed state of SwitchInterface.
@@ -69,6 +76,7 @@ type SwitchInterfaceStatus struct {
 	Neighbor Neighbor `json:"neighbor,omitempty"`
 
 	// MacAddress is the MAC address assigned to this interface.
+	// +optional
 	MacAddress string `json:"macAddress,omitempty"`
 
 	// The status of each condition is one of True, False, or Unknown.
