@@ -1,0 +1,177 @@
+// SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and IronCore contributors
+// SPDX-License-Identifier: Apache-2.0
+
+package agent_server
+
+import (
+	"context"
+	"flag"
+	"fmt"
+	"log"
+	"net"
+
+	pb "github.com/ironcore-dev/switch-operator/agent/proto"
+	agent "github.com/ironcore-dev/switch-operator/agent/types"
+
+	switchAgent "github.com/ironcore-dev/switch-operator/agent/interface"
+	"github.com/ironcore-dev/switch-operator/agent/sonic"
+
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
+)
+
+var (
+	port      = flag.Int("port", 50051, "The server port")
+	redisAddr = flag.String("redis-addr", "127.0.0.1:6379", "The Redis address")
+)
+
+type proxyServer struct {
+	pb.UnimplementedSwitchAgentServiceServer
+
+	SwitchAgent switchAgent.SwitchAgent
+}
+
+func (s *proxyServer) GetDeviceInfo(ctx context.Context, request *pb.GetDeviceInfoRequest) (*pb.GetDeviceInfoResponse, error) {
+	// // Simulate fetching device info
+	// return &pb.GetDeviceInfoResponse{
+	// 	Status: &pb.Status{
+	// 		Code:    0,
+	// 		Message: "Success",
+	// 	},
+	// 	DeviceName:      "Switch Device",
+	// 	LocalMacAddress: "aa:bb:cc:dd:ee:ff",
+	// }, nil
+
+	// Fetch device info from the SwitchAgent
+	device, status := s.SwitchAgent.GetDeviceInfo(ctx)
+	if status != nil {
+		return &pb.GetDeviceInfoResponse{
+			Status: &pb.Status{
+				Code:    status.Code,
+				Message: status.Message,
+			},
+		}, nil
+	}
+
+	return &pb.GetDeviceInfoResponse{
+		Status: &pb.Status{
+			Code:    0,
+			Message: "Success",
+		},
+		LocalMacAddress: device.LocalMacAddress,
+		Hwsku:           device.Hwsku,
+		SonicOsVersion:  device.SonicOSVersion,
+		AsicType:        device.AsicType,
+		Readiness:       device.Readiness,
+	}, nil
+}
+
+func (s *proxyServer) ListInterfaces(ctx context.Context, request *pb.ListInterfacesRequest) (*pb.ListInterfacesResponse, error) {
+	// Simulate fetching interfaces
+	// interfaces := []string{"eth0", "eth1", "wlan0"}
+
+	// var interfaceList []*pb.Interface
+	// for _, iface := range interfaces {
+	// 	interfaceList = append(interfaceList, &pb.Interface{
+	// 		Name:       iface,
+	// 		Status:     "up",
+	// 		MacAddress: "00:11:22:33:44:55",
+	// 	})
+	// }
+
+	// return &pb.ListInterfacesResponse{
+	// 	Status: &pb.Status{
+	// 		Code:    0,
+	// 		Message: "Success",
+	// 	},
+	// 	Interfaces: interfaceList,
+	// }, nil
+	interfaceList, status := s.SwitchAgent.ListInterfaces(ctx)
+	if status != nil {
+		return &pb.ListInterfacesResponse{
+			Status: &pb.Status{
+				Code:    status.Code,
+				Message: fmt.Sprintf("failed to list interfaces: %v", status.Message),
+			},
+		}, nil
+	}
+
+	var interfaces = make([]*pb.Interface, 0, len(interfaceList.Items))
+	for _, iface := range interfaceList.Items {
+		interfaces = append(interfaces, &pb.Interface{
+			Name:              iface.Name,
+			MacAddress:        iface.MacAddress,
+			OperationalStatus: iface.OperationStatus,
+			AdminStatus:       iface.AdminStatus,
+		})
+	}
+
+	return &pb.ListInterfacesResponse{
+		Status: &pb.Status{
+			Code:    0,
+			Message: "Success",
+		},
+		Interfaces: interfaces,
+	}, nil
+}
+
+func (s *proxyServer) SetInterfaceAdminStatus(ctx context.Context, request *pb.SetInterfaceAdminStatusRequest) (*pb.SetInterfaceAdminStatusResponse, error) {
+	iface, status := s.SwitchAgent.SetInterfaceAdminStatus(ctx, &agent.Interface{
+		TypeMeta: agent.TypeMeta{
+			Kind: agent.InterfaceKind,
+		},
+		Name:        request.GetInterfaceName(),
+		AdminStatus: request.GetAdminStatus(),
+	})
+
+	if status != nil {
+		return &pb.SetInterfaceAdminStatusResponse{
+			Status: &pb.Status{
+				Code:    status.Code,
+				Message: status.Message,
+			},
+		}, nil
+	}
+
+	return &pb.SetInterfaceAdminStatusResponse{
+		Status: &pb.Status{
+			Code:    0,
+			Message: "Success",
+		},
+		Interface: &pb.Interface{
+			Name:              iface.Name,
+			MacAddress:        "",
+			OperationalStatus: iface.OperationStatus,
+			AdminStatus:       iface.AdminStatus,
+		},
+	}, nil
+}
+
+func StartServer() {
+	flag.Parse()
+
+	lis, err := net.Listen("tcp4", fmt.Sprintf("0.0.0.0:%d", *port))
+	if err != nil {
+		log.Fatalf("failed to listen: %v", err)
+	}
+
+	s := grpc.NewServer()
+
+	swAgent, err := sonic.NewSonicRedisAgent(*redisAddr)
+	if err != nil {
+		log.Fatalf("failed to create SonicRedisAgent: %v", err)
+		panic(err)
+	}
+
+	pb.RegisterSwitchAgentServiceServer(s, &proxyServer{
+		SwitchAgent: swAgent,
+	})
+
+	// Register reflection service on gRPC server for debugging
+	reflection.Register(s)
+
+	log.Printf("gRPC server listening at %v", lis.Addr())
+	if err := s.Serve(lis); err != nil {
+		log.Fatalf("failed to serve: %v", err)
+	}
+}

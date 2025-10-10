@@ -8,6 +8,9 @@ else
 GOBIN=$(shell go env GOBIN)
 endif
 
+
+PROTO_DIR=./agent/proto
+
 # CONTAINER_TOOL defines the container tool to be used for building images.
 # Be aware that the target commands are only tested with Docker which is
 # scaffolded by default. However, you might want to replace it to use other
@@ -116,15 +119,31 @@ add-license: addlicense ## Add license headers to all go files.
 check-license: addlicense ## Check that every file has a license header present.
 	find . -name '*.go' -exec $(ADDLICENSE) -check -c 'IronCore authors' {} +
 
+##@ proto
+.PHONY: proto
+proto:
+	@echo "Generating protobuf files..."
+	protoc --go_out=. --go_opt=paths=source_relative \
+		--go-grpc_out=. --go-grpc_opt=paths=source_relative \
+		$(PROTO_DIR)/switch_agent.proto
+
+
 ##@ Build
 
 .PHONY: docs
 docs: gen-crd-api-reference-docs ## Run go generate to generate API reference documentation.
 	$(GEN_CRD_API_REFERENCE_DOCS) -api-dir ./api/v1alpha1 -config ./hack/api-reference/config.json -template-dir ./hack/api-reference/template -out-file ./docs/api-reference/api.md
 
+
+.PHONY: build-agent
+build-agent: proto fmt vet ## Build agent binary.
+	go build -o bin/agent_server cmd/agent/main.go
+	go build -o bin/agent_cli cmd/agent_cli/main.go
+
 .PHONY: build
-build: manifests generate fmt vet ## Build manager binary.
+build: manifests generate fmt vet build-agent ## Build manager binary.
 	go build -o bin/manager cmd/main.go
+
 
 .PHONY: run
 run: manifests generate fmt vet ## Run a controller from your host.

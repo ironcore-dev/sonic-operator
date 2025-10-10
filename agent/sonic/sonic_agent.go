@@ -1,0 +1,373 @@
+// SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and IronCore contributors
+// SPDX-License-Identifier: Apache-2.0
+
+package sonic
+
+import (
+	"context"
+	"fmt"
+	"sync"
+	"time"
+
+	errors "github.com/ironcore-dev/switch-operator/agent/errors"
+	agent "github.com/ironcore-dev/switch-operator/agent/types"
+
+	"github.com/redis/go-redis/v9"
+	"github.com/vishvananda/netlink"
+)
+
+const (
+	RedisDialTimeout    = 10 * time.Second
+	RedisReadTimeout    = 5 * time.Second
+	RedisWriteTimeout   = 5 * time.Second
+	RedisPoolTimeout    = 10 * time.Second
+	RedisMaxRetries     = 3
+	RedisDefaultTimeout = 5 * time.Second
+)
+
+type SonicAgent struct {
+	redisAddr  string
+	clientPool map[string]*redis.Client
+	poolMutex  sync.RWMutex
+}
+
+func getRedisDBIDByName(name string) int {
+	switch name {
+	case "APPL_DB":
+		return 0
+	case "ASIC_DB":
+		return 1
+	case "COUNTERS_DB":
+		return 2
+	case "LOGLEVEL_DB":
+		return 3
+	case "CONFIG_DB":
+		return 4
+	case "PFC_WD_DB":
+		return 5
+	case "FLEX_COUNTER_DB":
+		return 5
+	case "STATE_DB":
+		return 6
+	case "SNMP_OVERLAY_DB":
+		return 7
+	case "RESTagent_DB":
+		return 8
+	case "GB_ASIC_DB":
+		return 9
+	case "GB_COUNTERS_DB":
+		return 10
+	case "GB_FLEX_COUNTER_DB":
+		return 11
+	case "APPL_STATE_DB":
+		return 14
+	default:
+		return -1
+	}
+}
+
+func NewSonicRedisAgent(redisAddr string) (*SonicAgent, error) {
+	// Test connection first
+	testClient := redis.NewClient(&redis.Options{
+		Addr:         redisAddr,
+		DB:           4, // Test with CONFIG_DB
+		DialTimeout:  RedisDialTimeout,
+		ReadTimeout:  RedisReadTimeout,
+		WriteTimeout: RedisWriteTimeout,
+		PoolTimeout:  RedisPoolTimeout,
+		MaxRetries:   RedisMaxRetries,
+	})
+
+	if err := testClient.Ping(context.Background()).Err(); err != nil {
+		if err := testClient.Close(); err != nil {
+			return nil, fmt.Errorf("failed to close Redis client: %w", err)
+		}
+		return nil, fmt.Errorf("failed to connect to Redis: %w", err)
+	}
+	if err := testClient.Close(); err != nil {
+		return nil, fmt.Errorf("failed to close Redis client: %w", err)
+	}
+
+	return &SonicAgent{
+		redisAddr:  redisAddr,
+		clientPool: make(map[string]*redis.Client),
+		poolMutex:  sync.RWMutex{},
+	}, nil
+}
+
+func (m *SonicAgent) Connect(dbName string) (*redis.Client, error) {
+	m.poolMutex.RLock()
+	if client, exists := m.clientPool[dbName]; exists {
+		m.poolMutex.RUnlock()
+
+		// Test if connection is still alive
+		if err := client.Ping(context.Background()).Err(); err == nil {
+			return client, nil
+		}
+	} else {
+		m.poolMutex.RUnlock()
+	}
+
+	// Need to create new client (write lock)
+	m.poolMutex.Lock()
+	defer m.poolMutex.Unlock()
+
+	// Double-check in case another goroutine created it
+	if client, exists := m.clientPool[dbName]; exists {
+		if err := client.Ping(context.Background()).Err(); err == nil {
+			return client, nil
+		}
+		// Close the dead connection
+		if err := client.Close(); err != nil {
+			return nil, fmt.Errorf("failed to close Redis client: %w", err)
+		}
+		delete(m.clientPool, dbName)
+	}
+
+	// Create new client
+	dbID := getRedisDBIDByName(dbName)
+	if dbID == -1 {
+		return nil, fmt.Errorf("unknown database name: %s", dbName)
+	}
+
+	client := redis.NewClient(&redis.Options{
+		Addr:         m.redisAddr,
+		DB:           dbID,
+		DialTimeout:  RedisDialTimeout,
+		ReadTimeout:  RedisReadTimeout,
+		WriteTimeout: RedisWriteTimeout,
+		PoolTimeout:  RedisPoolTimeout,
+		MaxRetries:   RedisMaxRetries,
+
+		// Connection pool settings
+		PoolSize:     10, // Maximum number of socket connections
+		MinIdleConns: 2,  // Minimum idle connections
+		MaxIdleConns: 5,  // Maximum idle connections
+
+		// Connection lifecycle
+		ConnMaxIdleTime: 30 * time.Minute,
+		ConnMaxLifetime: 1 * time.Hour,
+	})
+
+	// Test the new connection
+	if err := client.Ping(context.Background()).Err(); err != nil {
+		if err := client.Close(); err != nil {
+			return nil, fmt.Errorf("failed to close Redis client: %w", err)
+		}
+		return nil, fmt.Errorf("failed to connect to Redis database %s: %w", dbName, err)
+	}
+
+	m.clientPool[dbName] = client
+
+	return client, nil
+}
+
+func (m *SonicAgent) GetDeviceInfo(ctx context.Context) (*agent.SwitchDevice, *agent.Status) {
+	rdb, err := m.Connect("CONFIG_DB")
+	if err != nil {
+		return nil, errors.NewErrorStatus(errors.BAD_REQUEST, fmt.Sprintf("failed to connect to Redis: %v", err))
+	}
+
+	const deviceKey = "DEVICE_METADATA|localhost"
+	fields, err := rdb.HGetAll(ctx, deviceKey).Result()
+	if err != nil {
+		return nil, errors.NewErrorStatus(errors.BAD_REQUEST, fmt.Sprintf("failed to get device info: %v", err))
+	}
+
+	mac, ok := fields["mac"]
+	if !ok {
+		return nil, errors.NewErrorStatus(errors.NOT_FOUND, "missing or invalid MAC address")
+	}
+
+	hwsku := fields["hwsku"]
+	sonicOSVersion := fields["sonic_os_version"]
+	asicType := fields["asic_type"]
+
+	// If values are missing from Redis, try to get from sonic_version.yml
+	if hwsku == "" || sonicOSVersion == "" || asicType == "" {
+		if versionInfo, err := GetSonicVersionInfo(); err == nil {
+			if hwsku == "" {
+				hwsku = versionInfo["hwsku"]
+			}
+			if sonicOSVersion == "" {
+				sonicOSVersion = versionInfo["sonic_os_version"]
+			}
+			if asicType == "" {
+				asicType = versionInfo["asic_type"]
+			}
+		}
+	}
+
+	return &agent.SwitchDevice{
+		TypeMeta: agent.TypeMeta{
+			Kind: agent.DeviceKind,
+		},
+		LocalMacAddress: mac,
+		Hwsku:           hwsku,
+		SonicOSVersion:  sonicOSVersion,
+		AsicType:        asicType,
+		Readiness:       uint32(agent.StatusReady),
+	}, nil
+}
+
+func (m *SonicAgent) ListInterfaces(ctx context.Context) (*agent.InterfaceList, *agent.Status) {
+	configDB, err := m.Connect("CONFIG_DB")
+	if err != nil {
+		return nil, errors.NewErrorStatus(errors.BAD_REQUEST, fmt.Sprintf("failed to connect to CONFIG_DB: %v", err))
+	}
+
+	// Connect to STATE_DB for operational status
+	stateDB, err := m.Connect("STATE_DB")
+	if err != nil {
+		return nil, errors.NewErrorStatus(errors.BAD_REQUEST, fmt.Sprintf("failed to connect to STATE_DB: %v", err))
+	}
+	// defer stateDB.Close()
+
+	pattern := "PORT|*"
+	keys, err := configDB.Keys(ctx, pattern).Result()
+
+	if err != nil {
+		return nil, errors.NewErrorStatus(errors.BAD_REQUEST, fmt.Sprintf("failed to obtain iface keys: %v", err))
+	}
+
+	interfaces := make([]agent.Interface, 0, len(keys))
+	for _, key := range keys {
+		var name string
+		if _, err := fmt.Sscanf(key, "PORT|%s", &name); err != nil {
+			return nil, errors.NewErrorStatus(errors.BAD_REQUEST, fmt.Sprintf("failed to parse interface name from key %s: %v", key, err))
+		}
+
+		// Get operational status from STATE_DB
+		stateKey := fmt.Sprintf("PORT_TABLE|%s", name)
+		stateFields, err := stateDB.HGetAll(ctx, stateKey).Result()
+		if err != nil {
+			// If state info is not available, use default values
+			stateFields = make(map[string]string)
+		}
+
+		// Determine operational status
+		operStatus := agent.StatusDown
+		if stateFields["netdev_oper_status"] == "up" {
+			operStatus = agent.StatusUp
+		}
+
+		adminStatus := agent.StatusDown
+		if stateFields["admin_status"] == "up" {
+			adminStatus = agent.StatusUp
+		}
+
+		// Use device MAC as interface MAC (common in SONiC)
+		link, err := netlink.LinkByName(name)
+		if err != nil {
+			return nil, agent.NewErrorStatus(errors.NOT_FOUND, fmt.Sprintf("failed to get interface %s: %v", name, err))
+		}
+
+		mac := link.Attrs().HardwareAddr
+		if mac == nil {
+			return nil, agent.NewErrorStatus(errors.NOT_FOUND, fmt.Sprintf("no MAC address found for interface %s", name))
+		}
+
+		iface := agent.Interface{
+			TypeMeta: agent.TypeMeta{
+				Kind: agent.InterfaceKind,
+			},
+			Name:            name,
+			MacAddress:      mac.String(),
+			OperationStatus: uint32(operStatus),
+			AdminStatus:     uint32(adminStatus),
+		}
+		interfaces = append(interfaces, iface)
+	}
+
+	return &agent.InterfaceList{
+		TypeMeta: agent.TypeMeta{
+			Kind: agent.InterfaceListKind,
+		},
+		Items:  interfaces,
+		Status: agent.Status{Code: 0, Message: "ok"},
+	}, nil
+}
+
+// rdb: redis-cli
+func (m *SonicAgent) SetInterfaceAdminStatus(ctx context.Context, iface *agent.Interface) (*agent.Interface, *agent.Status) {
+	configDB, err := m.Connect("CONFIG_DB")
+	if err != nil {
+		return nil, errors.NewErrorStatus(errors.BAD_REQUEST, fmt.Sprintf("failed to connect to CONFIG_DB: %v", err))
+	}
+
+	// Validate interface name
+	if iface.Name == "" {
+		return nil, errors.NewErrorStatus(errors.BAD_REQUEST, "interface name cannot be empty")
+	}
+
+	portKey := fmt.Sprintf("PORT|%s", iface.Name)
+
+	// store the current admin status for rollback
+	fields, err := configDB.HGetAll(ctx, portKey).Result()
+	if err != nil {
+		return nil, errors.NewErrorStatus(errors.REDIS_KEY_CHECK_FAIL, fmt.Sprintf("failed to get current admin status: %v", err))
+	}
+	currentAdminStatus := fields["admin_status"]
+
+	// Set admin status in CONFIG_DB
+	adminStatusStr := ConvertAdminStatusToStr(iface.AdminStatus)
+	err = configDB.HSet(ctx, portKey, "admin_status", adminStatusStr).Err()
+	if err != nil {
+		return nil, errors.NewErrorStatus(errors.REDIS_HSET_FAIL, fmt.Sprintf("failed to set admin status: %v", err))
+	}
+
+	// Verify the interface exists by checking if we can get its current state
+	exists, err := configDB.Exists(ctx, portKey).Result()
+	if err != nil {
+		return nil, errors.NewErrorStatus(errors.REDIS_KEY_CHECK_FAIL, fmt.Sprintf("failed to verify interface existence: %v", err))
+	}
+	if exists == 0 {
+		return nil, errors.NewErrorStatus(errors.NOT_FOUND, fmt.Sprintf("interface %s not found", iface.Name))
+	}
+
+	time.Sleep(100 * time.Millisecond)
+
+	// Get updated interface status from STATE_DB
+	stateDB, err := m.Connect("STATE_DB")
+	if err != nil {
+		return nil, errors.NewErrorStatus(errors.BAD_REQUEST, fmt.Sprintf("failed to connect to STATE_DB: %v", err))
+	}
+
+	stateKey := fmt.Sprintf("PORT_TABLE|%s", iface.Name)
+	stateFields, err := stateDB.HGetAll(ctx, stateKey).Result()
+	if err != nil {
+		// rollback admin status
+		err = configDB.HSet(ctx, portKey, "admin_status", currentAdminStatus).Err()
+		if err != nil {
+			return nil, errors.NewErrorStatus(errors.REDIS_HSET_FAIL, fmt.Sprintf("failed to rollback admin status: %v", err))
+		}
+		return nil, errors.NewErrorStatus(errors.REDIS_KEY_CHECK_FAIL, fmt.Sprintf("failed to get state info: %v", err))
+	}
+
+	// get the newest operational status
+	operStatus := agent.StatusDown
+	if stateFields["netdev_oper_status"] == "up" {
+		operStatus = agent.StatusUp
+	}
+
+	// Return updated interface
+	updatedIface := *iface
+	updatedIface.OperationStatus = uint32(operStatus)
+
+	return &updatedIface, nil
+}
+
+func (m *SonicAgent) GetInterface(ctx context.Context, iface *agent.Interface) (*agent.Interface, *agent.Status) {
+
+	return nil, nil
+}
+
+func (m *SonicAgent) GetInterfaceNeighbor(ctx context.Context, iface *agent.Interface) (*agent.InterfaceNeighbor, *agent.Status) {
+
+	return nil, nil
+}
+
+func (m *SonicAgent) ListPorts(ctx context.Context) (*agent.PortList, *agent.Status) {
+
+	return nil, nil
+}

@@ -1,0 +1,103 @@
+syntax = "proto3";
+
+package switchagent.v1;
+option go_package = "./switchagentproto";
+
+
+message Status {
+  uint32 code = 1;
+  string message = 2;
+}
+
+message GetDeviceInfoRequest {
+}
+
+message GetDeviceInfoResponse {
+  Status status = 1;
+  string hwsku = 2;
+  string local_mac_address = 3;
+  string sonic_os_version = 4;
+  string asic_type = 5;
+  uint32 readiness = 6;
+}
+
+
+// The interface message containing details about a single interface.
+message Interface {
+  string name = 1;
+  uint32 operational_status = 2;
+  uint32 admin_status = 3;
+  string mac_address = 4;
+}
+
+// The request message containing the parameters for the request.
+message ListInterfacesRequest {
+}
+
+// The response message containing the list of interfaces.
+message ListInterfacesResponse {
+  Status status = 1;
+  repeated Interface interfaces = 2;
+}
+
+message SetInterfaceAdminStatusRequest {
+  string interface_name = 1;
+  uint32 admin_status = 2;
+}
+
+message SetInterfaceAdminStatusResponse {
+  Status status = 1;
+  Interface interface = 2;
+}
+
+message ListPortsRequest {
+
+}
+
+message ListPortsResponse {
+  Status status = 1;
+  repeated Port ports = 2;
+}
+
+message Port {
+  string name = 1;
+}
+
+message GetInterfaceNeighborRequest {
+  string interface_name = 1;
+}
+
+message InterfaceNeighbor {
+  string interface_name = 1;
+  string neighbor_interface_name = 2;
+  string mac_address = 3;
+  string system_name = 4;
+}
+
+message GetInterfaceNeighborResponse {
+  Status status = 1;
+  InterfaceNeighbor neighbor = 2;
+}
+
+message GetInterfaceRequest {
+  string interface_name = 1;
+}
+
+message GetInterfaceResponse {
+  Status status = 1;
+  Interface interface = 2;
+}
+
+// The interface service definition.
+service SwitchAgentService {
+
+  rpc GetDeviceInfo(GetDeviceInfoRequest) returns (GetDeviceInfoResponse);
+  
+  rpc ListInterfaces(ListInterfacesRequest) returns (ListInterfacesResponse);
+  rpc SetInterfaceAdminStatus(SetInterfaceAdminStatusRequest) returns (SetInterfaceAdminStatusResponse);
+  rpc GetInterface(GetInterfaceRequest) returns (GetInterfaceResponse);
+  rpc GetInterfaceNeighbor(GetInterfaceNeighborRequest) returns (GetInterfaceNeighborResponse);
+
+  rpc ListPorts(ListPortsRequest) returns (ListPortsResponse);
+}
+
