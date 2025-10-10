@@ -117,6 +117,17 @@ string
 <p>SystemName is the name of the neighbor device.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>interfaceHandle</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>InterfaceHandle is the name of the remote switch interface.</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="networking.metal.ironcore.dev/v1alpha1.OperationState">OperationState
@@ -261,6 +272,17 @@ Management
 </em>
 </td>
 <td>
+</td>
+</tr>
+<tr>
+<td>
+<code>macAddress</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>MacAddress is the MAC address assigned to this interface.</p>
 </td>
 </tr>
 <tr>
@@ -432,6 +454,17 @@ SwitchInterfaceSpec
 <table>
 <tr>
 <td>
+<code>handle</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Handle uniquely identifies this interface on the switch.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>switchRef</code><br/>
 <em>
 <a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#localobjectreference-v1-core">
@@ -492,6 +525,17 @@ SwitchInterfaceStatus
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>
+<code>handle</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Handle uniquely identifies this interface on the switch.</p>
+</td>
+</tr>
 <tr>
 <td>
 <code>switchRef</code><br/>
@@ -623,6 +667,7 @@ string
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 <p>MacAddress is the MAC address assigned to this interface.</p>
 </td>
 </tr>
@@ -668,6 +713,17 @@ Management
 </em>
 </td>
 <td>
+</td>
+</tr>
+<tr>
+<td>
+<code>macAddress</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>MacAddress is the MAC address assigned to this interface.</p>
 </td>
 </tr>
 <tr>

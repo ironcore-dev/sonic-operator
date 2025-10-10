@@ -22,6 +22,9 @@ type Management struct {
 type SwitchSpec struct {
 	Management Management `json:"management,omitempty"`
 
+	// MacAddress is the MAC address assigned to this interface.
+	MacAddress string `json:"macAddress"`
+
 	// Ports the physical ports available on the Switch.
 	Ports []PortSpec `json:"ports,omitempty"`
 }

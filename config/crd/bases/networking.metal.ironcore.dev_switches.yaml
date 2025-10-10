@@ -43,6 +43,9 @@ spec:
           spec:
             description: spec defines the desired state of Switch
             properties:
+              macAddress:
+                description: MacAddress is the MAC address assigned to this interface.
+                type: string
               management:
                 properties:
                   credentials:
@@ -108,6 +111,8 @@ spec:
                   - name
                   type: object
                 type: array
+            required:
+            - macAddress
             type: object
           status:
             description: status defines the observed state of Switch
