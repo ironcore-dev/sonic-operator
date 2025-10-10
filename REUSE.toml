@@ -16,6 +16,7 @@ path = [
     "config/**",
     "go.mod",
     "go.sum",
+    "internal/ztp/templates/**",
     "REUSE.toml",
     "hack/**",
     ".devcontainer/**",
@@ -25,5 +26,3 @@ path = [
 precedence = "aggregate"
 SPDX-FileCopyrightText = "2025 SAP SE or an SAP affiliate company and IronCore contributors"
 SPDX-License-Identifier = "Apache-2.0"
-
-

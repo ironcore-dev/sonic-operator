@@ -1,0 +1,185 @@
+#!/usr/bin/env bash
+
+set -e
+
+# =============================
+# 1) CONFIGURABLE VARIABLES
+# =============================
+HOSTNAME="leaf-{{ .ID }}"
+LEAF_ID="{{ .ID }}"
+SEARCH_DOMAIN="{{ searchDomain }}"
+
+# Flag file to track progress between stages
+FLAG_FILE_STAGE_ONE="/etc/ztp_stage1_done"
+FLAG_FILE_STAGE_TWO="/etc/ztp_stage2_done"
+
+########################################
+# STAGE 1
+########################################
+if [ ! -f "$FLAG_FILE_STAGE_ONE" ]; then
+    echo "=== ZTP Stage 1: Setting up basic config & rebooting ==="
+
+    # 1. Set the hostname
+    config hostname "${HOSTNAME}"
+    config save -y
+
+    # 1a. Cleanup: stop and remove any existing sonic-exporter containers
+    if [ "$(docker ps -q -f name=sonic-exporter)" ]; then
+        echo "Stopping the running container: sonic-exporter"
+        docker stop sonic-exporter
+    fi
+    if [ "$(docker ps -a -q -f name=sonic-exporter)" ]; then
+        echo "Removing the container: sonic-exporter"
+        docker rm sonic-exporter
+    else
+        echo "No container found with name: sonic-exporter"
+    fi
+
+    # 1b. Download sonic-exporter oci image before we setup mgmt vrf, so we get it via oob
+    docker pull stordis/sonic-exporter:main
+    docker run -e SONIC_EXPORTER_ADDRESS="::" --name sonic-exporter --network=host --pid=host --privileged --restart=always -d -v /var/run/redis:/var/run/redis -v /usr/bin/vtysh:/usr/bin/vtysh -v /usr/bin/docker:/usr/bin/docker -v /var/run/docker.sock:/var/run/docker.sock -v /usr/bin/ntpq:/usr/bin/ntpq -v /usr/lib/x86_64-linux-gnu/:/usr/lib/x86_64-linux-gnu/ -v /usr/bin/cgexec:/usr/bin/cgexec --log-opt mode=non-blocking --log-opt max-buffer-size=4m --log-driver json-file --log-opt max-size=10m --log-opt max-file=3 --log-opt compress=true stordis/sonic-exporter:main
+
+    if [ "$(docker ps -q -f name=node-exporter)" ]; then
+        echo "Stopping the running container: node-exporter"
+        docker stop node-exporter
+    fi
+    if [ "$(docker ps -a -q -f name=node-exporter)" ]; then
+        echo "Removing the container: node-exporter"
+        docker rm node-exporter
+    else
+        echo "No container found with name: node-exporter"
+    fi
+
+    docker pull prom/node-exporter:v1.3.1
+    docker run --name node-exporter --network=host --pid=host --privileged --restart=always -d --log-opt mode=non-blocking --log-opt max-buffer-size=4m --log-driver json-file --log-opt max-size=10m --log-opt max-file=3 --log-opt compress=true -v /proc:/host/proc:ro -v /sys:/host/sys:ro -v /:/rootfs:ro prom/node-exporter:v1.3.1 --path.rootfs=/host --no-collector.fibrechannel --no-collector.infiniband --no-collector.ipvs --no-collector.mdadm --no-collector.nfs --no-collector.nfsd --no-collector.nvme --no-collector.os --no-collector.pressure --no-collector.tapestats --no-collector.zfs --no-collector.netstat --no-collector.arp
+
+    # 2. Modify config_db.json using jq
+    jq '.DEVICE_METADATA.localhost += {"docker_routing_config_mode": "split"}
+         | .DEVICE_METADATA.localhost.type = "ToRRouter"
+         | . += {"MGMT_VRF_CONFIG": {"vrf_global": {"mgmtVrfEnabled": "true"}}}' \
+       /etc/sonic/config_db.json > /tmp/config_db.json
+
+    cp /tmp/config_db.json /etc/sonic/config_db.json
+
+    # 3. Mark Stage 1 complete
+    touch "$FLAG_FILE_STAGE_ONE"
+
+    echo "Rebooting to apply Stage 1 changes..."
+    reboot
+
+    exit 0
+fi
+
+########################################
+# STAGE 2
+########################################
+if [ ! -f "$FLAG_FILE_STAGE_TWO" ]; then
+    echo "=== ZTP Stage 2: Post-reboot configuration ==="
+
+    # Configure Loopback0 with the first IP address out of the base prefix, using a /128 subnet
+    config interface ip add Loopback0 {{ .IP }}
+
+    # 1. Interface breakouts for Ethernet0..100 in 4x25G mode
+    for i in {0..100..4}; do
+        config interface breakout -y Ethernet$i 4x25G
+    done
+
+    # 2. Configure VLANs, FEC, MTU, IP addresses, etc. for Ethernet0..103
+{{- range $i := 104 }}
+    config interface mtu Ethernet{{ $i }} 9100
+    config interface fec Ethernet{{ $i }} none
+    config interface speed Ethernet{{ $i }} 25000
+    {{ $vlanID := add $i 1001 -}}
+    config vlan add {{ $vlanID }}
+    config vlan member add {{ $vlanID }} Ethernet{{ $i }} -u
+    config interface ip add Vlan{{ $vlanID }} {{ interfacePrefix $.Prefix $i }}
+    config vlan dhcp_relay add {{ $vlanID }} {{ dhcpServerAddr }}
+    config interface startup Ethernet{{ $i }}
+
+{{ end }}
+
+    # 3. Configure MTU/FEC for Ethernet104..124
+    for i in {104..124..4}; do
+        config interface mtu Ethernet$i 9100
+        config interface fec Ethernet$i rs
+    done
+
+    # 4. Enable IPv6 link-local
+    config ipv6 enable link-local
+
+    # 5. Save running config
+    config save -y
+
+    # 6. Update FRR (BGP) configuration
+    cat <<EOF >/etc/sonic/frr/frr.conf
+    frr version 8.1
+    frr defaults traditional
+    hostname ${HOSTNAME}.${SEARCH_DOMAIN}
+    log syslog informational
+    service integrated-vtysh-config
+    $(for ETH_PORT in {0..103}; do
+      echo "interface Vlan$(($ETH_PORT+1001))"
+      echo "  no ipv6 nd suppress-ra"
+      echo "  ipv6 nd managed-config-flag"
+      echo "  ipv6 nd other-config-flag"
+      echo ""
+    done)
+
+    router bgp {{ .ASNumber }}
+      bgp router-id 1.0.$((LEAF_ID / 256)).$((LEAF_ID % 256))
+      no bgp ebgp-requires-policy
+      no bgp default ipv4-unicast
+      bgp bestpath as-path multipath-relax
+      no bgp network import-check
+      neighbor NORTH peer-group
+      neighbor NORTH remote-as external
+      neighbor NORTH timers 3 9
+      neighbor NORTH timers connect 20
+      neighbor Ethernet120 interface peer-group NORTH
+      neighbor Ethernet124 interface peer-group NORTH
+
+      neighbor SOUTH peer-group
+      neighbor SOUTH remote-as external
+      neighbor SOUTH timers 3 9
+      neighbor SOUTH timers connect 20
+    $(for ETH_PORT in {0..103}; do
+      echo "  neighbor Vlan$(($ETH_PORT+1001)) interface peer-group SOUTH"
+    done)
+
+      address-family ipv6 unicast
+        network {{ .Prefix }}
+
+        neighbor NORTH activate
+        neighbor NORTH route-map RM_NORTH_IN in
+        neighbor NORTH route-map RM_NORTH_OUT out
+
+        neighbor SOUTH activate
+        neighbor SOUTH route-map RM_SOUTH_IN in
+        neighbor SOUTH route-map RM_SOUTH_OUT out
+      exit-address-family
+    exit
+
+    route-map RM_NORTH_IN permit 10
+      set community 65000:100
+    !
+    bgp community-list 10 permit 65000:100
+
+    route-map RM_NORTH_OUT deny 10
+      match community 10
+    route-map RM_NORTH_OUT permit 20
+    !
+    route-map RM_SOUTH_IN permit 10
+    route-map RM_SOUTH_OUT permit 10
+    !
+    ipv6 route {{ .Prefix }} reject
+EOF
+
+    # 7. Restart BGP to load new config
+    systemctl restart bgp
+
+    # 8. Stop ZTP daemon
+    touch "$FLAG_FILE_STAGE_TWO"
+    echo "=== ZTP Stage 2 complete. Provisioning done, rebooting! ==="
+    reboot
+fi
+exit 0
