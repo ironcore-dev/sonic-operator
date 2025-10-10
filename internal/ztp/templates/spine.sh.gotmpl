@@ -1,0 +1,118 @@
+#!/bin/bash
+set -e
+
+# =============================
+# 1) CONFIGURABLE VARIABLES
+# =============================
+HOSTNAME="spine-{{ .ID }}"
+SPINE_ID="{{ .ID }}"
+SEARCH_DOMAIN="{{ searchDomain }}"
+
+# Flag file to track progress between stages
+FLAG_FILE="/etc/ztp_stage1_done"
+
+########################################
+# STAGE 1
+########################################
+if [ ! -f "$FLAG_FILE" ]; then
+    echo "=== ZTP Stage 1: Setting up basic config & rebooting ==="
+
+    # 1. Set the hostname
+    config hostname "${HOSTNAME}"
+    config save -y
+
+    # 1b. Download sonic-exporter oci image before we setup mgmt vrf, so we get it via oob
+    docker pull stordis/sonic-exporter:main
+    docker run -e SONIC_EXPORTER_ADDRESS="::" --name sonic-exporter --network=host --pid=host --privileged --restart=always -d -v /var/run/redis:/var/run/redis -v /usr/bin/vtysh:/usr/bin/vtysh -v /usr/bin/docker:/usr/bin/docker -v /var/run/docker.sock:/var/run/docker.sock -v /usr/bin/ntpq:/usr/bin/ntpq -v /usr/lib/x86_64-linux-gnu/:/usr/lib/x86_64-linux-gnu/ -v /usr/bin/cgexec:/usr/bin/cgexec --log-opt mode=non-blocking --log-opt max-buffer-size=4m --log-driver json-file --log-opt max-size=10m --log-opt max-file=3 --log-opt compress=true stordis/sonic-exporter:main
+
+    docker pull prom/node-exporter:v1.3.1
+    docker run --name node-exporter --network=host --pid=host --privileged --restart=always -d --log-opt mode=non-blocking --log-opt max-buffer-size=4m --log-driver json-file --log-opt max-size=10m --log-opt max-file=3 --log-opt compress=true -v /proc:/host/proc:ro -v /sys:/host/sys:ro -v /:/rootfs:ro prom/node-exporter:v1.3.1 --path.rootfs=/host --no-collector.fibrechannel --no-collector.infiniband --no-collector.ipvs --no-collector.mdadm --no-collector.nfs --no-collector.nfsd --no-collector.nvme --no-collector.os --no-collector.pressure --no-collector.tapestats --no-collector.zfs --no-collector.netstat --no-collector.arp
+
+    # 2. Modify config_db.json using jq
+    jq '.DEVICE_METADATA.localhost += {"docker_routing_config_mode": "split"}
+         | .DEVICE_METADATA.localhost.type = "ToRRouter"
+         | . += {"MGMT_VRF_CONFIG": {"vrf_global": {"mgmtVrfEnabled": "true"}}}' \
+       /etc/sonic/config_db.json > /tmp/config_db.json
+
+    cp /tmp/config_db.json /etc/sonic/config_db.json
+
+    # 3. Mark Stage 1 complete
+    touch "$FLAG_FILE"
+
+    echo "Rebooting to apply Stage 1 changes..."
+    reboot
+
+    exit 0
+fi
+
+########################################
+# STAGE 2
+########################################
+echo "=== ZTP Stage 2: Post-reboot configuration ==="
+
+# Configure Loopback0 with the first IP address out of the base prefix, using a /128 subnet
+config interface ip add Loopback0 {{ .IP }}
+
+
+# 2. Configure VLANs, FEC, MTU, IP addresses, etc. for Ethernet0..103
+for i in {0..124..4}; do
+    config interface mtu Ethernet$i 9100
+    config interface fec Ethernet$i rs
+    config interface speed Ethernet$i 100000
+
+    config interface startup Ethernet$i
+done
+
+# 4. Enable IPv6 link-local
+config ipv6 enable link-local
+
+# 5. Save running config
+config save -y
+
+# 6. Update FRR (BGP) configuration
+cat <<EOF >/etc/sonic/frr/frr.conf
+frr version 8.1
+frr defaults traditional
+hostname ${HOSTNAME}.${SEARCH_DOMAIN}
+log syslog informational
+service integrated-vtysh-config
+
+router bgp {{ .ASNumber }}
+  bgp router-id 2.0.$((SPINE_ID / 256)).$((SPINE_ID % 256))
+  no bgp ebgp-requires-policy
+  no bgp default ipv4-unicast
+  bgp bestpath as-path multipath-relax
+  no bgp network import-check
+
+  neighbor LEAFS peer-group
+  neighbor LEAFS remote-as external
+  neighbor LEAFS timers 3 9
+  neighbor LEAFS timers connect 20
+$(for ETH_PORT in {0..124..4}; do
+  echo "  neighbor Ethernet$(($ETH_PORT)) interface peer-group LEAFS"
+done)
+
+  address-family ipv6 unicast
+    network {{ .Prefix }}
+
+    neighbor LEAFS activate
+    neighbor LEAFS route-map RM_LEAFS_IN in
+    neighbor LEAFS route-map RM_LEAFS_OUT out
+  exit-address-family
+exit
+
+route-map RM_LEAFS_IN permit 10
+route-map RM_LEAFS_OUT permit 10
+!
+ipv6 route {{ .Prefix }} reject
+EOF
+
+# 7. Restart BGP to load new config
+systemctl restart bgp
+
+# 8. Stop ZTP daemon
+systemctl stop ztp
+config ztp disable
+
+echo "=== ZTP Stage 2 complete. Provisioning done! ==="
+exit 0
