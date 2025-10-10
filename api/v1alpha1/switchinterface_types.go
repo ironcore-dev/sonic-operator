@@ -23,7 +23,7 @@ type SwitchInterfaceSpec struct {
 
 	// SwitchRef is a reference to the Switch this interface is connected to.
 	// +required
-	SwitchRef v1.LocalObjectReference `json:"switchRef"`
+	SwitchRef *v1.LocalObjectReference `json:"switchRef"`
 
 	// AdminState represents the desired administrative state of the interface.
 	// +optional

@@ -810,6 +810,39 @@ SwitchState
 </tr>
 <tr>
 <td>
+<code>macAddress</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>MACAddress is the MAC address assigned to this switch.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>firmwareVersion</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>FirmwareVersion is the firmware version running on this switch.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>sku</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>SKU is the stock keeping unit of this switch.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>conditions</code><br/>
 <em>
 <a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#condition-v1-meta">

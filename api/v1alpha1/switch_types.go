@@ -8,6 +8,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+var (
+	SwitchFinalizer = "networking.metal.ironcore.dev/switch-operator"
+)
+
 type PortSpec struct {
 	Name string `json:"name"`
 }
@@ -55,6 +59,15 @@ type SwitchStatus struct {
 	// Ports represents the status of each port on the Switch.
 	// +optional
 	Ports []PortStatus `json:"ports,omitempty"`
+
+	// MACAddress is the MAC address assigned to this switch.
+	MACAddress string `json:"macAddress,omitempty"`
+
+	// FirmwareVersion is the firmware version running on this switch.
+	FirmwareVersion string `json:"firmwareVersion,omitempty"`
+
+	// SKU is the stock keeping unit of this switch.
+	SKU string `json:"sku,omitempty"`
 
 	// The status of each condition is one of True, False, or Unknown.
 	// +listType=map

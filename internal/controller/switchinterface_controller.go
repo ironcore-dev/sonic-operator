@@ -6,6 +6,9 @@ package controller
 import (
 	"context"
 
+	"github.com/go-logr/logr"
+	"github.com/ironcore-dev/controller-utils/clientutils"
+	"github.com/ironcore-dev/switch-operator/internal/agent"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -26,18 +29,71 @@ type SwitchInterfaceReconciler struct {
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
-// TODO(user): Modify the Reconcile function to compare the state specified by
-// the SwitchInterface object against the actual cluster state, and then
-// perform operations to make the cluster state reflect the state specified by
-// the user.
-//
-// For more details, check Reconcile and its Result here:
-// - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.22.1/pkg/reconcile
 func (r *SwitchInterfaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	_ = logf.FromContext(ctx)
+	log := logf.FromContext(ctx)
+	i := &networkingv1alpha1.SwitchInterface{}
+	if err := r.Get(ctx, req.NamespacedName, i); err != nil {
+		return ctrl.Result{}, client.IgnoreNotFound(err)
+	}
 
-	// TODO(user): your logic here
+	return r.reconileExists(ctx, log, i)
+}
 
+func (r *SwitchInterfaceReconciler) reconileExists(ctx context.Context, log logr.Logger, i *networkingv1alpha1.SwitchInterface) (ctrl.Result, error) {
+	if !i.DeletionTimestamp.IsZero() {
+		return r.delete(ctx, log, i)
+	}
+	return r.reconcile(ctx, log, i)
+}
+
+func (r *SwitchInterfaceReconciler) delete(ctx context.Context, log logr.Logger, i *networkingv1alpha1.SwitchInterface) (ctrl.Result, error) {
+	log.Info("Deleting SwitchInterface")
+
+	// TODO: do cleanup
+
+	if _, err := clientutils.PatchEnsureNoFinalizer(ctx, r.Client, i, networkingv1alpha1.SwitchFinalizer); err != nil {
+		return ctrl.Result{}, err
+	}
+
+	log.Info("Deleted SwitchInterface")
+	return ctrl.Result{}, nil
+}
+
+func (r *SwitchInterfaceReconciler) reconcile(ctx context.Context, log logr.Logger, i *networkingv1alpha1.SwitchInterface) (ctrl.Result, error) {
+	log.Info("Reconciling SwitchInterface")
+
+	if modified, err := clientutils.PatchEnsureFinalizer(ctx, r.Client, i, networkingv1alpha1.SwitchFinalizer); err != nil || modified {
+		return ctrl.Result{}, err
+	}
+
+	defer func() {
+		if err := r.Status().Patch(ctx, i, client.MergeFrom(i)); err != nil {
+			log.Error(err, "Failed to update Switch status")
+		}
+	}()
+
+	if i.Status.State == "" {
+		i.Status.State = networkingv1alpha1.SwitchInterfaceStatePending
+		return ctrl.Result{}, nil
+	}
+
+	switchAgentClient, err := agent.NewAgentClientForInterface(ctx, i)
+	if err != nil {
+		i.Status.State = networkingv1alpha1.SwitchInterfaceStateFailed
+		return ctrl.Result{}, err
+	}
+
+	interfaceInfo, err := switchAgentClient.GetInterface(ctx, i.Name)
+	if err != nil {
+		i.Status.State = networkingv1alpha1.SwitchInterfaceStateFailed
+		return ctrl.Result{}, err
+	}
+
+	i.Status.AdminState = networkingv1alpha1.AdminState(interfaceInfo.AdminState)
+
+	// TODO: do neighbor discovery and ensure i.spec.AdminState is applied
+
+	log.Info("Reconciled SwitchInterface")
 	return ctrl.Result{}, nil
 }
 
