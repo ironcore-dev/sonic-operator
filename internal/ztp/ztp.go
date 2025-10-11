@@ -64,12 +64,12 @@ type SwitchParameters struct {
 	ASNumber int          `json:"as_number"`
 }
 
-type Handler struct {
+type handler struct {
 	t *template.Template
 	m map[netip.Addr]SwitchParameters
 }
 
-func NewZTPHandler(c Config) *Handler {
+func Register(mux *http.ServeMux, c Config) {
 	t := template.New("ztp-scripts")
 	t = t.Funcs(template.FuncMap{
 		"add":             func(a, b int) int { return a + b },
@@ -79,10 +79,7 @@ func NewZTPHandler(c Config) *Handler {
 	})
 	t = template.Must(t.ParseFS(templateFS, "templates/*.gotmpl"))
 
-	return &Handler{
-		t: t,
-		m: c.SwitchParams,
-	}
+	mux.Handle("GET /ztp", &handler{t: t, m: c.SwitchParams})
 }
 
 // interfacePrefix takes the interface ID and the /64 prefix of the switch and
@@ -101,7 +98,7 @@ func interfacePrefix(prefix netip.Prefix, interfaceID int) (string, error) {
 	return prefix.String(), nil
 }
 
-func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ap, err := netip.ParseAddrPort(r.RemoteAddr)
 	if err != nil {
 		handleErr(w, err)
