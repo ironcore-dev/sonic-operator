@@ -176,6 +176,36 @@ func (s *proxyServer) GetInterface(ctx context.Context, request *pb.GetInterface
 	}, nil
 }
 
+func (s *proxyServer) GetInterfaceNeighbor(ctx context.Context, request *pb.GetInterfaceNeighborRequest) (*pb.GetInterfaceNeighborResponse, error) {
+	ifaceNeighbor, status := s.SwitchAgent.GetInterfaceNeighbor(ctx, &agent.Interface{
+		TypeMeta: agent.TypeMeta{
+			Kind: agent.InterfaceKind,
+		},
+		Name: request.GetInterfaceName(),
+	})
+	if status != nil {
+		return &pb.GetInterfaceNeighborResponse{
+			Status: &pb.Status{
+				Code:    status.Code,
+				Message: fmt.Sprintf("failed to get interface neighbor: %v", status.Message),
+			},
+		}, nil
+	}
+
+	return &pb.GetInterfaceNeighborResponse{
+		Status: &pb.Status{
+			Code:    0,
+			Message: "Success",
+		},
+		Interface: request.GetInterfaceName(),
+		Neighbor: &pb.InterfaceNeighbor{
+			MacAddress:            ifaceNeighbor.MacAddress,
+			NeighborInterfaceName: ifaceNeighbor.Handle,
+			SystemName:            ifaceNeighbor.SystemName,
+		},
+	}, nil
+}
+
 func StartServer() {
 	flag.Parse()
 

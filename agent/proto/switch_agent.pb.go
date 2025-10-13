@@ -643,10 +643,9 @@ func (x *GetInterfaceNeighborRequest) GetInterfaceName() string {
 
 type InterfaceNeighbor struct {
 	state                 protoimpl.MessageState `protogen:"open.v1"`
-	InterfaceName         string                 `protobuf:"bytes,1,opt,name=interface_name,json=interfaceName,proto3" json:"interface_name,omitempty"`
-	NeighborInterfaceName string                 `protobuf:"bytes,2,opt,name=neighbor_interface_name,json=neighborInterfaceName,proto3" json:"neighbor_interface_name,omitempty"`
-	MacAddress            string                 `protobuf:"bytes,3,opt,name=mac_address,json=macAddress,proto3" json:"mac_address,omitempty"`
-	SystemName            string                 `protobuf:"bytes,4,opt,name=system_name,json=systemName,proto3" json:"system_name,omitempty"`
+	NeighborInterfaceName string                 `protobuf:"bytes,1,opt,name=neighbor_interface_name,json=neighborInterfaceName,proto3" json:"neighbor_interface_name,omitempty"`
+	MacAddress            string                 `protobuf:"bytes,2,opt,name=mac_address,json=macAddress,proto3" json:"mac_address,omitempty"`
+	SystemName            string                 `protobuf:"bytes,3,opt,name=system_name,json=systemName,proto3" json:"system_name,omitempty"`
 	unknownFields         protoimpl.UnknownFields
 	sizeCache             protoimpl.SizeCache
 }
@@ -681,13 +680,6 @@ func (*InterfaceNeighbor) Descriptor() ([]byte, []int) {
 	return file_agent_proto_switch_agent_proto_rawDescGZIP(), []int{12}
 }
 
-func (x *InterfaceNeighbor) GetInterfaceName() string {
-	if x != nil {
-		return x.InterfaceName
-	}
-	return ""
-}
-
 func (x *InterfaceNeighbor) GetNeighborInterfaceName() string {
 	if x != nil {
 		return x.NeighborInterfaceName
@@ -712,7 +704,8 @@ func (x *InterfaceNeighbor) GetSystemName() string {
 type GetInterfaceNeighborResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Status        *Status                `protobuf:"bytes,1,opt,name=status,proto3" json:"status,omitempty"`
-	Neighbor      *InterfaceNeighbor     `protobuf:"bytes,2,opt,name=neighbor,proto3" json:"neighbor,omitempty"`
+	Interface     string                 `protobuf:"bytes,2,opt,name=interface,proto3" json:"interface,omitempty"`
+	Neighbor      *InterfaceNeighbor     `protobuf:"bytes,3,opt,name=neighbor,proto3" json:"neighbor,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -752,6 +745,13 @@ func (x *GetInterfaceNeighborResponse) GetStatus() *Status {
 		return x.Status
 	}
 	return nil
+}
+
+func (x *GetInterfaceNeighborResponse) GetInterface() string {
+	if x != nil {
+		return x.Interface
+	}
+	return ""
 }
 
 func (x *GetInterfaceNeighborResponse) GetNeighbor() *InterfaceNeighbor {
@@ -899,17 +899,17 @@ const file_agent_proto_switch_agent_proto_rawDesc = "" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x14\n" +
 	"\x05alias\x18\x02 \x01(\tR\x05alias\"D\n" +
 	"\x1bGetInterfaceNeighborRequest\x12%\n" +
-	"\x0einterface_name\x18\x01 \x01(\tR\rinterfaceName\"\xb4\x01\n" +
-	"\x11InterfaceNeighbor\x12%\n" +
-	"\x0einterface_name\x18\x01 \x01(\tR\rinterfaceName\x126\n" +
-	"\x17neighbor_interface_name\x18\x02 \x01(\tR\x15neighborInterfaceName\x12\x1f\n" +
-	"\vmac_address\x18\x03 \x01(\tR\n" +
+	"\x0einterface_name\x18\x01 \x01(\tR\rinterfaceName\"\x8d\x01\n" +
+	"\x11InterfaceNeighbor\x126\n" +
+	"\x17neighbor_interface_name\x18\x01 \x01(\tR\x15neighborInterfaceName\x12\x1f\n" +
+	"\vmac_address\x18\x02 \x01(\tR\n" +
 	"macAddress\x12\x1f\n" +
-	"\vsystem_name\x18\x04 \x01(\tR\n" +
-	"systemName\"\x8d\x01\n" +
+	"\vsystem_name\x18\x03 \x01(\tR\n" +
+	"systemName\"\xab\x01\n" +
 	"\x1cGetInterfaceNeighborResponse\x12.\n" +
-	"\x06status\x18\x01 \x01(\v2\x16.switchagent.v1.StatusR\x06status\x12=\n" +
-	"\bneighbor\x18\x02 \x01(\v2!.switchagent.v1.InterfaceNeighborR\bneighbor\"<\n" +
+	"\x06status\x18\x01 \x01(\v2\x16.switchagent.v1.StatusR\x06status\x12\x1c\n" +
+	"\tinterface\x18\x02 \x01(\tR\tinterface\x12=\n" +
+	"\bneighbor\x18\x03 \x01(\v2!.switchagent.v1.InterfaceNeighborR\bneighbor\"<\n" +
 	"\x13GetInterfaceRequest\x12%\n" +
 	"\x0einterface_name\x18\x01 \x01(\tR\rinterfaceName\"\x7f\n" +
 	"\x14GetInterfaceResponse\x12.\n" +

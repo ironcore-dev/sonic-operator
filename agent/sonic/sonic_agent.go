@@ -428,8 +428,63 @@ func (m *SonicAgent) GetInterface(ctx context.Context, iface *agent.Interface) (
 }
 
 func (m *SonicAgent) GetInterfaceNeighbor(ctx context.Context, iface *agent.Interface) (*agent.InterfaceNeighbor, *agent.Status) {
+	if iface == nil || iface.Name == "" {
+		return nil, errors.NewErrorStatus(errors.BAD_REQUEST, "interface name cannot be empty")
+	}
 
-	return nil, nil
+	applDB, err := m.Connect("APPL_DB")
+	if err != nil {
+		return nil, errors.NewErrorStatus(errors.BAD_REQUEST, fmt.Sprintf("failed to connect to APPL_DB: %v", err))
+	}
+
+	lldpKey := fmt.Sprintf("LLDP_ENTRY_TABLE:%s", iface.Name)
+
+	// Check if LLDP entry exists for this interface
+	exists, err := applDB.Exists(ctx, lldpKey).Result()
+	if err != nil {
+		return nil, errors.NewErrorStatus(errors.BAD_REQUEST, fmt.Sprintf("failed to check LLDP entry existence: %v", err))
+	}
+	if exists == 0 {
+		return nil, errors.NewErrorStatus(errors.NOT_FOUND, fmt.Sprintf("no LLDP neighbor found for interface %s", iface.Name))
+	}
+
+	// Get all LLDP fields
+	lldpFields, err := applDB.HGetAll(ctx, lldpKey).Result()
+	if err != nil {
+		return nil, errors.NewErrorStatus(errors.BAD_REQUEST, fmt.Sprintf("failed to get LLDP entry: %v", err))
+	}
+
+	// MacAddress from lldp_rem_chassis_id (when chassis_id_subtype is 4 - MAC address)
+	macAddress := lldpFields["lldp_rem_chassis_id"]
+
+	// SystemName from lldp_rem_sys_name
+	systemName := lldpFields["lldp_rem_sys_name"]
+
+	// Handle (remote interface name) from lldp_rem_port_desc
+	// Note: lldp_rem_port_id contains "Eth5(Port5)" format, lldp_rem_port_desc contains "Ethernet16"
+	handle := lldpFields["lldp_rem_port_desc"]
+	if handle == "" {
+		// Fallback to lldp_rem_port_id if port_desc is not available
+		handle = lldpFields["lldp_rem_port_id"]
+	}
+
+	// Validate that we have the essential information
+	if macAddress == "" || systemName == "" {
+		return nil, errors.NewErrorStatus(errors.NOT_FOUND, fmt.Sprintf("incomplete LLDP information for interface %s", iface.Name))
+	}
+
+	neighbor := &agent.InterfaceNeighbor{
+		TypeMeta: agent.TypeMeta{
+			Kind: agent.InterfaceNeighborKind,
+		},
+		Name:       iface.Name, // Interface name of yourself
+		MacAddress: macAddress,
+		SystemName: systemName,
+		Handle:     handle, // Remote interface name
+		Status:     agent.Status{Code: 0, Message: "ok"},
+	}
+
+	return neighbor, nil
 }
 
 func (m *SonicAgent) ListPorts(ctx context.Context) (*agent.PortList, *agent.Status) {
