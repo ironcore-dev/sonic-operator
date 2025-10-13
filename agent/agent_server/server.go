@@ -146,6 +146,36 @@ func (s *proxyServer) ListPorts(ctx context.Context, request *pb.ListPortsReques
 	}, nil
 }
 
+func (s *proxyServer) GetInterface(ctx context.Context, request *pb.GetInterfaceRequest) (*pb.GetInterfaceResponse, error) {
+	iface, status := s.SwitchAgent.GetInterface(ctx, &agent.Interface{
+		TypeMeta: agent.TypeMeta{
+			Kind: agent.InterfaceKind,
+		},
+		Name: request.GetInterfaceName(),
+	})
+	if status != nil {
+		return &pb.GetInterfaceResponse{
+			Status: &pb.Status{
+				Code:    status.Code,
+				Message: fmt.Sprintf("failed to get interface: %v", status.Message),
+			},
+		}, nil
+	}
+
+	return &pb.GetInterfaceResponse{
+		Status: &pb.Status{
+			Code:    0,
+			Message: "Success",
+		},
+		Interface: &pb.Interface{
+			Name:              iface.Name,
+			MacAddress:        iface.MacAddress,
+			OperationalStatus: iface.OperationStatus,
+			AdminStatus:       iface.AdminStatus,
+		},
+	}, nil
+}
+
 func StartServer() {
 	flag.Parse()
 

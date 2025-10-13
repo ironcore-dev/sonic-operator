@@ -357,8 +357,74 @@ func (m *SonicAgent) SetInterfaceAdminStatus(ctx context.Context, iface *agent.I
 }
 
 func (m *SonicAgent) GetInterface(ctx context.Context, iface *agent.Interface) (*agent.Interface, *agent.Status) {
+	// Validate input
+	if iface == nil || iface.Name == "" {
+		return nil, errors.NewErrorStatus(errors.BAD_REQUEST, "interface name cannot be empty")
+	}
 
-	return nil, nil
+	configDB, err := m.Connect("CONFIG_DB")
+	if err != nil {
+		return nil, errors.NewErrorStatus(errors.BAD_REQUEST, fmt.Sprintf("failed to connect to CONFIG_DB: %v", err))
+	}
+
+	// Connect to STATE_DB for operational status
+	stateDB, err := m.Connect("STATE_DB")
+	if err != nil {
+		return nil, errors.NewErrorStatus(errors.BAD_REQUEST, fmt.Sprintf("failed to connect to STATE_DB: %v", err))
+	}
+
+	// Check if interface exists in CONFIG_DB
+	portKey := fmt.Sprintf("PORT|%s", iface.Name)
+	exists, err := configDB.Exists(ctx, portKey).Result()
+	if err != nil {
+		return nil, errors.NewErrorStatus(errors.BAD_REQUEST, fmt.Sprintf("failed to check interface existence: %v", err))
+	}
+	if exists == 0 {
+		return nil, errors.NewErrorStatus(errors.NOT_FOUND, fmt.Sprintf("interface %s not found", iface.Name))
+	}
+
+	// Get operational status from STATE_DB
+	stateKey := fmt.Sprintf("PORT_TABLE|%s", iface.Name)
+	stateFields, err := stateDB.HGetAll(ctx, stateKey).Result()
+	if err != nil {
+		// If state info is not available, use default values
+		stateFields = make(map[string]string)
+	}
+
+	// Determine operational status
+	operStatus := agent.StatusDown
+	if stateFields["netdev_oper_status"] == "up" {
+		operStatus = agent.StatusUp
+	}
+
+	adminStatus := agent.StatusDown
+	if stateFields["admin_status"] == "up" {
+		adminStatus = agent.StatusUp
+	}
+
+	// Get interface MAC address using netlink
+	link, err := netlink.LinkByName(iface.Name)
+	if err != nil {
+		return nil, errors.NewErrorStatus(errors.NOT_FOUND, fmt.Sprintf("failed to get interface %s: %v", iface.Name, err))
+	}
+
+	mac := link.Attrs().HardwareAddr
+	if mac == nil {
+		return nil, errors.NewErrorStatus(errors.NOT_FOUND, fmt.Sprintf("no MAC address found for interface %s", iface.Name))
+	}
+
+	resultInterface := &agent.Interface{
+		TypeMeta: agent.TypeMeta{
+			Kind: agent.InterfaceKind,
+		},
+		Name:            iface.Name,
+		MacAddress:      mac.String(),
+		OperationStatus: uint32(operStatus),
+		AdminStatus:     uint32(adminStatus),
+		Status:          agent.Status{Code: 0, Message: "ok"},
+	}
+
+	return resultInterface, nil
 }
 
 func (m *SonicAgent) GetInterfaceNeighbor(ctx context.Context, iface *agent.Interface) (*agent.InterfaceNeighbor, *agent.Status) {
