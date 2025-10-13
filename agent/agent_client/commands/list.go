@@ -21,6 +21,7 @@ func List() *cobra.Command {
 
 	subcommands := []*cobra.Command{
 		ListInterfaces(printRenderer),
+		ListPorts(printRenderer),
 	}
 
 	cmd.AddCommand(subcommands...)

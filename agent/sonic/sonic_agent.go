@@ -288,7 +288,6 @@ func (m *SonicAgent) ListInterfaces(ctx context.Context) (*agent.InterfaceList, 
 	}, nil
 }
 
-// rdb: redis-cli
 func (m *SonicAgent) SetInterfaceAdminStatus(ctx context.Context, iface *agent.Interface) (*agent.Interface, *agent.Status) {
 	configDB, err := m.Connect("CONFIG_DB")
 	if err != nil {
@@ -368,6 +367,61 @@ func (m *SonicAgent) GetInterfaceNeighbor(ctx context.Context, iface *agent.Inte
 }
 
 func (m *SonicAgent) ListPorts(ctx context.Context) (*agent.PortList, *agent.Status) {
+	// Connect to APPL_DB (table 0)
+	applDB, err := m.Connect("APPL_DB")
+	if err != nil {
+		return nil, errors.NewErrorStatus(errors.BAD_REQUEST, fmt.Sprintf("failed to connect to APPL_DB: %v", err))
+	}
 
-	return nil, nil
+	// List keys starting with PORT_TABLE
+	pattern := "PORT_TABLE:*"
+	keys, err := applDB.Keys(ctx, pattern).Result()
+	if err != nil {
+		return nil, errors.NewErrorStatus(errors.BAD_REQUEST, fmt.Sprintf("failed to obtain PORT_TABLE keys: %v", err))
+	}
+
+	ports := make([]agent.Port, 0)
+	for _, key := range keys {
+		var portName string
+		if _, err := fmt.Sscanf(key, "PORT_TABLE:%s", &portName); err != nil {
+			continue // Skip malformed keys
+		}
+
+		// Get the port configuration
+		fields, err := applDB.HGetAll(ctx, key).Result()
+		if err != nil {
+			continue // Skip if we can't get the fields
+		}
+
+		// Check if this represents a physical port by examining the "parent_port" field
+		// If parent_port equals the port name itself, it's a physical port
+		parentPort, exists := fields["parent_port"]
+		if !exists || parentPort != portName {
+			continue // Skip non-physical ports (sub-interfaces, VLANs, etc.)
+		}
+
+		// Get alias if available
+		alias := fields["alias"]
+		if alias == "" {
+			alias = portName // Use port name as alias if not specified
+		}
+
+		port := agent.Port{
+			TypeMeta: agent.TypeMeta{
+				Kind: agent.PortKind,
+			},
+			Name:   portName,
+			Alias:  alias,
+			Status: agent.Status{Code: 0, Message: "ok"},
+		}
+		ports = append(ports, port)
+	}
+
+	return &agent.PortList{
+		TypeMeta: agent.TypeMeta{
+			Kind: agent.PortListKind,
+		},
+		Items:  ports,
+		Status: agent.Status{Code: 0, Message: "ok"},
+	}, nil
 }

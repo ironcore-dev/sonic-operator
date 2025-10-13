@@ -548,6 +548,7 @@ func (x *ListPortsResponse) GetPorts() []*Port {
 type Port struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Alias         string                 `protobuf:"bytes,2,opt,name=alias,proto3" json:"alias,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -585,6 +586,13 @@ func (*Port) Descriptor() ([]byte, []int) {
 func (x *Port) GetName() string {
 	if x != nil {
 		return x.Name
+	}
+	return ""
+}
+
+func (x *Port) GetAlias() string {
+	if x != nil {
+		return x.Alias
 	}
 	return ""
 }
@@ -886,9 +894,10 @@ const file_agent_proto_switch_agent_proto_rawDesc = "" +
 	"\x10ListPortsRequest\"o\n" +
 	"\x11ListPortsResponse\x12.\n" +
 	"\x06status\x18\x01 \x01(\v2\x16.switchagent.v1.StatusR\x06status\x12*\n" +
-	"\x05ports\x18\x02 \x03(\v2\x14.switchagent.v1.PortR\x05ports\"\x1a\n" +
+	"\x05ports\x18\x02 \x03(\v2\x14.switchagent.v1.PortR\x05ports\"0\n" +
 	"\x04Port\x12\x12\n" +
-	"\x04name\x18\x01 \x01(\tR\x04name\"D\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12\x14\n" +
+	"\x05alias\x18\x02 \x01(\tR\x05alias\"D\n" +
 	"\x1bGetInterfaceNeighborRequest\x12%\n" +
 	"\x0einterface_name\x18\x01 \x01(\tR\rinterfaceName\"\xb4\x01\n" +
 	"\x11InterfaceNeighbor\x12%\n" +

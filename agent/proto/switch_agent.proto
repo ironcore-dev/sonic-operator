@@ -61,6 +61,7 @@ message ListPortsResponse {
 
 message Port {
   string name = 1;
+  string alias = 2;
 }
 
 message GetInterfaceNeighborRequest {

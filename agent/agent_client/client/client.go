@@ -227,7 +227,8 @@ func (c *defaultSwitchAgentClient) ListPorts(ctx context.Context) (*agent.PortLi
 			TypeMeta: agent.TypeMeta{
 				Kind: agent.PortKind,
 			},
-			Name: port.GetName(),
+			Name:  port.GetName(),
+			Alias: port.GetAlias(),
 		}
 	}
 

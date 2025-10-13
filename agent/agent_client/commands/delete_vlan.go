@@ -22,7 +22,7 @@ package commands
 // 	cmd := &cobra.Command{
 // 		Use:     "vlan <vlan-name>",
 // 		Short:   "Delete a VLAN",
-// 		Example: "switch-proxy-client delete vlan VLAN_100",
+// 		Example: "agent_cli delete vlan VLAN_100",
 // 		Args:    cobra.ExactArgs(1),
 // 		RunE: func(cmd *cobra.Command, args []string) error {
 // 			opts := DeleteVlanOptions{

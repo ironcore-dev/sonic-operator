@@ -173,6 +173,7 @@ type Port struct {
 	TypeMeta `json:",inline"`
 	Name     string `json:"name"`
 
+	Alias  string `json:"alias"`
 	Status Status `json:"status"`
 }
 

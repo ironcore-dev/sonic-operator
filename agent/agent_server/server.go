@@ -32,16 +32,6 @@ type proxyServer struct {
 }
 
 func (s *proxyServer) GetDeviceInfo(ctx context.Context, request *pb.GetDeviceInfoRequest) (*pb.GetDeviceInfoResponse, error) {
-	// // Simulate fetching device info
-	// return &pb.GetDeviceInfoResponse{
-	// 	Status: &pb.Status{
-	// 		Code:    0,
-	// 		Message: "Success",
-	// 	},
-	// 	DeviceName:      "Switch Device",
-	// 	LocalMacAddress: "aa:bb:cc:dd:ee:ff",
-	// }, nil
-
 	// Fetch device info from the SwitchAgent
 	device, status := s.SwitchAgent.GetDeviceInfo(ctx)
 	if status != nil {
@@ -67,25 +57,6 @@ func (s *proxyServer) GetDeviceInfo(ctx context.Context, request *pb.GetDeviceIn
 }
 
 func (s *proxyServer) ListInterfaces(ctx context.Context, request *pb.ListInterfacesRequest) (*pb.ListInterfacesResponse, error) {
-	// Simulate fetching interfaces
-	// interfaces := []string{"eth0", "eth1", "wlan0"}
-
-	// var interfaceList []*pb.Interface
-	// for _, iface := range interfaces {
-	// 	interfaceList = append(interfaceList, &pb.Interface{
-	// 		Name:       iface,
-	// 		Status:     "up",
-	// 		MacAddress: "00:11:22:33:44:55",
-	// 	})
-	// }
-
-	// return &pb.ListInterfacesResponse{
-	// 	Status: &pb.Status{
-	// 		Code:    0,
-	// 		Message: "Success",
-	// 	},
-	// 	Interfaces: interfaceList,
-	// }, nil
 	interfaceList, status := s.SwitchAgent.ListInterfaces(ctx)
 	if status != nil {
 		return &pb.ListInterfacesResponse{
@@ -144,6 +115,34 @@ func (s *proxyServer) SetInterfaceAdminStatus(ctx context.Context, request *pb.S
 			OperationalStatus: iface.OperationStatus,
 			AdminStatus:       iface.AdminStatus,
 		},
+	}, nil
+}
+
+func (s *proxyServer) ListPorts(ctx context.Context, request *pb.ListPortsRequest) (*pb.ListPortsResponse, error) {
+	portList, status := s.SwitchAgent.ListPorts(ctx)
+	if status != nil {
+		return &pb.ListPortsResponse{
+			Status: &pb.Status{
+				Code:    status.Code,
+				Message: fmt.Sprintf("failed to list ports: %v", status.Message),
+			},
+		}, nil
+	}
+
+	var ports = make([]*pb.Port, 0, len(portList.Items))
+	for _, port := range portList.Items {
+		ports = append(ports, &pb.Port{
+			Name:  port.Name,
+			Alias: port.Alias,
+		})
+	}
+
+	return &pb.ListPortsResponse{
+		Status: &pb.Status{
+			Code:    0,
+			Message: "Success",
+		},
+		Ports: ports,
 	}, nil
 }
 

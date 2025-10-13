@@ -28,7 +28,7 @@ func Command() *cobra.Command {
 	cobra.EnableCaseInsensitive = true
 
 	cmd := &cobra.Command{
-		Use:           "switch-proxy-client [command]",
+		Use:           "agent_cli [command]",
 		Args:          cobra.NoArgs,
 		SilenceUsage:  true,
 		SilenceErrors: true,

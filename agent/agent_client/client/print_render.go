@@ -122,6 +122,10 @@ func (t defaultTableConverter) ConvertToTable(v any) (*TableData, error) {
 		return t.interfaceToTable([]agent.Interface{*obj})
 	case *agent.InterfaceList:
 		return t.interfaceToTable(obj.Items)
+	case *agent.PortList:
+		return t.portToTable(obj.Items)
+	case *agent.Port:
+		return t.portToTable([]agent.Port{*obj})
 	}
 	return nil, fmt.Errorf("unsupported type %T for table conversion", v)
 }
@@ -151,6 +155,20 @@ func (t defaultTableConverter) interfaceToTable(ifaces []agent.Interface) (*Tabl
 			iface.MacAddress,
 			iface.OperationStatus,
 			iface.AdminStatus,
+		})
+	}
+
+	return &TableData{Headers: headers, Rows: rows}, nil
+}
+
+func (t defaultTableConverter) portToTable(ports []agent.Port) (*TableData, error) {
+	headers := []any{"Name", "Alias"}
+	rows := make([][]any, len(ports))
+
+	for _, port := range ports {
+		rows = append(rows, []any{
+			port.Name,
+			port.Alias,
 		})
 	}
 
