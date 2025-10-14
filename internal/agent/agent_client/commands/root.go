@@ -5,8 +5,10 @@ package commands
 
 import (
 	"errors"
+	"os"
+	"time"
 
-	client "github.com/ironcore-dev/switch-operator/agent/agent_client/client"
+	client "github.com/ironcore-dev/switch-operator/internal/agent/agent_client/client"
 
 	"github.com/spf13/cobra"
 )
@@ -19,6 +21,8 @@ func SubcommandRequired(cmd *cobra.Command, args []string) error {
 }
 
 var switchAgentClient client.SwitchAgentClient
+var address string
+var connectTimeout time.Duration
 
 func GetSharedSwitchAgentClient() client.SwitchAgentClient {
 	return switchAgentClient
@@ -39,13 +43,16 @@ func Command() *cobra.Command {
 		Get(),
 		List(),
 		Set(),
-		// Create(),
-		// Delete(),
 	)
 
-	switchAgentClient, _ = client.NewDefaultSwitchAgentClient()
+	grpcPort := os.Getenv("SWITCH_PROXY_GRPC_PORT")
+	if grpcPort == "" {
+		grpcPort = "50051"
+	}
+	cmd.PersistentFlags().StringVar(&address, "address", "localhost:"+grpcPort, "switch proxy address (overrides SWITCH_PROXY_GRPC_PORT).")
+	cmd.PersistentFlags().DurationVar(&connectTimeout, "connect-timeout", 4*time.Second, "Timeout to connect to the switch proxy.")
 
-	switchAgentClient.AddSwitchAgentClientFlags(cmd.PersistentFlags())
+	switchAgentClient, _ = client.NewDefaultSwitchAgentClient(address, connectTimeout)
 
 	return cmd
 }

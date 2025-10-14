@@ -4,23 +4,25 @@
 package commands
 
 import (
-	client "github.com/ironcore-dev/switch-operator/agent/agent_client/client"
+	client "github.com/ironcore-dev/switch-operator/internal/agent/agent_client/client"
 
 	"github.com/spf13/cobra"
 )
 
-func Set() *cobra.Command {
+func Get() *cobra.Command {
 
 	printRenderer := client.NewDefaultPrintRender("table")
 
 	cmd := &cobra.Command{
-		Use:  "set [subcommand]",
+		Use:  "get [subcommand]",
 		Args: cobra.NoArgs,
 		RunE: SubcommandRequired,
 	}
 
 	subcommands := []*cobra.Command{
-		SetInterfaceStatus(printRenderer),
+		GetDeviceInfo(printRenderer),
+		GetInterface(printRenderer),
+		GetInterfaceNeighbor(printRenderer),
 	}
 
 	cmd.AddCommand(subcommands...)

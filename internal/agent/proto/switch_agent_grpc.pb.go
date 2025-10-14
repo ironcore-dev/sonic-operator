@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.5.1
 // - protoc             v5.29.3
-// source: agent/proto/switch_agent.proto
+// source: internal/agent/proto/switch_agent.proto
 
 package switchagentproto
 
@@ -312,5 +312,5 @@ var SwitchAgentService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "agent/proto/switch_agent.proto",
+	Metadata: "internal/agent/proto/switch_agent.proto",
 }

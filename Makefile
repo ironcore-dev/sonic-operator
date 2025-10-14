@@ -9,7 +9,7 @@ GOBIN=$(shell go env GOBIN)
 endif
 
 
-PROTO_DIR=./agent/proto
+PROTO_DIR=./internal/agent/proto
 
 # CONTAINER_TOOL defines the container tool to be used for building images.
 # Be aware that the target commands are only tested with Docker which is

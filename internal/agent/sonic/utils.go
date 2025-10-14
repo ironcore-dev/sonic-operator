@@ -8,7 +8,7 @@ import (
 	"os"
 	"strings"
 
-	agent "github.com/ironcore-dev/switch-operator/agent/types"
+	agent "github.com/ironcore-dev/switch-operator/internal/agent/types"
 )
 
 func GetSonicVersionInfo() (map[string]string, error) {

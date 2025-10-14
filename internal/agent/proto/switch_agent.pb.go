@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.6
 // 	protoc        v5.29.3
-// source: agent/proto/switch_agent.proto
+// source: internal/agent/proto/switch_agent.proto
 
 package switchagentproto
 
@@ -32,7 +32,7 @@ type Status struct {
 
 func (x *Status) Reset() {
 	*x = Status{}
-	mi := &file_agent_proto_switch_agent_proto_msgTypes[0]
+	mi := &file_internal_agent_proto_switch_agent_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -44,7 +44,7 @@ func (x *Status) String() string {
 func (*Status) ProtoMessage() {}
 
 func (x *Status) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_proto_switch_agent_proto_msgTypes[0]
+	mi := &file_internal_agent_proto_switch_agent_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -57,7 +57,7 @@ func (x *Status) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Status.ProtoReflect.Descriptor instead.
 func (*Status) Descriptor() ([]byte, []int) {
-	return file_agent_proto_switch_agent_proto_rawDescGZIP(), []int{0}
+	return file_internal_agent_proto_switch_agent_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *Status) GetCode() uint32 {
@@ -82,7 +82,7 @@ type GetDeviceInfoRequest struct {
 
 func (x *GetDeviceInfoRequest) Reset() {
 	*x = GetDeviceInfoRequest{}
-	mi := &file_agent_proto_switch_agent_proto_msgTypes[1]
+	mi := &file_internal_agent_proto_switch_agent_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -94,7 +94,7 @@ func (x *GetDeviceInfoRequest) String() string {
 func (*GetDeviceInfoRequest) ProtoMessage() {}
 
 func (x *GetDeviceInfoRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_proto_switch_agent_proto_msgTypes[1]
+	mi := &file_internal_agent_proto_switch_agent_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -107,7 +107,7 @@ func (x *GetDeviceInfoRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetDeviceInfoRequest.ProtoReflect.Descriptor instead.
 func (*GetDeviceInfoRequest) Descriptor() ([]byte, []int) {
-	return file_agent_proto_switch_agent_proto_rawDescGZIP(), []int{1}
+	return file_internal_agent_proto_switch_agent_proto_rawDescGZIP(), []int{1}
 }
 
 type GetDeviceInfoResponse struct {
@@ -124,7 +124,7 @@ type GetDeviceInfoResponse struct {
 
 func (x *GetDeviceInfoResponse) Reset() {
 	*x = GetDeviceInfoResponse{}
-	mi := &file_agent_proto_switch_agent_proto_msgTypes[2]
+	mi := &file_internal_agent_proto_switch_agent_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -136,7 +136,7 @@ func (x *GetDeviceInfoResponse) String() string {
 func (*GetDeviceInfoResponse) ProtoMessage() {}
 
 func (x *GetDeviceInfoResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_proto_switch_agent_proto_msgTypes[2]
+	mi := &file_internal_agent_proto_switch_agent_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -149,7 +149,7 @@ func (x *GetDeviceInfoResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetDeviceInfoResponse.ProtoReflect.Descriptor instead.
 func (*GetDeviceInfoResponse) Descriptor() ([]byte, []int) {
-	return file_agent_proto_switch_agent_proto_rawDescGZIP(), []int{2}
+	return file_internal_agent_proto_switch_agent_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *GetDeviceInfoResponse) GetStatus() *Status {
@@ -207,7 +207,7 @@ type Interface struct {
 
 func (x *Interface) Reset() {
 	*x = Interface{}
-	mi := &file_agent_proto_switch_agent_proto_msgTypes[3]
+	mi := &file_internal_agent_proto_switch_agent_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -219,7 +219,7 @@ func (x *Interface) String() string {
 func (*Interface) ProtoMessage() {}
 
 func (x *Interface) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_proto_switch_agent_proto_msgTypes[3]
+	mi := &file_internal_agent_proto_switch_agent_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -232,7 +232,7 @@ func (x *Interface) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Interface.ProtoReflect.Descriptor instead.
 func (*Interface) Descriptor() ([]byte, []int) {
-	return file_agent_proto_switch_agent_proto_rawDescGZIP(), []int{3}
+	return file_internal_agent_proto_switch_agent_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *Interface) GetName() string {
@@ -272,7 +272,7 @@ type ListInterfacesRequest struct {
 
 func (x *ListInterfacesRequest) Reset() {
 	*x = ListInterfacesRequest{}
-	mi := &file_agent_proto_switch_agent_proto_msgTypes[4]
+	mi := &file_internal_agent_proto_switch_agent_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -284,7 +284,7 @@ func (x *ListInterfacesRequest) String() string {
 func (*ListInterfacesRequest) ProtoMessage() {}
 
 func (x *ListInterfacesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_proto_switch_agent_proto_msgTypes[4]
+	mi := &file_internal_agent_proto_switch_agent_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -297,7 +297,7 @@ func (x *ListInterfacesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListInterfacesRequest.ProtoReflect.Descriptor instead.
 func (*ListInterfacesRequest) Descriptor() ([]byte, []int) {
-	return file_agent_proto_switch_agent_proto_rawDescGZIP(), []int{4}
+	return file_internal_agent_proto_switch_agent_proto_rawDescGZIP(), []int{4}
 }
 
 // The response message containing the list of interfaces.
@@ -311,7 +311,7 @@ type ListInterfacesResponse struct {
 
 func (x *ListInterfacesResponse) Reset() {
 	*x = ListInterfacesResponse{}
-	mi := &file_agent_proto_switch_agent_proto_msgTypes[5]
+	mi := &file_internal_agent_proto_switch_agent_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -323,7 +323,7 @@ func (x *ListInterfacesResponse) String() string {
 func (*ListInterfacesResponse) ProtoMessage() {}
 
 func (x *ListInterfacesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_proto_switch_agent_proto_msgTypes[5]
+	mi := &file_internal_agent_proto_switch_agent_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -336,7 +336,7 @@ func (x *ListInterfacesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListInterfacesResponse.ProtoReflect.Descriptor instead.
 func (*ListInterfacesResponse) Descriptor() ([]byte, []int) {
-	return file_agent_proto_switch_agent_proto_rawDescGZIP(), []int{5}
+	return file_internal_agent_proto_switch_agent_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *ListInterfacesResponse) GetStatus() *Status {
@@ -363,7 +363,7 @@ type SetInterfaceAdminStatusRequest struct {
 
 func (x *SetInterfaceAdminStatusRequest) Reset() {
 	*x = SetInterfaceAdminStatusRequest{}
-	mi := &file_agent_proto_switch_agent_proto_msgTypes[6]
+	mi := &file_internal_agent_proto_switch_agent_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -375,7 +375,7 @@ func (x *SetInterfaceAdminStatusRequest) String() string {
 func (*SetInterfaceAdminStatusRequest) ProtoMessage() {}
 
 func (x *SetInterfaceAdminStatusRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_proto_switch_agent_proto_msgTypes[6]
+	mi := &file_internal_agent_proto_switch_agent_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -388,7 +388,7 @@ func (x *SetInterfaceAdminStatusRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetInterfaceAdminStatusRequest.ProtoReflect.Descriptor instead.
 func (*SetInterfaceAdminStatusRequest) Descriptor() ([]byte, []int) {
-	return file_agent_proto_switch_agent_proto_rawDescGZIP(), []int{6}
+	return file_internal_agent_proto_switch_agent_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *SetInterfaceAdminStatusRequest) GetInterfaceName() string {
@@ -415,7 +415,7 @@ type SetInterfaceAdminStatusResponse struct {
 
 func (x *SetInterfaceAdminStatusResponse) Reset() {
 	*x = SetInterfaceAdminStatusResponse{}
-	mi := &file_agent_proto_switch_agent_proto_msgTypes[7]
+	mi := &file_internal_agent_proto_switch_agent_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -427,7 +427,7 @@ func (x *SetInterfaceAdminStatusResponse) String() string {
 func (*SetInterfaceAdminStatusResponse) ProtoMessage() {}
 
 func (x *SetInterfaceAdminStatusResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_proto_switch_agent_proto_msgTypes[7]
+	mi := &file_internal_agent_proto_switch_agent_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -440,7 +440,7 @@ func (x *SetInterfaceAdminStatusResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetInterfaceAdminStatusResponse.ProtoReflect.Descriptor instead.
 func (*SetInterfaceAdminStatusResponse) Descriptor() ([]byte, []int) {
-	return file_agent_proto_switch_agent_proto_rawDescGZIP(), []int{7}
+	return file_internal_agent_proto_switch_agent_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *SetInterfaceAdminStatusResponse) GetStatus() *Status {
@@ -465,7 +465,7 @@ type ListPortsRequest struct {
 
 func (x *ListPortsRequest) Reset() {
 	*x = ListPortsRequest{}
-	mi := &file_agent_proto_switch_agent_proto_msgTypes[8]
+	mi := &file_internal_agent_proto_switch_agent_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -477,7 +477,7 @@ func (x *ListPortsRequest) String() string {
 func (*ListPortsRequest) ProtoMessage() {}
 
 func (x *ListPortsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_proto_switch_agent_proto_msgTypes[8]
+	mi := &file_internal_agent_proto_switch_agent_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -490,7 +490,7 @@ func (x *ListPortsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListPortsRequest.ProtoReflect.Descriptor instead.
 func (*ListPortsRequest) Descriptor() ([]byte, []int) {
-	return file_agent_proto_switch_agent_proto_rawDescGZIP(), []int{8}
+	return file_internal_agent_proto_switch_agent_proto_rawDescGZIP(), []int{8}
 }
 
 type ListPortsResponse struct {
@@ -503,7 +503,7 @@ type ListPortsResponse struct {
 
 func (x *ListPortsResponse) Reset() {
 	*x = ListPortsResponse{}
-	mi := &file_agent_proto_switch_agent_proto_msgTypes[9]
+	mi := &file_internal_agent_proto_switch_agent_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -515,7 +515,7 @@ func (x *ListPortsResponse) String() string {
 func (*ListPortsResponse) ProtoMessage() {}
 
 func (x *ListPortsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_proto_switch_agent_proto_msgTypes[9]
+	mi := &file_internal_agent_proto_switch_agent_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -528,7 +528,7 @@ func (x *ListPortsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListPortsResponse.ProtoReflect.Descriptor instead.
 func (*ListPortsResponse) Descriptor() ([]byte, []int) {
-	return file_agent_proto_switch_agent_proto_rawDescGZIP(), []int{9}
+	return file_internal_agent_proto_switch_agent_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *ListPortsResponse) GetStatus() *Status {
@@ -555,7 +555,7 @@ type Port struct {
 
 func (x *Port) Reset() {
 	*x = Port{}
-	mi := &file_agent_proto_switch_agent_proto_msgTypes[10]
+	mi := &file_internal_agent_proto_switch_agent_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -567,7 +567,7 @@ func (x *Port) String() string {
 func (*Port) ProtoMessage() {}
 
 func (x *Port) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_proto_switch_agent_proto_msgTypes[10]
+	mi := &file_internal_agent_proto_switch_agent_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -580,7 +580,7 @@ func (x *Port) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Port.ProtoReflect.Descriptor instead.
 func (*Port) Descriptor() ([]byte, []int) {
-	return file_agent_proto_switch_agent_proto_rawDescGZIP(), []int{10}
+	return file_internal_agent_proto_switch_agent_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *Port) GetName() string {
@@ -606,7 +606,7 @@ type GetInterfaceNeighborRequest struct {
 
 func (x *GetInterfaceNeighborRequest) Reset() {
 	*x = GetInterfaceNeighborRequest{}
-	mi := &file_agent_proto_switch_agent_proto_msgTypes[11]
+	mi := &file_internal_agent_proto_switch_agent_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -618,7 +618,7 @@ func (x *GetInterfaceNeighborRequest) String() string {
 func (*GetInterfaceNeighborRequest) ProtoMessage() {}
 
 func (x *GetInterfaceNeighborRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_proto_switch_agent_proto_msgTypes[11]
+	mi := &file_internal_agent_proto_switch_agent_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -631,7 +631,7 @@ func (x *GetInterfaceNeighborRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetInterfaceNeighborRequest.ProtoReflect.Descriptor instead.
 func (*GetInterfaceNeighborRequest) Descriptor() ([]byte, []int) {
-	return file_agent_proto_switch_agent_proto_rawDescGZIP(), []int{11}
+	return file_internal_agent_proto_switch_agent_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *GetInterfaceNeighborRequest) GetInterfaceName() string {
@@ -652,7 +652,7 @@ type InterfaceNeighbor struct {
 
 func (x *InterfaceNeighbor) Reset() {
 	*x = InterfaceNeighbor{}
-	mi := &file_agent_proto_switch_agent_proto_msgTypes[12]
+	mi := &file_internal_agent_proto_switch_agent_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -664,7 +664,7 @@ func (x *InterfaceNeighbor) String() string {
 func (*InterfaceNeighbor) ProtoMessage() {}
 
 func (x *InterfaceNeighbor) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_proto_switch_agent_proto_msgTypes[12]
+	mi := &file_internal_agent_proto_switch_agent_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -677,7 +677,7 @@ func (x *InterfaceNeighbor) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InterfaceNeighbor.ProtoReflect.Descriptor instead.
 func (*InterfaceNeighbor) Descriptor() ([]byte, []int) {
-	return file_agent_proto_switch_agent_proto_rawDescGZIP(), []int{12}
+	return file_internal_agent_proto_switch_agent_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *InterfaceNeighbor) GetNeighborInterfaceName() string {
@@ -712,7 +712,7 @@ type GetInterfaceNeighborResponse struct {
 
 func (x *GetInterfaceNeighborResponse) Reset() {
 	*x = GetInterfaceNeighborResponse{}
-	mi := &file_agent_proto_switch_agent_proto_msgTypes[13]
+	mi := &file_internal_agent_proto_switch_agent_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -724,7 +724,7 @@ func (x *GetInterfaceNeighborResponse) String() string {
 func (*GetInterfaceNeighborResponse) ProtoMessage() {}
 
 func (x *GetInterfaceNeighborResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_proto_switch_agent_proto_msgTypes[13]
+	mi := &file_internal_agent_proto_switch_agent_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -737,7 +737,7 @@ func (x *GetInterfaceNeighborResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetInterfaceNeighborResponse.ProtoReflect.Descriptor instead.
 func (*GetInterfaceNeighborResponse) Descriptor() ([]byte, []int) {
-	return file_agent_proto_switch_agent_proto_rawDescGZIP(), []int{13}
+	return file_internal_agent_proto_switch_agent_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *GetInterfaceNeighborResponse) GetStatus() *Status {
@@ -770,7 +770,7 @@ type GetInterfaceRequest struct {
 
 func (x *GetInterfaceRequest) Reset() {
 	*x = GetInterfaceRequest{}
-	mi := &file_agent_proto_switch_agent_proto_msgTypes[14]
+	mi := &file_internal_agent_proto_switch_agent_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -782,7 +782,7 @@ func (x *GetInterfaceRequest) String() string {
 func (*GetInterfaceRequest) ProtoMessage() {}
 
 func (x *GetInterfaceRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_proto_switch_agent_proto_msgTypes[14]
+	mi := &file_internal_agent_proto_switch_agent_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -795,7 +795,7 @@ func (x *GetInterfaceRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetInterfaceRequest.ProtoReflect.Descriptor instead.
 func (*GetInterfaceRequest) Descriptor() ([]byte, []int) {
-	return file_agent_proto_switch_agent_proto_rawDescGZIP(), []int{14}
+	return file_internal_agent_proto_switch_agent_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *GetInterfaceRequest) GetInterfaceName() string {
@@ -815,7 +815,7 @@ type GetInterfaceResponse struct {
 
 func (x *GetInterfaceResponse) Reset() {
 	*x = GetInterfaceResponse{}
-	mi := &file_agent_proto_switch_agent_proto_msgTypes[15]
+	mi := &file_internal_agent_proto_switch_agent_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -827,7 +827,7 @@ func (x *GetInterfaceResponse) String() string {
 func (*GetInterfaceResponse) ProtoMessage() {}
 
 func (x *GetInterfaceResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_proto_switch_agent_proto_msgTypes[15]
+	mi := &file_internal_agent_proto_switch_agent_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -840,7 +840,7 @@ func (x *GetInterfaceResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetInterfaceResponse.ProtoReflect.Descriptor instead.
 func (*GetInterfaceResponse) Descriptor() ([]byte, []int) {
-	return file_agent_proto_switch_agent_proto_rawDescGZIP(), []int{15}
+	return file_internal_agent_proto_switch_agent_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *GetInterfaceResponse) GetStatus() *Status {
@@ -857,11 +857,11 @@ func (x *GetInterfaceResponse) GetInterface() *Interface {
 	return nil
 }
 
-var File_agent_proto_switch_agent_proto protoreflect.FileDescriptor
+var File_internal_agent_proto_switch_agent_proto protoreflect.FileDescriptor
 
-const file_agent_proto_switch_agent_proto_rawDesc = "" +
+const file_internal_agent_proto_switch_agent_proto_rawDesc = "" +
 	"\n" +
-	"\x1eagent/proto/switch_agent.proto\x12\x0eswitchagent.v1\"6\n" +
+	"'internal/agent/proto/switch_agent.proto\x12\x0eswitchagent.v1\"6\n" +
 	"\x06Status\x12\x12\n" +
 	"\x04code\x18\x01 \x01(\rR\x04code\x12\x18\n" +
 	"\amessage\x18\x02 \x01(\tR\amessage\"\x16\n" +
@@ -924,19 +924,19 @@ const file_agent_proto_switch_agent_proto_rawDesc = "" +
 	"\tListPorts\x12 .switchagent.v1.ListPortsRequest\x1a!.switchagent.v1.ListPortsResponseB\x14Z\x12./switchagentprotob\x06proto3"
 
 var (
-	file_agent_proto_switch_agent_proto_rawDescOnce sync.Once
-	file_agent_proto_switch_agent_proto_rawDescData []byte
+	file_internal_agent_proto_switch_agent_proto_rawDescOnce sync.Once
+	file_internal_agent_proto_switch_agent_proto_rawDescData []byte
 )
 
-func file_agent_proto_switch_agent_proto_rawDescGZIP() []byte {
-	file_agent_proto_switch_agent_proto_rawDescOnce.Do(func() {
-		file_agent_proto_switch_agent_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_agent_proto_switch_agent_proto_rawDesc), len(file_agent_proto_switch_agent_proto_rawDesc)))
+func file_internal_agent_proto_switch_agent_proto_rawDescGZIP() []byte {
+	file_internal_agent_proto_switch_agent_proto_rawDescOnce.Do(func() {
+		file_internal_agent_proto_switch_agent_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_internal_agent_proto_switch_agent_proto_rawDesc), len(file_internal_agent_proto_switch_agent_proto_rawDesc)))
 	})
-	return file_agent_proto_switch_agent_proto_rawDescData
+	return file_internal_agent_proto_switch_agent_proto_rawDescData
 }
 
-var file_agent_proto_switch_agent_proto_msgTypes = make([]protoimpl.MessageInfo, 16)
-var file_agent_proto_switch_agent_proto_goTypes = []any{
+var file_internal_agent_proto_switch_agent_proto_msgTypes = make([]protoimpl.MessageInfo, 16)
+var file_internal_agent_proto_switch_agent_proto_goTypes = []any{
 	(*Status)(nil),                          // 0: switchagent.v1.Status
 	(*GetDeviceInfoRequest)(nil),            // 1: switchagent.v1.GetDeviceInfoRequest
 	(*GetDeviceInfoResponse)(nil),           // 2: switchagent.v1.GetDeviceInfoResponse
@@ -954,7 +954,7 @@ var file_agent_proto_switch_agent_proto_goTypes = []any{
 	(*GetInterfaceRequest)(nil),             // 14: switchagent.v1.GetInterfaceRequest
 	(*GetInterfaceResponse)(nil),            // 15: switchagent.v1.GetInterfaceResponse
 }
-var file_agent_proto_switch_agent_proto_depIdxs = []int32{
+var file_internal_agent_proto_switch_agent_proto_depIdxs = []int32{
 	0,  // 0: switchagent.v1.GetDeviceInfoResponse.status:type_name -> switchagent.v1.Status
 	0,  // 1: switchagent.v1.ListInterfacesResponse.status:type_name -> switchagent.v1.Status
 	3,  // 2: switchagent.v1.ListInterfacesResponse.interfaces:type_name -> switchagent.v1.Interface
@@ -985,26 +985,26 @@ var file_agent_proto_switch_agent_proto_depIdxs = []int32{
 	0,  // [0:11] is the sub-list for field type_name
 }
 
-func init() { file_agent_proto_switch_agent_proto_init() }
-func file_agent_proto_switch_agent_proto_init() {
-	if File_agent_proto_switch_agent_proto != nil {
+func init() { file_internal_agent_proto_switch_agent_proto_init() }
+func file_internal_agent_proto_switch_agent_proto_init() {
+	if File_internal_agent_proto_switch_agent_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_agent_proto_switch_agent_proto_rawDesc), len(file_agent_proto_switch_agent_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_internal_agent_proto_switch_agent_proto_rawDesc), len(file_internal_agent_proto_switch_agent_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   16,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_agent_proto_switch_agent_proto_goTypes,
-		DependencyIndexes: file_agent_proto_switch_agent_proto_depIdxs,
-		MessageInfos:      file_agent_proto_switch_agent_proto_msgTypes,
+		GoTypes:           file_internal_agent_proto_switch_agent_proto_goTypes,
+		DependencyIndexes: file_internal_agent_proto_switch_agent_proto_depIdxs,
+		MessageInfos:      file_internal_agent_proto_switch_agent_proto_msgTypes,
 	}.Build()
-	File_agent_proto_switch_agent_proto = out.File
-	file_agent_proto_switch_agent_proto_goTypes = nil
-	file_agent_proto_switch_agent_proto_depIdxs = nil
+	File_internal_agent_proto_switch_agent_proto = out.File
+	file_internal_agent_proto_switch_agent_proto_goTypes = nil
+	file_internal_agent_proto_switch_agent_proto_depIdxs = nil
 }

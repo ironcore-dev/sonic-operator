@@ -10,11 +10,11 @@ import (
 	"log"
 	"net"
 
-	pb "github.com/ironcore-dev/switch-operator/agent/proto"
-	agent "github.com/ironcore-dev/switch-operator/agent/types"
+	pb "github.com/ironcore-dev/switch-operator/internal/agent/proto"
+	agent "github.com/ironcore-dev/switch-operator/internal/agent/types"
 
-	switchAgent "github.com/ironcore-dev/switch-operator/agent/interface"
-	"github.com/ironcore-dev/switch-operator/agent/sonic"
+	switchAgent "github.com/ironcore-dev/switch-operator/internal/agent/interface"
+	"github.com/ironcore-dev/switch-operator/internal/agent/sonic"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"

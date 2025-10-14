@@ -9,8 +9,8 @@ import (
 	"sync"
 	"time"
 
-	errors "github.com/ironcore-dev/switch-operator/agent/errors"
-	agent "github.com/ironcore-dev/switch-operator/agent/types"
+	errors "github.com/ironcore-dev/switch-operator/internal/agent/errors"
+	agent "github.com/ironcore-dev/switch-operator/internal/agent/types"
 
 	"github.com/redis/go-redis/v9"
 	"github.com/vishvananda/netlink"

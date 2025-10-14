@@ -6,7 +6,7 @@ package common
 import (
 	"context"
 
-	agent "github.com/ironcore-dev/switch-operator/agent/types"
+	agent "github.com/ironcore-dev/switch-operator/internal/agent/types"
 )
 
 type SwitchAgent interface {

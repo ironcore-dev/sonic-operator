@@ -6,20 +6,16 @@ package client
 import (
 	"context"
 	"fmt"
-	"os"
 	"time"
 
-	"github.com/spf13/pflag"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
-	pb "github.com/ironcore-dev/switch-operator/agent/proto"
-	agent "github.com/ironcore-dev/switch-operator/agent/types"
+	pb "github.com/ironcore-dev/switch-operator/internal/agent/proto"
+	agent "github.com/ironcore-dev/switch-operator/internal/agent/types"
 )
 
 type SwitchAgentClient interface {
-	AddSwitchAgentClientFlags(fs *pflag.FlagSet)
-
 	GetDeviceInfo(ctx context.Context) (*agent.SwitchDevice, error)
 	ListInterfaces(ctx context.Context) (*agent.InterfaceList, error)
 	GetInterface(ctx context.Context, iface *agent.Interface) (*agent.Interface, error)
@@ -38,17 +34,19 @@ type defaultSwitchAgentClient struct {
 	client pb.SwitchAgentServiceClient
 }
 
-func (c *defaultSwitchAgentClient) AddSwitchAgentClientFlags(fs *pflag.FlagSet) {
-	grpcPort := os.Getenv("SWITCH_PROXY_GRPC_PORT")
-	if grpcPort == "" {
-		grpcPort = "50051"
+func NewDefaultSwitchAgentClient(address string, connectTimeout time.Duration) (SwitchAgentClient, error) {
+	if address == "" {
+		address = "localhost:50051"
 	}
-	fs.StringVar(&c.Address, "address", "localhost:"+grpcPort, "switch proxy address (overrides SWITCH_PROXY_GRPC_PORT).")
-	fs.DurationVar(&c.ConnectTimeout, "connect-timeout", 4*time.Second, "Timeout to connect to the switch proxy.")
-}
 
-func NewDefaultSwitchAgentClient() (SwitchAgentClient, error) {
-	var c defaultSwitchAgentClient
+	if connectTimeout == 0 {
+		connectTimeout = 4 * time.Second
+	}
+
+	c := defaultSwitchAgentClient{
+		Address:        address,
+		ConnectTimeout: connectTimeout,
+	}
 
 	// Remove the println from here - flags haven't been parsed yet!
 	c.opts = []grpc.DialOption{

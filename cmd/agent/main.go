@@ -4,7 +4,7 @@
 package main
 
 import (
-	server "github.com/ironcore-dev/switch-operator/agent/agent_server"
+	server "github.com/ironcore-dev/switch-operator/internal/agent/agent_server"
 )
 
 func main() {
