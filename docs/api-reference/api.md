@@ -26,6 +26,8 @@ Resource Types:
 </thead>
 <tbody><tr><td><p>&#34;Down&#34;</p></td>
 <td></td>
+</tr><tr><td><p>&#34;Unknown&#34;</p></td>
+<td></td>
 </tr><tr><td><p>&#34;Up&#34;</p></td>
 <td></td>
 </tr></tbody>
