@@ -23,6 +23,7 @@ type SwitchAgentClient interface {
 	GetDeviceInfo(ctx context.Context) (*agent.SwitchDevice, error)
 	ListInterfaces(ctx context.Context) (*agent.InterfaceList, error)
 	GetInterface(ctx context.Context, iface *agent.Interface) (*agent.Interface, error)
+	GetInterfaceNeighbor(ctx context.Context, iface *agent.Interface) (*agent.InterfaceNeighbor, error)
 
 	SetInterfaceAdminStatus(ctx context.Context, iface *agent.Interface) (*agent.Interface, error)
 
@@ -207,6 +208,40 @@ func (c *defaultSwitchAgentClient) GetInterface(ctx context.Context, iface *agen
 	}, nil
 }
 
+func (c *defaultSwitchAgentClient) GetInterfaceNeighbor(ctx context.Context, iface *agent.Interface) (*agent.InterfaceNeighbor, error) {
+	cleanup, err := c.dial()
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		_ = cleanup()
+	}()
+
+	resp, err := c.client.GetInterfaceNeighbor(ctx, &pb.GetInterfaceNeighborRequest{
+		InterfaceName: iface.GetName(),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.GetStatus().Code != 0 {
+		return &agent.InterfaceNeighbor{
+			Status: agent.ProtoStatusToStatus(resp.GetStatus()),
+		}, fmt.Errorf("failed to get interface neighbor: %s", resp.GetStatus().GetMessage())
+	}
+
+	return &agent.InterfaceNeighbor{
+		TypeMeta: agent.TypeMeta{
+			Kind: agent.InterfaceNeighborKind,
+		},
+		Name:       resp.GetInterface(),
+		MacAddress: resp.GetNeighbor().GetMacAddress(),
+		SystemName: resp.GetNeighbor().GetSystemName(),
+		Handle:     resp.GetNeighbor().GetNeighborInterfaceName(),
+		Status:     agent.ProtoStatusToStatus(resp.GetStatus()),
+	}, nil
+}
+
 func (c *defaultSwitchAgentClient) ListPorts(ctx context.Context) (*agent.PortList, error) {
 	cleanup, err := c.dial()
 	if err != nil {
@@ -227,7 +262,8 @@ func (c *defaultSwitchAgentClient) ListPorts(ctx context.Context) (*agent.PortLi
 			TypeMeta: agent.TypeMeta{
 				Kind: agent.PortKind,
 			},
-			Name: port.GetName(),
+			Name:  port.GetName(),
+			Alias: port.GetAlias(),
 		}
 	}
 

@@ -17,7 +17,7 @@ func ListInterfaces(printer client.PrintRenderer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "interfaces",
 		Short:   "List interfaces",
-		Example: "switch-proxy-client list interfaces",
+		Example: "agent_cli list interfaces",
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return RunListInterfaces(cmd.Context(), GetSharedSwitchAgentClient(), printer)
@@ -32,8 +32,6 @@ func RunListInterfaces(
 	c client.SwitchAgentClient,
 	printer client.PrintRenderer,
 ) error {
-
-	fmt.Println("DEBUG: Function started")
 	interfaces, err := c.ListInterfaces(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to list interfaces: %v", err)

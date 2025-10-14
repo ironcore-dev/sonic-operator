@@ -21,6 +21,8 @@ func Get() *cobra.Command {
 
 	subcommands := []*cobra.Command{
 		GetDeviceInfo(printRenderer),
+		GetInterface(printRenderer),
+		GetInterfaceNeighbor(printRenderer),
 	}
 
 	cmd.AddCommand(subcommands...)

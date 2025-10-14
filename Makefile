@@ -136,7 +136,7 @@ docs: gen-crd-api-reference-docs ## Run go generate to generate API reference do
 
 
 .PHONY: build-agent
-build-agent: proto fmt vet ## Build agent binary.
+build-agent: fmt vet ## Build agent binary.
 	go build -o bin/agent_server cmd/agent/main.go
 	go build -o bin/agent_cli cmd/agent_cli/main.go
 

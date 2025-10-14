@@ -61,6 +61,7 @@ message ListPortsResponse {
 
 message Port {
   string name = 1;
+  string alias = 2;
 }
 
 message GetInterfaceNeighborRequest {
@@ -68,15 +69,15 @@ message GetInterfaceNeighborRequest {
 }
 
 message InterfaceNeighbor {
-  string interface_name = 1;
-  string neighbor_interface_name = 2;
-  string mac_address = 3;
-  string system_name = 4;
+  string neighbor_interface_name = 1;
+  string mac_address = 2;
+  string system_name = 3;
 }
 
 message GetInterfaceNeighborResponse {
   Status status = 1;
-  InterfaceNeighbor neighbor = 2;
+  string interface = 2;
+  InterfaceNeighbor neighbor = 3;
 }
 
 message GetInterfaceRequest {

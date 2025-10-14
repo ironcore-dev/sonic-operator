@@ -13,31 +13,29 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func GetDeviceInfo(printer client.PrintRenderer) *cobra.Command {
+func ListPorts(printer client.PrintRenderer) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:     "device-info",
-		Short:   "Get device information",
-		Example: "agent_cli get device-info",
+		Use:     "ports",
+		Short:   "List ports",
+		Example: "agent_cli list ports",
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return RunGetDeviceInfo(cmd.Context(), GetSharedSwitchAgentClient(), printer)
+			return RunListPorts(cmd.Context(), GetSharedSwitchAgentClient(), printer)
 		},
 	}
 
 	return cmd
 }
 
-func RunGetDeviceInfo(
+func RunListPorts(
 	ctx context.Context,
 	c client.SwitchAgentClient,
 	printer client.PrintRenderer,
 ) error {
-
-	device, err := c.GetDeviceInfo(ctx)
-
+	ports, err := c.ListPorts(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to get device info: %v", err)
+		return fmt.Errorf("failed to list ports: %v", err)
 	}
 
-	return printer.Print("Device Info", os.Stdout, device)
+	return printer.Print("Ports", os.Stdout, ports)
 }

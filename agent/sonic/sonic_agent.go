@@ -288,7 +288,6 @@ func (m *SonicAgent) ListInterfaces(ctx context.Context) (*agent.InterfaceList, 
 	}, nil
 }
 
-// rdb: redis-cli
 func (m *SonicAgent) SetInterfaceAdminStatus(ctx context.Context, iface *agent.Interface) (*agent.Interface, *agent.Status) {
 	configDB, err := m.Connect("CONFIG_DB")
 	if err != nil {
@@ -358,16 +357,192 @@ func (m *SonicAgent) SetInterfaceAdminStatus(ctx context.Context, iface *agent.I
 }
 
 func (m *SonicAgent) GetInterface(ctx context.Context, iface *agent.Interface) (*agent.Interface, *agent.Status) {
+	// Validate input
+	if iface == nil || iface.Name == "" {
+		return nil, errors.NewErrorStatus(errors.BAD_REQUEST, "interface name cannot be empty")
+	}
 
-	return nil, nil
+	configDB, err := m.Connect("CONFIG_DB")
+	if err != nil {
+		return nil, errors.NewErrorStatus(errors.BAD_REQUEST, fmt.Sprintf("failed to connect to CONFIG_DB: %v", err))
+	}
+
+	// Connect to STATE_DB for operational status
+	stateDB, err := m.Connect("STATE_DB")
+	if err != nil {
+		return nil, errors.NewErrorStatus(errors.BAD_REQUEST, fmt.Sprintf("failed to connect to STATE_DB: %v", err))
+	}
+
+	// Check if interface exists in CONFIG_DB
+	portKey := fmt.Sprintf("PORT|%s", iface.Name)
+	exists, err := configDB.Exists(ctx, portKey).Result()
+	if err != nil {
+		return nil, errors.NewErrorStatus(errors.BAD_REQUEST, fmt.Sprintf("failed to check interface existence: %v", err))
+	}
+	if exists == 0 {
+		return nil, errors.NewErrorStatus(errors.NOT_FOUND, fmt.Sprintf("interface %s not found", iface.Name))
+	}
+
+	// Get operational status from STATE_DB
+	stateKey := fmt.Sprintf("PORT_TABLE|%s", iface.Name)
+	stateFields, err := stateDB.HGetAll(ctx, stateKey).Result()
+	if err != nil {
+		// If state info is not available, use default values
+		stateFields = make(map[string]string)
+	}
+
+	// Determine operational status
+	operStatus := agent.StatusDown
+	if stateFields["netdev_oper_status"] == "up" {
+		operStatus = agent.StatusUp
+	}
+
+	adminStatus := agent.StatusDown
+	if stateFields["admin_status"] == "up" {
+		adminStatus = agent.StatusUp
+	}
+
+	// Get interface MAC address using netlink
+	link, err := netlink.LinkByName(iface.Name)
+	if err != nil {
+		return nil, errors.NewErrorStatus(errors.NOT_FOUND, fmt.Sprintf("failed to get interface %s: %v", iface.Name, err))
+	}
+
+	mac := link.Attrs().HardwareAddr
+	if mac == nil {
+		return nil, errors.NewErrorStatus(errors.NOT_FOUND, fmt.Sprintf("no MAC address found for interface %s", iface.Name))
+	}
+
+	resultInterface := &agent.Interface{
+		TypeMeta: agent.TypeMeta{
+			Kind: agent.InterfaceKind,
+		},
+		Name:            iface.Name,
+		MacAddress:      mac.String(),
+		OperationStatus: uint32(operStatus),
+		AdminStatus:     uint32(adminStatus),
+		Status:          agent.Status{Code: 0, Message: "ok"},
+	}
+
+	return resultInterface, nil
 }
 
 func (m *SonicAgent) GetInterfaceNeighbor(ctx context.Context, iface *agent.Interface) (*agent.InterfaceNeighbor, *agent.Status) {
+	if iface == nil || iface.Name == "" {
+		return nil, errors.NewErrorStatus(errors.BAD_REQUEST, "interface name cannot be empty")
+	}
 
-	return nil, nil
+	applDB, err := m.Connect("APPL_DB")
+	if err != nil {
+		return nil, errors.NewErrorStatus(errors.BAD_REQUEST, fmt.Sprintf("failed to connect to APPL_DB: %v", err))
+	}
+
+	lldpKey := fmt.Sprintf("LLDP_ENTRY_TABLE:%s", iface.Name)
+
+	// Check if LLDP entry exists for this interface
+	exists, err := applDB.Exists(ctx, lldpKey).Result()
+	if err != nil {
+		return nil, errors.NewErrorStatus(errors.BAD_REQUEST, fmt.Sprintf("failed to check LLDP entry existence: %v", err))
+	}
+	if exists == 0 {
+		return nil, errors.NewErrorStatus(errors.NOT_FOUND, fmt.Sprintf("no LLDP neighbor found for interface %s", iface.Name))
+	}
+
+	// Get all LLDP fields
+	lldpFields, err := applDB.HGetAll(ctx, lldpKey).Result()
+	if err != nil {
+		return nil, errors.NewErrorStatus(errors.BAD_REQUEST, fmt.Sprintf("failed to get LLDP entry: %v", err))
+	}
+
+	// MacAddress from lldp_rem_chassis_id (when chassis_id_subtype is 4 - MAC address)
+	macAddress := lldpFields["lldp_rem_chassis_id"]
+
+	// SystemName from lldp_rem_sys_name
+	systemName := lldpFields["lldp_rem_sys_name"]
+
+	// Handle (remote interface name) from lldp_rem_port_desc
+	// Note: lldp_rem_port_id contains "Eth5(Port5)" format, lldp_rem_port_desc contains "Ethernet16"
+	handle := lldpFields["lldp_rem_port_desc"]
+	if handle == "" {
+		// Fallback to lldp_rem_port_id if port_desc is not available
+		handle = lldpFields["lldp_rem_port_id"]
+	}
+
+	// Validate that we have the essential information
+	if macAddress == "" || systemName == "" {
+		return nil, errors.NewErrorStatus(errors.NOT_FOUND, fmt.Sprintf("incomplete LLDP information for interface %s", iface.Name))
+	}
+
+	neighbor := &agent.InterfaceNeighbor{
+		TypeMeta: agent.TypeMeta{
+			Kind: agent.InterfaceNeighborKind,
+		},
+		Name:       iface.Name, // Interface name of yourself
+		MacAddress: macAddress,
+		SystemName: systemName,
+		Handle:     handle, // Remote interface name
+		Status:     agent.Status{Code: 0, Message: "ok"},
+	}
+
+	return neighbor, nil
 }
 
 func (m *SonicAgent) ListPorts(ctx context.Context) (*agent.PortList, *agent.Status) {
+	// Connect to APPL_DB (table 0)
+	applDB, err := m.Connect("APPL_DB")
+	if err != nil {
+		return nil, errors.NewErrorStatus(errors.BAD_REQUEST, fmt.Sprintf("failed to connect to APPL_DB: %v", err))
+	}
 
-	return nil, nil
+	// List keys starting with PORT_TABLE
+	pattern := "PORT_TABLE:*"
+	keys, err := applDB.Keys(ctx, pattern).Result()
+	if err != nil {
+		return nil, errors.NewErrorStatus(errors.BAD_REQUEST, fmt.Sprintf("failed to obtain PORT_TABLE keys: %v", err))
+	}
+
+	ports := make([]agent.Port, 0)
+	for _, key := range keys {
+		var portName string
+		if _, err := fmt.Sscanf(key, "PORT_TABLE:%s", &portName); err != nil {
+			continue // Skip malformed keys
+		}
+
+		// Get the port configuration
+		fields, err := applDB.HGetAll(ctx, key).Result()
+		if err != nil {
+			continue // Skip if we can't get the fields
+		}
+
+		// Check if this represents a physical port by examining the "parent_port" field
+		// If parent_port equals the port name itself, it's a physical port
+		parentPort, exists := fields["parent_port"]
+		if !exists || parentPort != portName {
+			continue // Skip non-physical ports (sub-interfaces, VLANs, etc.)
+		}
+
+		// Get alias if available
+		alias := fields["alias"]
+		if alias == "" {
+			alias = portName // Use port name as alias if not specified
+		}
+
+		port := agent.Port{
+			TypeMeta: agent.TypeMeta{
+				Kind: agent.PortKind,
+			},
+			Name:   portName,
+			Alias:  alias,
+			Status: agent.Status{Code: 0, Message: "ok"},
+		}
+		ports = append(ports, port)
+	}
+
+	return &agent.PortList{
+		TypeMeta: agent.TypeMeta{
+			Kind: agent.PortListKind,
+		},
+		Items:  ports,
+		Status: agent.Status{Code: 0, Message: "ok"},
+	}, nil
 }

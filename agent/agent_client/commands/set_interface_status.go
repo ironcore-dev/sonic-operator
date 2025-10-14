@@ -23,7 +23,7 @@ func SetInterfaceStatus(printer client.PrintRenderer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "interface-status",
 		Short:   "Set interface status",
-		Example: "switch-proxy-client set interface-status",
+		Example: "agent_cli set interface-status <interface-name> up/down",
 		Args:    cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			opts := SetInterfaceStatusOptions{

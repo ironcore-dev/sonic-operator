@@ -151,28 +151,11 @@ func (n *InterfaceNeighbor) GetStatus() Status {
 	return n.Status
 }
 
-type InterfaceNeighborList struct {
-	TypeMeta `json:",inline"`
-	Items    []InterfaceNeighbor `json:"items"`
-	Status   Status              `json:"status"`
-}
-
-func (l *InterfaceNeighborList) GetItems() []Object {
-	items := make([]Object, len(l.Items))
-	for i, item := range l.Items {
-		items[i] = &item
-	}
-	return items
-}
-
-func (l *InterfaceNeighborList) GetStatus() Status {
-	return l.Status
-}
-
 type Port struct {
 	TypeMeta `json:",inline"`
 	Name     string `json:"name"`
 
+	Alias  string `json:"alias"`
 	Status Status `json:"status"`
 }
 
@@ -203,11 +186,10 @@ func (l *PortList) GetStatus() Status {
 }
 
 var (
-	DeviceKind                = reflect.TypeOf(SwitchDevice{}).Name()
-	InterfaceKind             = reflect.TypeOf(Interface{}).Name()
-	InterfaceListKind         = reflect.TypeOf(InterfaceList{}).Name()
-	PortKind                  = reflect.TypeOf(Port{}).Name()
-	PortListKind              = reflect.TypeOf(PortList{}).Name()
-	InterfaceNeighborKind     = reflect.TypeOf(InterfaceNeighbor{}).Name()
-	InterfaceNeighborListKind = reflect.TypeOf(InterfaceNeighborList{}).Name()
+	DeviceKind            = reflect.TypeOf(SwitchDevice{}).Name()
+	InterfaceKind         = reflect.TypeOf(Interface{}).Name()
+	InterfaceListKind     = reflect.TypeOf(InterfaceList{}).Name()
+	PortKind              = reflect.TypeOf(Port{}).Name()
+	PortListKind          = reflect.TypeOf(PortList{}).Name()
+	InterfaceNeighborKind = reflect.TypeOf(InterfaceNeighbor{}).Name()
 )
