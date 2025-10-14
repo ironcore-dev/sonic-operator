@@ -8,7 +8,11 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/ironcore-dev/controller-utils/clientutils"
-	"github.com/ironcore-dev/switch-operator/internal/agent"
+
+	agent "github.com/ironcore-dev/switch-operator/internal/agent/types"
+
+	switchUtil "github.com/ironcore-dev/switch-operator/internal/switch_util"
+
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -85,44 +89,44 @@ func (r *SwitchReconciler) reconcile(ctx context.Context, log logr.Logger, s *ne
 		return ctrl.Result{}, nil
 	}
 
-	switchAgentClient, err := agent.NewAgentClientForSwitch(ctx, s)
+	switchAgentClient, err := switchUtil.NewAgentClientForSwitch(ctx, s)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
 
-	info, err := switchAgentClient.GetSwitchInfo(ctx)
-	if err != nil {
-		s.Status.State = networkingv1alpha1.SwitchStateFailed
-		return ctrl.Result{}, err
-	}
-
-	s.Status.MACAddress = info.MACAddress
-	s.Status.FirmwareVersion = info.FirmwareVersion
-	s.Status.SKU = info.SKU
-
-	interfaces, err := switchAgentClient.GetInterfaces(ctx)
+	switchDevice, err := switchAgentClient.GetDeviceInfo(ctx)
 	if err != nil {
 		s.Status.State = networkingv1alpha1.SwitchStateFailed
 		return ctrl.Result{}, err
 	}
 
-	for _, iface := range interfaces {
+	s.Status.MACAddress = switchDevice.LocalMacAddress
+	s.Status.FirmwareVersion = switchDevice.SonicOSVersion
+	s.Status.SKU = switchDevice.Hwsku
+
+	interfaceList, err := switchAgentClient.ListInterfaces(ctx)
+	if err != nil {
+		s.Status.State = networkingv1alpha1.SwitchStateFailed
+		return ctrl.Result{}, err
+	}
+
+	for _, iface := range interfaceList.Items {
 		if err := r.EnsureInterface(ctx, log, s, iface); err != nil {
 			return ctrl.Result{}, err
 		}
 	}
 
-	ports, err := switchAgentClient.ListPorts(ctx)
+	portList, err := switchAgentClient.ListPorts(ctx)
 	if err != nil {
 		s.Status.State = networkingv1alpha1.SwitchStateFailed
 		return ctrl.Result{}, err
 	}
 
-	if len(ports) > 0 {
-		s.Status.Ports = make([]networkingv1alpha1.PortStatus, 0, len(ports))
+	if len(portList.Items) > 0 {
+		s.Status.Ports = make([]networkingv1alpha1.PortStatus, 0, len(portList.Items))
 	}
 
-	for i, p := range ports {
+	for i, p := range portList.Items {
 		s.Status.Ports[i] = networkingv1alpha1.PortStatus{
 			Name: p.Name,
 		}
@@ -136,18 +140,18 @@ func (r *SwitchReconciler) reconcile(ctx context.Context, log logr.Logger, s *ne
 	return ctrl.Result{}, nil
 }
 
-func (r *SwitchReconciler) EnsureInterface(ctx context.Context, log logr.Logger, s *networkingv1alpha1.Switch, iface agent.Interfaces) error {
+func (r *SwitchReconciler) EnsureInterface(ctx context.Context, log logr.Logger, s *networkingv1alpha1.Switch, iface agent.Interface) error {
 	log.Info("Ensuring Interface")
 	i := &networkingv1alpha1.SwitchInterface{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: iface.Name,
 		},
 		Spec: networkingv1alpha1.SwitchInterfaceSpec{
-			Handle: iface.Handle,
+			Handle: iface.Name,
 			SwitchRef: &corev1.LocalObjectReference{
 				Name: s.Name,
 			},
-			AdminState: networkingv1alpha1.AdminState(iface.AdminState),
+			AdminState: networkingv1alpha1.AdminStateNumToAPIState(iface.AdminStatus),
 		},
 	}
 

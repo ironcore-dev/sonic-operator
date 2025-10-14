@@ -8,13 +8,14 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/ironcore-dev/controller-utils/clientutils"
-	"github.com/ironcore-dev/switch-operator/internal/agent"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
 	networkingv1alpha1 "github.com/ironcore-dev/switch-operator/api/v1alpha1"
+	agent "github.com/ironcore-dev/switch-operator/internal/agent/types"
+	switchUtil "github.com/ironcore-dev/switch-operator/internal/switch_util"
 )
 
 // SwitchInterfaceReconciler reconciles a SwitchInterface object
@@ -77,19 +78,29 @@ func (r *SwitchInterfaceReconciler) reconcile(ctx context.Context, log logr.Logg
 		return ctrl.Result{}, nil
 	}
 
-	switchAgentClient, err := agent.NewAgentClientForInterface(ctx, i)
+	if i.Spec.SwitchRef == nil {
+		i.Status.State = networkingv1alpha1.SwitchInterfaceStateFailed
+		return ctrl.Result{}, nil
+	}
+
+	switchAgentClient, err := switchUtil.NewAgentClientFromSwitchRef(ctx, r.Client, i.Spec.SwitchRef, i.Namespace)
 	if err != nil {
 		i.Status.State = networkingv1alpha1.SwitchInterfaceStateFailed
 		return ctrl.Result{}, err
 	}
 
-	interfaceInfo, err := switchAgentClient.GetInterface(ctx, i.Name)
+	iface, err := switchAgentClient.GetInterface(ctx, &agent.Interface{
+		TypeMeta: agent.TypeMeta{
+			Kind: agent.InterfaceKind,
+		},
+		Name: i.Spec.Handle,
+	})
 	if err != nil {
 		i.Status.State = networkingv1alpha1.SwitchInterfaceStateFailed
 		return ctrl.Result{}, err
 	}
 
-	i.Status.AdminState = networkingv1alpha1.AdminState(interfaceInfo.AdminState)
+	i.Status.AdminState = networkingv1alpha1.AdminStateNumToAPIState(iface.AdminStatus)
 
 	// TODO: do neighbor discovery and ensure i.spec.AdminState is applied
 

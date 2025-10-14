@@ -11,9 +11,21 @@ import (
 type AdminState string
 
 const (
-	AdminStateUp   AdminState = "Up"
-	AdminStateDown AdminState = "Down"
+	AdminStateUnknown AdminState = "Unknown"
+	AdminStateUp      AdminState = "Up"
+	AdminStateDown    AdminState = "Down"
 )
+
+func AdminStateNumToAPIState(num uint32) AdminState {
+	switch num {
+	case 0:
+		return AdminStateDown
+	case 1:
+		return AdminStateUp
+	default:
+		return AdminStateUnknown
+	}
+}
 
 // SwitchInterfaceSpec defines the desired state of SwitchInterface
 type SwitchInterfaceSpec struct {
