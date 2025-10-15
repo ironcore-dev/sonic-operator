@@ -5,7 +5,10 @@ package main
 
 import (
 	"crypto/tls"
+	"encoding/json"
 	"flag"
+	"fmt"
+	"net/http"
 	"os"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
@@ -24,6 +27,8 @@ import (
 
 	networkingv1alpha1 "github.com/ironcore-dev/switch-operator/api/v1alpha1"
 	"github.com/ironcore-dev/switch-operator/internal/controller"
+	"github.com/ironcore-dev/switch-operator/internal/onie"
+	"github.com/ironcore-dev/switch-operator/internal/ztp"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -48,6 +53,7 @@ func main() {
 	var probeAddr string
 	var secureMetrics bool
 	var enableHTTP2 bool
+	var httpServerAddr, onieInstallerDir, ztpConfigFile string
 	var tlsOpts []func(*tls.Config)
 	flag.StringVar(&metricsAddr, "metrics-bind-address", "0", "The address the metrics endpoint binds to. "+
 		"Use :8443 for HTTPS or :8080 for HTTP, or leave as 0 to disable the metrics service.")
@@ -66,6 +72,9 @@ func main() {
 	flag.StringVar(&metricsCertKey, "metrics-cert-key", "tls.key", "The name of the metrics server key file.")
 	flag.BoolVar(&enableHTTP2, "enable-http2", false,
 		"If set, HTTP/2 will be enabled for the metrics and webhook servers")
+	flag.StringVar(&httpServerAddr, "http-server-address", "0", "The address the HTTP server for ZTP and ONIE binds to.")
+	flag.StringVar(&ztpConfigFile, "ztp-config-file", "/etc/ztp.json", "Config file containing the parameters to render ZTP scripts.")
+	flag.StringVar(&onieInstallerDir, "onie-installer-dir", "/var/lib/switch-operator/onie", "The directory which contains the onie installer files.")
 	opts := zap.Options{
 		Development: true,
 	}
@@ -197,9 +206,46 @@ func main() {
 		os.Exit(1)
 	}
 
+	setupLog.Info("starting HTTP server")
+	provServer, err := setupProvisioningServer(httpServerAddr, onieInstallerDir, ztpConfigFile)
+	if err != nil {
+		setupLog.Error(err, "unable to setup HTTP server")
+		os.Exit(1)
+	}
+
+	go func() {
+		if err := provServer.ListenAndServe(); err != nil {
+			setupLog.Error(err, "http server failed")
+			os.Exit(1)
+		}
+	}()
+
 	setupLog.Info("starting manager")
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)
 	}
+}
+
+func setupProvisioningServer(addr string, onieInstallerDir string, ztpConfigPath string) (*http.Server, error) {
+	f, err := os.Open(ztpConfigPath)
+	if err != nil {
+		return nil, fmt.Errorf("unable to open ztp config file: %w", err)
+	}
+
+	var ztpConf ztp.Config
+	err = json.NewDecoder(f).Decode(&ztpConf)
+	if err != nil {
+		return nil, err
+	}
+
+	mux := http.NewServeMux()
+
+	ztp.Register(mux, ztpConf)
+	onie.Register(mux, onieInstallerDir)
+
+	return &http.Server{
+		Addr:    addr,
+		Handler: mux,
+	}, nil
 }
