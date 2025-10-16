@@ -36,14 +36,14 @@ type Config struct {
 	//   spine-2.wdf-b.infra.staging.ironcore.dev
 	//
 	// which uniqely identifies each device.
-	SearchDomain string
+	SearchDomain string `json:"searchDomain"`
 	// DHCPServerAddr for the relay to send DHCP packets to.
 	//
 	// Example:
 	//
 	//   2001:db8::547
-	DHCPServerAddr string
-	SwitchParams   map[netip.Addr]SwitchParameters
+	DHCPServerAddr string                          `json:"dhcpServerAddr"`
+	SwitchParams   map[netip.Addr]SwitchParameters `json:"switchParams"`
 }
 
 type SwitchParameters struct {
@@ -61,7 +61,7 @@ type SwitchParameters struct {
 	//
 	//   2001:db8::/128
 	IP       netip.Prefix `json:"ip"`
-	ASNumber int          `json:"as_number"`
+	ASNumber int          `json:"asNumber"`
 }
 
 type handler struct {
