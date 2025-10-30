@@ -9,3 +9,9 @@
 # Re-include Go module files
 !go.mod
 !go.sum
+
+# Re-include hack directory files needed for Docker build
+!hack/agent/setup-network.sh
+!hack/agent/sonic-setup.sh
+!hack/agent/sonic-ready-check.sh
+!hack/agent/custom-services.conf

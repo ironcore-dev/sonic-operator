@@ -52,7 +52,12 @@ func Command() *cobra.Command {
 	cmd.PersistentFlags().StringVar(&address, "address", "localhost:"+grpcPort, "switch proxy address (overrides SWITCH_PROXY_GRPC_PORT).")
 	cmd.PersistentFlags().DurationVar(&connectTimeout, "connect-timeout", 4*time.Second, "Timeout to connect to the switch proxy.")
 
-	switchAgentClient, _ = client.NewDefaultSwitchAgentClient(address, connectTimeout)
+	// Create client after flags are parsed using PersistentPreRunE
+	cmd.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
+		var err error
+		switchAgentClient, err = client.NewDefaultSwitchAgentClient(address, connectTimeout)
+		return err
+	}
 
 	return cmd
 }

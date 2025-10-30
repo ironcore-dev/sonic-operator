@@ -127,7 +127,6 @@ proto:
 		--go-grpc_out=. --go-grpc_opt=paths=source_relative \
 		$(PROTO_DIR)/switch_agent.proto
 
-
 ##@ Build
 
 .PHONY: docs
@@ -139,6 +138,25 @@ docs: gen-crd-api-reference-docs ## Run go generate to generate API reference do
 build-agent: fmt vet ## Build agent binary.
 	go build -o bin/agent_server cmd/agent/main.go
 	go build -o bin/agent_cli cmd/agent_cli/main.go
+
+.PHONY: sonic-agent-docker-build
+sonic-agent-docker-build: ## Build docker image for sonic agent.
+	docker build --target sonic-agent-vs -t switch-agent:latest .
+
+.PHONY: sonic-agent-docker-clean
+sonic-agent-docker-clean: ## Remove sonic agent docker image.
+	docker image rm switch-agent:latest || true
+
+.PHONY: sonic-agent-docker-up
+sonic-agent-docker-up: ## Run sonic agent docker container.
+	docker run  --rm --privileged -d \
+  -p 50051:50051 -p 50052:50052 -p 6379:6379  \
+  --name sonic-agent \
+  switch-agent:latest
+
+.PHONY: sonic-agent-docker-down
+sonic-agent-docker-down: ## Stop sonic agent docker container.
+	docker stop sonic-agent || true
 
 .PHONY: build
 build: manifests generate fmt vet build-agent ## Build manager binary.
