@@ -17,7 +17,19 @@ import (
 func NewAgentClientForSwitch(ctx context.Context, s *networkingv1alpha1.Switch) (agentCli.SwitchAgentClient, error) {
 	// TODO: construct client from s.spec.Management
 
-	return agentCli.NewDefaultSwitchAgentClient("", 0)
+	if s.Spec.Management.Host == "" && s.Spec.Management.Port == "" {
+		agentcli, err := agentCli.NewDefaultSwitchAgentClient("", 0)
+		return agentcli, err
+	}
+
+	address := s.Spec.Management.Host + ":" + s.Spec.Management.Port
+
+	agentcli, err := agentCli.NewDefaultSwitchAgentClient(address, 0)
+	if err != nil {
+		return nil, err
+	}
+
+	return agentcli, nil
 }
 
 func NewAgentClientFromSwitchRef(ctx context.Context, cli client.Reader, ref *v1.LocalObjectReference, nameSpace string) (agentCli.SwitchAgentClient, error) {
