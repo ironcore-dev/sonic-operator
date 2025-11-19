@@ -17,11 +17,13 @@ import (
 )
 
 const (
-	RedisDialTimeout    = 10 * time.Second
+	RedisDialTimeout    = 30 * time.Second
 	RedisReadTimeout    = 5 * time.Second
 	RedisWriteTimeout   = 5 * time.Second
 	RedisPoolTimeout    = 10 * time.Second
-	RedisMaxRetries     = 3
+	RedisMaxRetries     = 10
+	RedisMinRetryBackoff	  = 500 * time.Millisecond
+	RedisMaxRetryBackoff	  = 10 * time.Second
 	RedisDefaultTimeout = 5 * time.Second
 )
 
@@ -76,6 +78,8 @@ func NewSonicRedisAgent(redisAddr string) (*SonicAgent, error) {
 		WriteTimeout: RedisWriteTimeout,
 		PoolTimeout:  RedisPoolTimeout,
 		MaxRetries:   RedisMaxRetries,
+		MinRetryBackoff: RedisMinRetryBackoff,
+		MaxRetryBackoff: RedisMaxRetryBackoff,
 	})
 
 	if err := testClient.Ping(context.Background()).Err(); err != nil {
