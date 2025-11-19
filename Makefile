@@ -140,8 +140,12 @@ build-agent: fmt vet ## Build agent binary.
 	go build -o bin/agent_server cmd/agent/main.go
 	go build -o bin/agent_cli cmd/agent_cli/main.go
 
+.PHONY: provisioning-server
+provisioning-server: fmt vet ## Build provisioning-server binary.
+	go build -o bin/provisioning-server cmd/provisioning-server/main.go
+
 .PHONY: build
-build: manifests generate fmt vet build-agent ## Build manager binary.
+build: manifests generate fmt vet build-agent provisioning-server ## Build manager binary.
 	go build -o bin/manager cmd/main.go
 
 
