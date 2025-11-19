@@ -25,6 +25,8 @@ jobs:
         image:
         - name: switch-operator-controller-manager
           target: manager
+        - name: sonic-agent
+          target: sonic-agent
     permissions:
       contents: read
       packages: write
