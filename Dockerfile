@@ -32,3 +32,27 @@ COPY --from=manager-builder /workspace/manager .
 USER 65532:65532
 
 ENTRYPOINT ["/manager"]
+
+
+# State 1: Build agent binaries
+FROM builder AS agent-builder
+RUN --mount=type=cache,target=/root/.cache/go-build \
+    --mount=type=cache,target=/go/pkg \
+    CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -a -o switch-agent-server cmd/agent/main.go && \
+    CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -a -o switch-agent-client cmd/agent_cli/main.go
+
+# Stage 2: Final image based on SONiC VS (Arm only right now)
+FROM gcr.io/distroless/static:nonroot AS sonic-agent
+
+WORKDIR /
+
+# Copy the built binaries from builder stage
+COPY --from=agent-builder /workspace/switch-agent-server .
+COPY --from=agent-builder /workspace/switch-agent-client .
+
+# Expose the service ports
+EXPOSE 50051 50051
+
+ENTRYPOINT ["/switch-agent-server"]
+
+
