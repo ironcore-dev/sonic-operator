@@ -17,14 +17,14 @@ import (
 )
 
 const (
-	RedisDialTimeout    = 30 * time.Second
-	RedisReadTimeout    = 5 * time.Second
-	RedisWriteTimeout   = 5 * time.Second
-	RedisPoolTimeout    = 10 * time.Second
-	RedisMaxRetries     = 10
-	RedisMinRetryBackoff	  = 500 * time.Millisecond
-	RedisMaxRetryBackoff	  = 10 * time.Second
-	RedisDefaultTimeout = 5 * time.Second
+	RedisDialTimeout     = 30 * time.Second
+	RedisReadTimeout     = 5 * time.Second
+	RedisWriteTimeout    = 5 * time.Second
+	RedisPoolTimeout     = 10 * time.Second
+	RedisMaxRetries      = 10
+	RedisMinRetryBackoff = 500 * time.Millisecond
+	RedisMaxRetryBackoff = 10 * time.Second
+	RedisDefaultTimeout  = 5 * time.Second
 )
 
 type SonicAgent struct {
@@ -71,13 +71,13 @@ func getRedisDBIDByName(name string) int {
 func NewSonicRedisAgent(redisAddr string) (*SonicAgent, error) {
 	// Test connection first
 	testClient := redis.NewClient(&redis.Options{
-		Addr:         redisAddr,
-		DB:           4, // Test with CONFIG_DB
-		DialTimeout:  RedisDialTimeout,
-		ReadTimeout:  RedisReadTimeout,
-		WriteTimeout: RedisWriteTimeout,
-		PoolTimeout:  RedisPoolTimeout,
-		MaxRetries:   RedisMaxRetries,
+		Addr:            redisAddr,
+		DB:              4, // Test with CONFIG_DB
+		DialTimeout:     RedisDialTimeout,
+		ReadTimeout:     RedisReadTimeout,
+		WriteTimeout:    RedisWriteTimeout,
+		PoolTimeout:     RedisPoolTimeout,
+		MaxRetries:      RedisMaxRetries,
 		MinRetryBackoff: RedisMinRetryBackoff,
 		MaxRetryBackoff: RedisMaxRetryBackoff,
 	})
