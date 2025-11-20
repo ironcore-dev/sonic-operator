@@ -5,6 +5,7 @@ package controller
 
 import (
 	"context"
+	"strings"
 
 	"github.com/go-logr/logr"
 	"github.com/ironcore-dev/controller-utils/clientutils"
@@ -147,7 +148,7 @@ func (r *SwitchReconciler) EnsureInterface(ctx context.Context, log logr.Logger,
 			Kind:       "SwitchInterface",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name: iface.Name,
+			Name: strings.ToLower(iface.Name),
 		},
 		Spec: networkingv1alpha1.SwitchInterfaceSpec{
 			Handle: iface.Name,
