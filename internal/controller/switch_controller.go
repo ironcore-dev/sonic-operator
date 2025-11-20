@@ -142,6 +142,10 @@ func (r *SwitchReconciler) reconcile(ctx context.Context, log logr.Logger, s *ne
 func (r *SwitchReconciler) EnsureInterface(ctx context.Context, log logr.Logger, s *networkingv1alpha1.Switch, iface agent.Interface) error {
 	log.Info("Ensuring Interface")
 	i := &networkingv1alpha1.SwitchInterface{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: networkingv1alpha1.GroupVersion.String(),
+			Kind:       "SwitchInterface",
+		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: iface.Name,
 		},
