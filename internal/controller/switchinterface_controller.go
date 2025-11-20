@@ -101,16 +101,26 @@ func (r *SwitchInterfaceReconciler) reconcile(ctx context.Context, log logr.Logg
 		return ctrl.Result{}, err
 	}
 
-	adminState, err := agent.AgentDeviceStatusToAPIAdminState(iface.AdminStatus)
-	if err != nil {
+	if iface != nil {
+		if iface.OperationStatus == agent.StatusUp {
+			i.Status.OperationalState = networkingv1alpha1.OperationStateUp
+		} else {
+			i.Status.OperationalState = networkingv1alpha1.OperationStateDown
+		}
+
+		adminState, err := agent.AgentDeviceStatusToAPIAdminState(iface.AdminStatus)
+		if err != nil {
+			i.Status.State = networkingv1alpha1.SwitchInterfaceStateFailed
+			return ctrl.Result{}, err
+		}
+		i.Status.AdminState = adminState
+	} else {
 		i.Status.State = networkingv1alpha1.SwitchInterfaceStateFailed
-		return ctrl.Result{}, err
+		return ctrl.Result{}, nil
 	}
-	i.Status.AdminState = adminState
 
-	// TODO: do neighbor discovery and ensure i.spec.AdminState is applied
-
-	state, err := agent.APIAdminStateToAgentDeviceStatus(i.Spec.AdminState)
+	// ensure i.spec.AdminState is applied
+	desired_state, err := agent.APIAdminStateToAgentDeviceStatus(i.Spec.AdminState)
 	if err != nil {
 		i.Status.State = networkingv1alpha1.SwitchInterfaceStateFailed
 		return ctrl.Result{}, err
@@ -122,7 +132,7 @@ func (r *SwitchInterfaceReconciler) reconcile(ctx context.Context, log logr.Logg
 			Kind: agent.InterfaceKind,
 		},
 		Name:        i.Spec.Handle,
-		AdminStatus: state,
+		AdminStatus: desired_state,
 	}); err != nil {
 		i.Status.State = networkingv1alpha1.SwitchInterfaceStateFailed
 		return ctrl.Result{}, err
@@ -142,8 +152,16 @@ func (r *SwitchInterfaceReconciler) reconcile(ctx context.Context, log logr.Logg
 			return ctrl.Result{}, err
 		}
 		i.Status.OperationalState = operationState
+
+		if switchInterface.OperationStatus == agent.StatusUp {
+			i.Status.OperationalState = networkingv1alpha1.OperationStateUp
+		} else {
+			i.Status.OperationalState = networkingv1alpha1.OperationStateDown
+		}
 	}
 	i.Status.State = networkingv1alpha1.SwitchInterfaceStateReady
+
+	// TODO: do neighbor discovery
 
 	log.Info("Reconciled SwitchInterface")
 	return ctrl.Result{}, nil
