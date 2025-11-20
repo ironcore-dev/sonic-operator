@@ -15,6 +15,12 @@ spec:
   scope: Cluster
   versions:
   - additionalPrinterColumns:
+    - jsonPath: .status.macAddress
+      name: MACAddress
+      type: string
+    - jsonPath: .status.state
+      name: Status
+      type: string
     - jsonPath: .metadata.creationTimestamp
       name: Age
       type: date

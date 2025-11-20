@@ -5,6 +5,7 @@ package controller
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/go-logr/logr"
 	"github.com/ironcore-dev/controller-utils/clientutils"
@@ -67,8 +68,9 @@ func (r *SwitchInterfaceReconciler) reconcile(ctx context.Context, log logr.Logg
 		return ctrl.Result{}, err
 	}
 
+	original := i.DeepCopy()
 	defer func() {
-		if err := r.Status().Patch(ctx, i, client.MergeFrom(i)); err != nil {
+		if err := r.Status().Patch(ctx, i, client.MergeFrom(original)); err != nil {
 			log.Error(err, "Failed to update Switch status")
 		}
 	}()
@@ -103,6 +105,26 @@ func (r *SwitchInterfaceReconciler) reconcile(ctx context.Context, log logr.Logg
 	i.Status.AdminState = networkingv1alpha1.AdminStateNumToAPIState(iface.AdminStatus)
 
 	// TODO: do neighbor discovery and ensure i.spec.AdminState is applied
+	state, err := APIStateToAgentState(i.Spec.AdminState)
+	if err != nil {
+		i.Status.State = networkingv1alpha1.SwitchInterfaceStateFailed
+		return ctrl.Result{}, err
+	}
+
+	var switchInterface *agent.Interface
+	if switchInterface, err = switchAgentClient.SetInterfaceAdminStatus(ctx, &agent.Interface{
+		TypeMeta: agent.TypeMeta{
+			Kind: agent.InterfaceKind,
+		},
+		Name:        i.Spec.Handle,
+		AdminStatus: state,
+	}); err != nil {
+		i.Status.State = networkingv1alpha1.SwitchInterfaceStateFailed
+		return ctrl.Result{}, err
+	}
+	if switchInterface != nil {
+		i.Status.AdminState = networkingv1alpha1.AdminStateNumToAPIState(switchInterface.AdminStatus)
+	}
 
 	log.Info("Reconciled SwitchInterface")
 	return ctrl.Result{}, nil
@@ -114,4 +136,15 @@ func (r *SwitchInterfaceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		For(&networkingv1alpha1.SwitchInterface{}).
 		Named("switchinterface").
 		Complete(r)
+}
+
+func APIStateToAgentState(state networkingv1alpha1.AdminState) (uint32, error) {
+	switch state {
+	case networkingv1alpha1.AdminStateUp:
+		return 1, nil
+	case networkingv1alpha1.AdminStateDown:
+		return 0, nil
+	default:
+		return 2, fmt.Errorf("unknown SwitchInterfaceState: %s", state)
+	}
 }
