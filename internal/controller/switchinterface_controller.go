@@ -102,9 +102,16 @@ func (r *SwitchInterfaceReconciler) reconcile(ctx context.Context, log logr.Logg
 		return ctrl.Result{}, err
 	}
 
-	i.Status.AdminState = networkingv1alpha1.AdminStateNumToAPIState(iface.AdminStatus)
+	if iface != nil {
+		i.Status.AdminState = networkingv1alpha1.AdminStateNumToAPIState(iface.AdminStatus)
+		if iface.OperationStatus == agent.StatusUp {
+			i.Status.OperationalState = networkingv1alpha1.OperationStateUp
+		} else {
+			i.Status.OperationalState = networkingv1alpha1.OperationStateDown
+		}
+	}
 
-	// TODO: do neighbor discovery and ensure i.spec.AdminState is applied
+	// TODO: do neighbor discovery
 	state, err := APIStateToAgentState(i.Spec.AdminState)
 	if err != nil {
 		i.Status.State = networkingv1alpha1.SwitchInterfaceStateFailed
@@ -123,6 +130,12 @@ func (r *SwitchInterfaceReconciler) reconcile(ctx context.Context, log logr.Logg
 		return ctrl.Result{}, err
 	}
 	if switchInterface != nil {
+		i.Status.AdminState = networkingv1alpha1.AdminStateNumToAPIState(switchInterface.AdminStatus)
+		if switchInterface.OperationStatus == agent.StatusUp {
+			i.Status.OperationalState = networkingv1alpha1.OperationStateUp
+		} else {
+			i.Status.OperationalState = networkingv1alpha1.OperationStateDown
+		}
 		i.Status.AdminState = networkingv1alpha1.AdminStateNumToAPIState(switchInterface.AdminStatus)
 	}
 	i.Status.State = networkingv1alpha1.SwitchInterfaceStateReady
