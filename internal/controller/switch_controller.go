@@ -78,8 +78,9 @@ func (r *SwitchReconciler) reconcile(ctx context.Context, log logr.Logger, s *ne
 		return ctrl.Result{}, err
 	}
 
+	original := s.DeepCopy()
 	defer func() {
-		if err := r.Status().Patch(ctx, s, client.MergeFrom(s)); err != nil {
+		if err := r.Status().Patch(ctx, s, client.MergeFrom(original)); err != nil {
 			log.Error(err, "Failed to update Switch status")
 		}
 	}()
@@ -126,10 +127,8 @@ func (r *SwitchReconciler) reconcile(ctx context.Context, log logr.Logger, s *ne
 		s.Status.Ports = make([]networkingv1alpha1.PortStatus, 0, len(portList.Items))
 	}
 
-	for i, p := range portList.Items {
-		s.Status.Ports[i] = networkingv1alpha1.PortStatus{
-			Name: p.Name,
-		}
+	for _, p := range portList.Items {
+		s.Status.Ports = append(s.Status.Ports, networkingv1alpha1.PortStatus{Name: p.Name})
 	}
 
 	s.Status.State = networkingv1alpha1.SwitchStateReady

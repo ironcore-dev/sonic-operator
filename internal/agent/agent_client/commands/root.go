@@ -56,7 +56,7 @@ func Command() *cobra.Command {
 		var err error
 		switchAgentClient, err = client.NewDefaultSwitchAgentClient(address, connectTimeout)
 		if err != nil {
-		return err
+			return err
 		}
 		return nil
 	}
