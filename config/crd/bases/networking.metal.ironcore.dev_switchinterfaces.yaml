@@ -18,6 +18,9 @@ spec:
     - jsonPath: .status.adminState
       name: AdminState
       type: string
+    - jsonPath: .status.operationalState
+      name: OperationalState
+      type: string
     - jsonPath: .status.state
       name: State
       type: string

@@ -125,6 +125,7 @@ func (r *SwitchInterfaceReconciler) reconcile(ctx context.Context, log logr.Logg
 	if switchInterface != nil {
 		i.Status.AdminState = networkingv1alpha1.AdminStateNumToAPIState(switchInterface.AdminStatus)
 	}
+	i.Status.State = networkingv1alpha1.SwitchInterfaceStateReady
 
 	log.Info("Reconciled SwitchInterface")
 	return ctrl.Result{}, nil

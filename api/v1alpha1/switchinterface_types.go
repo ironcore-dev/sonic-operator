@@ -102,6 +102,7 @@ type SwitchInterfaceStatus struct {
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:scope=Cluster
 // +kubebuilder:printcolumn:name="AdminState",type=string,JSONPath=`.status.adminState`
+// +kubebuilder:printcolumn:name="OperationalState",type=string,JSONPath=`.status.operationalState`
 // +kubebuilder:printcolumn:name="State",type=string,JSONPath=`.status.state`
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
 
