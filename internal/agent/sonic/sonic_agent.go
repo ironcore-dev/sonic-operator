@@ -71,15 +71,15 @@ func getRedisDBIDByName(name string) int {
 func NewSonicRedisAgent(redisAddr string) (*SonicAgent, error) {
 	// Test connection first
 	testClient := redis.NewClient(&redis.Options{
-		Addr:            redisAddr,
-		DB:              4, // Test with CONFIG_DB
-		DialTimeout:     RedisDialTimeout,
-		ReadTimeout:     RedisReadTimeout,
-		WriteTimeout:    RedisWriteTimeout,
-		PoolTimeout:     RedisPoolTimeout,
-		MaxRetries:      RedisMaxRetries,
-		MinRetryBackoff: RedisMinRetryBackoff,
-		MaxRetryBackoff: RedisMaxRetryBackoff,
+		Addr:             redisAddr,
+		DB:               4, // Test with CONFIG_DB
+		DialTimeout:      RedisDialTimeout,
+		ReadTimeout:      RedisReadTimeout,
+		WriteTimeout:     RedisWriteTimeout,
+		PoolTimeout:      RedisPoolTimeout,
+		MaxRetries:       RedisMaxRetries,
+		MinRetryBackoff:  RedisMinRetryBackoff,
+		MaxRetryBackoff:  RedisMaxRetryBackoff,
 		DisableIndentity: true, // Disable identity/protocol checks to avoid warnings
 	})
 
@@ -152,7 +152,7 @@ func (m *SonicAgent) Connect(dbName string) (*redis.Client, error) {
 		// Connection lifecycle
 		ConnMaxIdleTime: 30 * time.Minute,
 		ConnMaxLifetime: 1 * time.Hour,
-		
+
 		DisableIndentity: true, // Disable identity/protocol checks to avoid warnings
 	})
 
@@ -350,8 +350,6 @@ func (m *SonicAgent) SetInterfaceAdminStatus(ctx context.Context, iface *agent.I
 		return nil, errors.NewErrorStatus(errors.REDIS_KEY_CHECK_FAIL, fmt.Sprintf("failed to get state info: %v", err))
 	}
 
-
-	
 	// get the newest operational status
 	operStatus := agent.StatusDown
 	if stateFields["netdev_oper_status"] == "up" {
