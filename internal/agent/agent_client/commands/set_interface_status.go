@@ -42,18 +42,18 @@ func RunSetInterfaceStatus(
 	printer client.PrintRenderer,
 	opts SetInterfaceStatusOptions,
 ) error {
-	adminStatus, err := agent.InterfaceStatusStrToNum(opts.AdminStatus)
+	adminStatus, err := agent.ValidateDeviceStatusStr(opts.AdminStatus)
 	if err != nil {
 		return err
 	}
 
-	fmt.Printf("Setting interface admin status to: %d for interface: %s\n", adminStatus, opts.InterfaceName)
+	fmt.Printf("Setting interface admin status to: %s for interface: %s\n", adminStatus, opts.InterfaceName)
 	iface, err := c.SetInterfaceAdminStatus(ctx, &agent.Interface{
 		TypeMeta: agent.TypeMeta{
 			Kind: agent.InterfaceKind,
 		},
 		Name:        opts.InterfaceName,
-		AdminStatus: adminStatus,
+		AdminStatus: agent.DeviceStatus(adminStatus),
 	})
 	if err != nil {
 		return fmt.Errorf("failed to set interface admin status: %w", err)

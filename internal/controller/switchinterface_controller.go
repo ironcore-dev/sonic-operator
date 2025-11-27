@@ -5,7 +5,6 @@ package controller
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/go-logr/logr"
 	"github.com/ironcore-dev/controller-utils/clientutils"
@@ -102,10 +101,16 @@ func (r *SwitchInterfaceReconciler) reconcile(ctx context.Context, log logr.Logg
 		return ctrl.Result{}, err
 	}
 
-	i.Status.AdminState = networkingv1alpha1.AdminStateNumToAPIState(iface.AdminStatus)
+	adminState, err := agent.AgentDeviceStatusToAPIAdminState(iface.AdminStatus)
+	if err != nil {
+		i.Status.State = networkingv1alpha1.SwitchInterfaceStateFailed
+		return ctrl.Result{}, err
+	}
+	i.Status.AdminState = adminState
 
 	// TODO: do neighbor discovery and ensure i.spec.AdminState is applied
-	state, err := APIStateToAgentState(i.Spec.AdminState)
+
+	state, err := agent.APIAdminStateToAgentDeviceStatus(i.Spec.AdminState)
 	if err != nil {
 		i.Status.State = networkingv1alpha1.SwitchInterfaceStateFailed
 		return ctrl.Result{}, err
@@ -122,8 +127,21 @@ func (r *SwitchInterfaceReconciler) reconcile(ctx context.Context, log logr.Logg
 		i.Status.State = networkingv1alpha1.SwitchInterfaceStateFailed
 		return ctrl.Result{}, err
 	}
+
 	if switchInterface != nil {
-		i.Status.AdminState = networkingv1alpha1.AdminStateNumToAPIState(switchInterface.AdminStatus)
+		adminState, err := agent.AgentDeviceStatusToAPIAdminState(switchInterface.AdminStatus)
+		if err != nil {
+			i.Status.State = networkingv1alpha1.SwitchInterfaceStateFailed
+			return ctrl.Result{}, err
+		}
+		i.Status.AdminState = adminState
+
+		operationState, err := agent.AgentDeviceStatusToAPIOperationState(switchInterface.OperationStatus)
+		if err != nil {
+			i.Status.State = networkingv1alpha1.SwitchInterfaceStateFailed
+			return ctrl.Result{}, err
+		}
+		i.Status.OperationalState = operationState
 	}
 	i.Status.State = networkingv1alpha1.SwitchInterfaceStateReady
 
@@ -137,15 +155,4 @@ func (r *SwitchInterfaceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		For(&networkingv1alpha1.SwitchInterface{}).
 		Named("switchinterface").
 		Complete(r)
-}
-
-func APIStateToAgentState(state networkingv1alpha1.AdminState) (uint32, error) {
-	switch state {
-	case networkingv1alpha1.AdminStateUp:
-		return 1, nil
-	case networkingv1alpha1.AdminStateDown:
-		return 0, nil
-	default:
-		return 2, fmt.Errorf("unknown SwitchInterfaceState: %s", state)
-	}
 }

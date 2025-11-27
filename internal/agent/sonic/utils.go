@@ -7,8 +7,6 @@ import (
 	"fmt"
 	"os"
 	"strings"
-
-	agent "github.com/ironcore-dev/switch-operator/internal/agent/types"
 )
 
 func GetSonicVersionInfo() (map[string]string, error) {
@@ -39,13 +37,4 @@ func GetSonicVersionInfo() (map[string]string, error) {
 	}
 
 	return info, nil
-}
-
-func ConvertAdminStatusToStr(adminStatus uint32) string {
-
-	if adminStatus == uint32(agent.StatusUp) {
-		return "up"
-	} else {
-		return "down"
-	}
 }

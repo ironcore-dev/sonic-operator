@@ -80,6 +80,7 @@ func NewSonicRedisAgent(redisAddr string) (*SonicAgent, error) {
 		MaxRetries:      RedisMaxRetries,
 		MinRetryBackoff: RedisMinRetryBackoff,
 		MaxRetryBackoff: RedisMaxRetryBackoff,
+		DisableIndentity: true, // Disable identity/protocol checks to avoid warnings
 	})
 
 	if err := testClient.Ping(context.Background()).Err(); err != nil {
@@ -151,6 +152,8 @@ func (m *SonicAgent) Connect(dbName string) (*redis.Client, error) {
 		// Connection lifecycle
 		ConnMaxIdleTime: 30 * time.Minute,
 		ConnMaxLifetime: 1 * time.Hour,
+		
+		DisableIndentity: true, // Disable identity/protocol checks to avoid warnings
 	})
 
 	// Test the new connection
@@ -277,8 +280,8 @@ func (m *SonicAgent) ListInterfaces(ctx context.Context) (*agent.InterfaceList, 
 			},
 			Name:            name,
 			MacAddress:      mac.String(),
-			OperationStatus: uint32(operStatus),
-			AdminStatus:     uint32(adminStatus),
+			OperationStatus: operStatus,
+			AdminStatus:     adminStatus,
 		}
 		interfaces = append(interfaces, iface)
 	}
@@ -313,7 +316,7 @@ func (m *SonicAgent) SetInterfaceAdminStatus(ctx context.Context, iface *agent.I
 	currentAdminStatus := fields["admin_status"]
 
 	// Set admin status in CONFIG_DB
-	adminStatusStr := ConvertAdminStatusToStr(iface.AdminStatus)
+	adminStatusStr := string(iface.AdminStatus)
 	err = configDB.HSet(ctx, portKey, "admin_status", adminStatusStr).Err()
 	if err != nil {
 		return nil, errors.NewErrorStatus(errors.REDIS_HSET_FAIL, fmt.Sprintf("failed to set admin status: %v", err))
@@ -328,7 +331,7 @@ func (m *SonicAgent) SetInterfaceAdminStatus(ctx context.Context, iface *agent.I
 		return nil, errors.NewErrorStatus(errors.NOT_FOUND, fmt.Sprintf("interface %s not found", iface.Name))
 	}
 
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(1000 * time.Millisecond)
 
 	// Get updated interface status from STATE_DB
 	stateDB, err := m.Connect("STATE_DB")
@@ -347,6 +350,8 @@ func (m *SonicAgent) SetInterfaceAdminStatus(ctx context.Context, iface *agent.I
 		return nil, errors.NewErrorStatus(errors.REDIS_KEY_CHECK_FAIL, fmt.Sprintf("failed to get state info: %v", err))
 	}
 
+
+	
 	// get the newest operational status
 	operStatus := agent.StatusDown
 	if stateFields["netdev_oper_status"] == "up" {
@@ -355,7 +360,7 @@ func (m *SonicAgent) SetInterfaceAdminStatus(ctx context.Context, iface *agent.I
 
 	// Return updated interface
 	updatedIface := *iface
-	updatedIface.OperationStatus = uint32(operStatus)
+	updatedIface.OperationStatus = operStatus
 
 	return &updatedIface, nil
 }
@@ -423,8 +428,8 @@ func (m *SonicAgent) GetInterface(ctx context.Context, iface *agent.Interface) (
 		},
 		Name:            iface.Name,
 		MacAddress:      mac.String(),
-		OperationStatus: uint32(operStatus),
-		AdminStatus:     uint32(adminStatus),
+		OperationStatus: operStatus,
+		AdminStatus:     adminStatus,
 		Status:          agent.Status{Code: 0, Message: "ok"},
 	}
 

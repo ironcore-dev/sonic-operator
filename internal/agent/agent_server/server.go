@@ -72,8 +72,8 @@ func (s *proxyServer) ListInterfaces(ctx context.Context, request *pb.ListInterf
 		interfaces = append(interfaces, &pb.Interface{
 			Name:              iface.Name,
 			MacAddress:        iface.MacAddress,
-			OperationalStatus: iface.OperationStatus,
-			AdminStatus:       iface.AdminStatus,
+			OperationalStatus: string(iface.OperationStatus),
+			AdminStatus:       string(iface.AdminStatus),
 		})
 	}
 
@@ -92,7 +92,7 @@ func (s *proxyServer) SetInterfaceAdminStatus(ctx context.Context, request *pb.S
 			Kind: agent.InterfaceKind,
 		},
 		Name:        request.GetInterfaceName(),
-		AdminStatus: request.GetAdminStatus(),
+		AdminStatus: agent.DeviceStatus(request.GetAdminStatus()),
 	})
 
 	if status != nil {
@@ -112,8 +112,8 @@ func (s *proxyServer) SetInterfaceAdminStatus(ctx context.Context, request *pb.S
 		Interface: &pb.Interface{
 			Name:              iface.Name,
 			MacAddress:        "",
-			OperationalStatus: iface.OperationStatus,
-			AdminStatus:       iface.AdminStatus,
+			OperationalStatus: string(iface.OperationStatus),
+			AdminStatus:       string(iface.AdminStatus),
 		},
 	}, nil
 }
@@ -170,8 +170,8 @@ func (s *proxyServer) GetInterface(ctx context.Context, request *pb.GetInterface
 		Interface: &pb.Interface{
 			Name:              iface.Name,
 			MacAddress:        iface.MacAddress,
-			OperationalStatus: iface.OperationStatus,
-			AdminStatus:       iface.AdminStatus,
+			OperationalStatus: string(iface.OperationStatus),
+			AdminStatus:       string(iface.AdminStatus),
 		},
 	}, nil
 }

@@ -60,11 +60,13 @@ type DeviceMeta struct {
 	AsicType        string `json:"asic_type"`
 }
 
+type DeviceStatus string
+
 const (
-	StatusDown = iota
-	StatusUp
-	StatusUnknown
-)
+	StatusDown    DeviceStatus = "down"
+	StatusUp      DeviceStatus = "up"
+	StatusUnknown DeviceStatus = "unknown"
+) // device status is used to describe both the admin and operational status of a device, e.g., switch, interface, port, etc.
 
 const (
 	StatusNotReady = iota
@@ -98,10 +100,10 @@ func (d *SwitchDevice) GetStatus() Status {
 type Interface struct {
 	TypeMeta `json:",inline"`
 
-	Name            string `json:"name"`
-	MacAddress      string `json:"mac_address"`
-	OperationStatus uint32 `json:"operation_status"`
-	AdminStatus     uint32 `json:"admin_status"`
+	Name            string       `json:"name"`
+	MacAddress      string       `json:"mac_address"`
+	OperationStatus DeviceStatus `json:"operation_status"`
+	AdminStatus     DeviceStatus `json:"admin_status"`
 
 	Status Status `json:"status"`
 }

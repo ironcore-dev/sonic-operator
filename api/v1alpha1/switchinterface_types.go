@@ -16,17 +16,6 @@ const (
 	AdminStateDown    AdminState = "Down"
 )
 
-func AdminStateNumToAPIState(num uint32) AdminState {
-	switch num {
-	case 0:
-		return AdminStateDown
-	case 1:
-		return AdminStateUp
-	default:
-		return AdminStateUnknown
-	}
-}
-
 // SwitchInterfaceSpec defines the desired state of SwitchInterface
 type SwitchInterfaceSpec struct {
 	// Handle uniquely identifies this interface on the switch.
@@ -45,8 +34,9 @@ type SwitchInterfaceSpec struct {
 type OperationState string
 
 const (
-	OperationStateUp   OperationState = "Up"
-	OperationStateDown OperationState = "Down"
+	OperationStateUp      OperationState = "Up"
+	OperationStateDown    OperationState = "Down"
+	OperationStateUnknown OperationState = "Unknown"
 )
 
 type SwitchInterfaceState string

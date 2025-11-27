@@ -128,8 +128,8 @@ func (c *defaultSwitchAgentClient) ListInterfaces(ctx context.Context) (*agent.I
 			},
 			Name:            iface.GetName(),
 			MacAddress:      iface.GetMacAddress(),
-			OperationStatus: iface.GetOperationalStatus(),
-			AdminStatus:     iface.GetAdminStatus(),
+			OperationStatus: agent.DeviceStatus(iface.GetOperationalStatus()),
+			AdminStatus:     agent.DeviceStatus(iface.GetAdminStatus()),
 		}
 	}
 
@@ -155,7 +155,7 @@ func (c *defaultSwitchAgentClient) SetInterfaceAdminStatus(ctx context.Context, 
 
 	resp, err := c.client.SetInterfaceAdminStatus(ctx, &pb.SetInterfaceAdminStatusRequest{
 		InterfaceName: iface.GetName(),
-		AdminStatus:   iface.AdminStatus,
+		AdminStatus:   string(iface.AdminStatus),
 	})
 	if err != nil {
 		fmt.Println("Error occurred while setting interface admin status:", err)
@@ -168,6 +168,10 @@ func (c *defaultSwitchAgentClient) SetInterfaceAdminStatus(ctx context.Context, 
 			Status: agent.ProtoStatusToStatus(resp.GetStatus()),
 		}, fmt.Errorf("failed to set interface admin status: %s", resp.GetStatus().GetMessage())
 	}
+
+	iface.AdminStatus = agent.DeviceStatus(resp.GetInterface().GetAdminStatus())
+	iface.OperationStatus = agent.DeviceStatus(resp.GetInterface().GetOperationalStatus())
+	iface.Status = agent.ProtoStatusToStatus(resp.GetStatus())
 
 	return iface, nil
 }
@@ -200,8 +204,8 @@ func (c *defaultSwitchAgentClient) GetInterface(ctx context.Context, iface *agen
 		},
 		Name:            resp.GetInterface().GetName(),
 		MacAddress:      resp.GetInterface().GetMacAddress(),
-		OperationStatus: resp.GetInterface().GetOperationalStatus(),
-		AdminStatus:     resp.GetInterface().GetAdminStatus(),
+		OperationStatus: agent.DeviceStatus(resp.GetInterface().GetOperationalStatus()),
+		AdminStatus:     agent.DeviceStatus(resp.GetInterface().GetAdminStatus()),
 		Status:          agent.ProtoStatusToStatus(resp.GetStatus()),
 	}, nil
 }

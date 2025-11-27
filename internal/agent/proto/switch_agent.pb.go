@@ -198,8 +198,8 @@ func (x *GetDeviceInfoResponse) GetReadiness() uint32 {
 type Interface struct {
 	state             protoimpl.MessageState `protogen:"open.v1"`
 	Name              string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	OperationalStatus uint32                 `protobuf:"varint,2,opt,name=operational_status,json=operationalStatus,proto3" json:"operational_status,omitempty"`
-	AdminStatus       uint32                 `protobuf:"varint,3,opt,name=admin_status,json=adminStatus,proto3" json:"admin_status,omitempty"`
+	OperationalStatus string                 `protobuf:"bytes,2,opt,name=operational_status,json=operationalStatus,proto3" json:"operational_status,omitempty"`
+	AdminStatus       string                 `protobuf:"bytes,3,opt,name=admin_status,json=adminStatus,proto3" json:"admin_status,omitempty"`
 	MacAddress        string                 `protobuf:"bytes,4,opt,name=mac_address,json=macAddress,proto3" json:"mac_address,omitempty"`
 	unknownFields     protoimpl.UnknownFields
 	sizeCache         protoimpl.SizeCache
@@ -242,18 +242,18 @@ func (x *Interface) GetName() string {
 	return ""
 }
 
-func (x *Interface) GetOperationalStatus() uint32 {
+func (x *Interface) GetOperationalStatus() string {
 	if x != nil {
 		return x.OperationalStatus
 	}
-	return 0
+	return ""
 }
 
-func (x *Interface) GetAdminStatus() uint32 {
+func (x *Interface) GetAdminStatus() string {
 	if x != nil {
 		return x.AdminStatus
 	}
-	return 0
+	return ""
 }
 
 func (x *Interface) GetMacAddress() string {
@@ -356,7 +356,7 @@ func (x *ListInterfacesResponse) GetInterfaces() []*Interface {
 type SetInterfaceAdminStatusRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	InterfaceName string                 `protobuf:"bytes,1,opt,name=interface_name,json=interfaceName,proto3" json:"interface_name,omitempty"`
-	AdminStatus   uint32                 `protobuf:"varint,2,opt,name=admin_status,json=adminStatus,proto3" json:"admin_status,omitempty"`
+	AdminStatus   string                 `protobuf:"bytes,2,opt,name=admin_status,json=adminStatus,proto3" json:"admin_status,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -398,11 +398,11 @@ func (x *SetInterfaceAdminStatusRequest) GetInterfaceName() string {
 	return ""
 }
 
-func (x *SetInterfaceAdminStatusRequest) GetAdminStatus() uint32 {
+func (x *SetInterfaceAdminStatusRequest) GetAdminStatus() string {
 	if x != nil {
 		return x.AdminStatus
 	}
-	return 0
+	return ""
 }
 
 type SetInterfaceAdminStatusResponse struct {
@@ -875,8 +875,8 @@ const file_internal_agent_proto_switch_agent_proto_rawDesc = "" +
 	"\treadiness\x18\x06 \x01(\rR\treadiness\"\x92\x01\n" +
 	"\tInterface\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12-\n" +
-	"\x12operational_status\x18\x02 \x01(\rR\x11operationalStatus\x12!\n" +
-	"\fadmin_status\x18\x03 \x01(\rR\vadminStatus\x12\x1f\n" +
+	"\x12operational_status\x18\x02 \x01(\tR\x11operationalStatus\x12!\n" +
+	"\fadmin_status\x18\x03 \x01(\tR\vadminStatus\x12\x1f\n" +
 	"\vmac_address\x18\x04 \x01(\tR\n" +
 	"macAddress\"\x17\n" +
 	"\x15ListInterfacesRequest\"\x83\x01\n" +
@@ -887,7 +887,7 @@ const file_internal_agent_proto_switch_agent_proto_rawDesc = "" +
 	"interfaces\"j\n" +
 	"\x1eSetInterfaceAdminStatusRequest\x12%\n" +
 	"\x0einterface_name\x18\x01 \x01(\tR\rinterfaceName\x12!\n" +
-	"\fadmin_status\x18\x02 \x01(\rR\vadminStatus\"\x8a\x01\n" +
+	"\fadmin_status\x18\x02 \x01(\tR\vadminStatus\"\x8a\x01\n" +
 	"\x1fSetInterfaceAdminStatusResponse\x12.\n" +
 	"\x06status\x18\x01 \x01(\v2\x16.switchagent.v1.StatusR\x06status\x127\n" +
 	"\tinterface\x18\x02 \x01(\v2\x19.switchagent.v1.InterfaceR\tinterface\"\x12\n" +

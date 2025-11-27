@@ -142,6 +142,11 @@ func (r *SwitchReconciler) reconcile(ctx context.Context, log logr.Logger, s *ne
 
 func (r *SwitchReconciler) EnsureInterface(ctx context.Context, log logr.Logger, s *networkingv1alpha1.Switch, iface agent.Interface) error {
 	log.Info("Ensuring Interface")
+
+	adminState, err := agent.AgentDeviceStatusToAPIAdminState(iface.AdminStatus)
+	if err != nil {
+		return err
+	}
 	i := &networkingv1alpha1.SwitchInterface{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: networkingv1alpha1.GroupVersion.String(),
@@ -155,7 +160,7 @@ func (r *SwitchReconciler) EnsureInterface(ctx context.Context, log logr.Logger,
 			SwitchRef: &corev1.LocalObjectReference{
 				Name: s.Name,
 			},
-			AdminState: networkingv1alpha1.AdminStateNumToAPIState(iface.AdminStatus),
+			AdminState: adminState,
 		},
 	}
 
