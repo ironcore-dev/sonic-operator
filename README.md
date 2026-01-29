@@ -1,8 +1,28 @@
 # switch-operator
-// TODO(user): Add simple overview of use/purpose
+[![REUSE status](https://api.reuse.software/badge/github.com/ironcore-dev/switch-operator)](https://api.reuse.software/info/github.com/ironcore-dev/switch-operator)
+[![Go Report Card](https://goreportcard.com/badge/github.com/ironcore-dev/switch-operator)](https://goreportcard.com/report/github.com/ironcore-dev/switch-operator)
+[![GitHub License](https://img.shields.io/static/v1?label=License&message=Apache-2.0&color=blue)](LICENSE)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://makeapullrequest.com)
 
-## Description
-// TODO(user): An in-depth paragraph about your project and overview of use
+A Kubernetes-native operator for onboarding and managing bare-metal network switches.
+
+## What it does
+- Manages switches and interfaces as declarative Kubernetes resources.
+- Deploys a switch agent on the device to read and enforce state.
+- Serves ZTP scripts and ONIE installer artifacts for zero-touch provisioning.
+
+## Components
+- **Controller manager**: reconciles CRDs and updates status.
+- **Switch agent**: runs on the switch; gRPC API for device/interface operations.
+- **Provisioning server**: serves ZTP scripts and ONIE installers over HTTP.
+
+## CRDs
+- `Switch`: physical switch and management connectivity.
+- `SwitchInterface`: per-interface admin/operational state.
+- `SwitchCredentials`: credentials (Secret-like schema).
+
+## Docs
+Start at `docs/README.md`.
 
 ## Getting Started
 
@@ -101,7 +121,7 @@ kubebuilder edit --plugins=helm/v1-alpha
 ```
 
 2. See that a chart was generated under 'dist/chart', and users
-can obtain this solution from there.
+   can obtain this solution from there.
 
 **NOTE:** If you change the project, you need to update the Helm Chart
 using the same command above to sync the latest changes. Furthermore,

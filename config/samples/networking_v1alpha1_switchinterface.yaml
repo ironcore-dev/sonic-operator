@@ -1,9 +1,9 @@
-apiVersion: networking.networking.metal.ironcore.dev/v1alpha1
+apiVersion: networking.metal.ironcore.dev/v1alpha1
 kind: SwitchInterface
 metadata:
-  labels:
-    app.kubernetes.io/name: switch-operator
-    app.kubernetes.io/managed-by: kustomize
-  name: switchinterface-sample
+  name: spine-1-eth0
 spec:
-  # TODO(user): Add fields here
+  handle: Ethernet0
+  switchRef:
+    name: spine-1
+  adminState: Up
