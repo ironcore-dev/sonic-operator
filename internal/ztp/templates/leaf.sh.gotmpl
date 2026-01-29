@@ -182,4 +182,9 @@ EOF
     echo "=== ZTP Stage 2 complete. Provisioning done, rebooting! ==="
     reboot
 fi
+
+# Install Switch Operator Sonic Agent
+docker pull ghcr.io/ironcore-dev/sonic-agent:sha-5dfeeb5
+docker run --name sonic-agent --network=host --restart=always -d ghcr.io/ironcore-dev/sonic-agent:sha-5dfeeb5
+
 exit 0

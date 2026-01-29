@@ -110,7 +110,17 @@ EOF
 # 7. Restart BGP to load new config
 systemctl restart bgp
 
-# 8. Stop ZTP daemon
+# 8. Stop BGP Daemon on the Switch
+systemctl stop bgp
+systemctl disable --now bgp
+config feature state bgp disabled
+config save -y
+
+# 9. Install Switch Operator Sonic Agent
+docker pull ghcr.io/ironcore-dev/sonic-agent:sha-5dfeeb5
+docker run --name sonic-agent --network=host --restart=always -d ghcr.io/ironcore-dev/sonic-agent:sha-5dfeeb5
+
+# 10. Stop ZTP daemon
 systemctl stop ztp
 config ztp disable
 
