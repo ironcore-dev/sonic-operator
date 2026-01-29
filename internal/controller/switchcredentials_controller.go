@@ -11,7 +11,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
-	networkingv1alpha1 "github.com/ironcore-dev/switch-operator/api/v1alpha1"
+	networkingv1alpha1 "github.com/ironcore-dev/sonic-operator/api/v1alpha1"
 )
 
 // SwitchCredentialsReconciler reconciles a SwitchCredentials object
@@ -20,9 +20,9 @@ type SwitchCredentialsReconciler struct {
 	Scheme *runtime.Scheme
 }
 
-// +kubebuilder:rbac:groups=networking.metal.ironcore.dev,resources=switchcredentials,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=networking.metal.ironcore.dev,resources=switchcredentials/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=networking.metal.ironcore.dev,resources=switchcredentials/finalizers,verbs=update
+// +kubebuilder:rbac:groups=sonic.networking.metal.ironcore.dev,resources=switchcredentials,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=sonic.networking.metal.ironcore.dev,resources=switchcredentials/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=sonic.networking.metal.ironcore.dev,resources=switchcredentials/finalizers,verbs=update
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.

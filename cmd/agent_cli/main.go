@@ -6,7 +6,7 @@ package main
 import (
 	"os"
 
-	commands "github.com/ironcore-dev/switch-operator/internal/agent/agent_client/commands"
+	commands "github.com/ironcore-dev/sonic-operator/internal/agent/agent_client/commands"
 )
 
 func main() {

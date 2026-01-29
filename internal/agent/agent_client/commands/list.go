@@ -4,7 +4,7 @@
 package commands
 
 import (
-	client "github.com/ironcore-dev/switch-operator/internal/agent/agent_client/client"
+	client "github.com/ironcore-dev/sonic-operator/internal/agent/agent_client/client"
 
 	"github.com/spf13/cobra"
 )

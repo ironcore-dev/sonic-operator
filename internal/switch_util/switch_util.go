@@ -6,12 +6,12 @@ package switchutil
 import (
 	"context"
 
-	networkingv1alpha1 "github.com/ironcore-dev/switch-operator/api/v1alpha1"
+	networkingv1alpha1 "github.com/ironcore-dev/sonic-operator/api/v1alpha1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	agentCli "github.com/ironcore-dev/switch-operator/internal/agent/agent_client/client"
+	agentCli "github.com/ironcore-dev/sonic-operator/internal/agent/agent_client/client"
 )
 
 func NewAgentClientForSwitch(ctx context.Context, s *networkingv1alpha1.Switch) (agentCli.SwitchAgentClient, error) {

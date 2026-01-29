@@ -1,7 +1,7 @@
-# This rule is not used by the project switch-operator itself.
+# This rule is not used by the project sonic-operator itself.
 # It is provided to allow the cluster admin to help manage permissions for users.
 #
-# Grants read-only access to networking.networking.metal.ironcore.dev resources.
+# Grants read-only access to sonic.networking.metal.ironcore.dev resources.
 # This role is intended for users who need visibility into these resources
 # without permissions to modify them. It is ideal for monitoring purposes and limited-access viewing.
 
@@ -9,12 +9,12 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   labels:
-    app.kubernetes.io/name: switch-operator
+    app.kubernetes.io/name: sonic-operator
     app.kubernetes.io/managed-by: kustomize
   name: switch-viewer-role
 rules:
 - apiGroups:
-  - networking.metal.ironcore.dev
+  - sonic.networking.metal.ironcore.dev
   resources:
   - switches
   verbs:
@@ -22,7 +22,7 @@ rules:
   - list
   - watch
 - apiGroups:
-  - networking.metal.ironcore.dev
+  - sonic.networking.metal.ironcore.dev
   resources:
   - switches/status
   verbs:

@@ -2,6 +2,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 // Package v1alpha1 contains API Schema definitions for the settings.gardener.cloud API group
-// +groupName=networking.metal.ironcore.dev
+// +groupName=sonic.networking.metal.ironcore.dev
 // +kubebuilder:object:generate=true
 package v1alpha1

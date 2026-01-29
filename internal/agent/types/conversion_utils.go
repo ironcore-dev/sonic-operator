@@ -6,9 +6,9 @@ package types
 import (
 	"fmt"
 
-	pb "github.com/ironcore-dev/switch-operator/internal/agent/proto"
+	pb "github.com/ironcore-dev/sonic-operator/internal/agent/proto"
 
-	api "github.com/ironcore-dev/switch-operator/api/v1alpha1"
+	api "github.com/ironcore-dev/sonic-operator/api/v1alpha1"
 )
 
 func ProtoStatusToStatus(pbStatus *pb.Status) Status {

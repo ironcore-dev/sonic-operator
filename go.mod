@@ -1,4 +1,4 @@
-module github.com/ironcore-dev/switch-operator
+module github.com/ironcore-dev/sonic-operator
 
 go 1.24.5
 

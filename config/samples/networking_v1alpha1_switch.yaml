@@ -1,13 +1,16 @@
-apiVersion: networking.metal.ironcore.dev/v1alpha1
+apiVersion: sonic.networking.metal.ironcore.dev/v1alpha1
 kind: Switch
 metadata:
-  name: spine-1
+  labels:
+    app.kubernetes.io/name: sonic-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: switch-sample
 spec:
   management:
     host: 192.0.2.10
     port: "50051"
     credentials:
-      name: spine-1-creds
+      name: switchcredentials-sample
   macAddress: "aa:bb:cc:dd:ee:ff"
   ports:
     - name: Ethernet0

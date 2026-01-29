@@ -1,6 +1,6 @@
 # Resources
 
-All CRDs are **cluster-scoped** and reconciled by switch-operator.
+All CRDs are **cluster-scoped** and reconciled by sonic-operator.
 
 ## Switch
 Represents a physical switch and its management connectivity.

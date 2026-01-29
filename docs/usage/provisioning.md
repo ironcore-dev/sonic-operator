@@ -5,7 +5,7 @@ The provisioning server serves ZTP scripts and ONIE installer artifacts over HTT
 ## Manager flags
 - `--http-server-address`: bind address for the provisioning server.
 - `--ztp-config-file`: JSON file with ZTP parameters (default `/etc/ztp.json`).
-- `--onie-installer-dir`: directory containing ONIE installer files (default `/var/lib/switch-operator/onie`).
+- `--onie-installer-dir`: directory containing ONIE installer files (default `/var/lib/sonic-operator/onie`).
 
 ## ZTP
 - Scripts are rendered from templates in `internal/ztp/templates`.
