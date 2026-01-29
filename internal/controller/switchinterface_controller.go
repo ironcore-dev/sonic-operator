@@ -14,6 +14,7 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
 	networkingv1alpha1 "github.com/ironcore-dev/switch-operator/api/v1alpha1"
+	agenterrors "github.com/ironcore-dev/switch-operator/internal/agent/errors"
 	agent "github.com/ironcore-dev/switch-operator/internal/agent/types"
 	switchUtil "github.com/ironcore-dev/switch-operator/internal/switch_util"
 )
@@ -161,7 +162,25 @@ func (r *SwitchInterfaceReconciler) reconcile(ctx context.Context, log logr.Logg
 	}
 	i.Status.State = networkingv1alpha1.SwitchInterfaceStateReady
 
-	// TODO: do neighbor discovery
+	neighbor, err := switchAgentClient.GetInterfaceNeighbor(ctx, &agent.Interface{
+		TypeMeta: agent.TypeMeta{
+			Kind: agent.InterfaceKind,
+		},
+		Name: i.Spec.Handle,
+	})
+	if err != nil {
+		if neighbor == nil || neighbor.Status.Code != agenterrors.NOT_FOUND {
+			i.Status.State = networkingv1alpha1.SwitchInterfaceStateFailed
+			return ctrl.Result{}, err
+		}
+		i.Status.Neighbor = networkingv1alpha1.Neighbor{}
+	} else {
+		i.Status.Neighbor = networkingv1alpha1.Neighbor{
+			MacAddress:      neighbor.MacAddress,
+			SystemName:      neighbor.SystemName,
+			InterfaceHandle: neighbor.Handle,
+		}
+	}
 
 	log.Info("Reconciled SwitchInterface")
 	return ctrl.Result{}, nil
