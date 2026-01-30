@@ -10,9 +10,9 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/ironcore-dev/controller-utils/clientutils"
 
-	agent "github.com/ironcore-dev/switch-operator/internal/agent/types"
+	agent "github.com/ironcore-dev/sonic-operator/internal/agent/types"
 
-	switchUtil "github.com/ironcore-dev/switch-operator/internal/switch_util"
+	switchUtil "github.com/ironcore-dev/sonic-operator/internal/switch_util"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -22,7 +22,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
-	networkingv1alpha1 "github.com/ironcore-dev/switch-operator/api/v1alpha1"
+	networkingv1alpha1 "github.com/ironcore-dev/sonic-operator/api/v1alpha1"
 )
 
 var (
@@ -35,10 +35,10 @@ type SwitchReconciler struct {
 	Scheme *runtime.Scheme
 }
 
-// +kubebuilder:rbac:groups=networking.metal.ironcore.dev,resources=switches,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=networking.metal.ironcore.dev,resources=switches/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=networking.metal.ironcore.dev,resources=switches/finalizers,verbs=update
-// +kubebuilder:rbac:groups=networking.metal.ironcore.dev,resources=interfaces,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=sonic.networking.metal.ironcore.dev,resources=switches,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=sonic.networking.metal.ironcore.dev,resources=switches/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=sonic.networking.metal.ironcore.dev,resources=switches/finalizers,verbs=update
+// +kubebuilder:rbac:groups=sonic.networking.metal.ironcore.dev,resources=interfaces,verbs=get;list;watch;create;update;patch;delete
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.

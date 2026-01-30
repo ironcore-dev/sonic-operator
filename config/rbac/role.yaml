@@ -5,7 +5,7 @@ metadata:
   name: manager-role
 rules:
 - apiGroups:
-  - networking.metal.ironcore.dev
+  - sonic.networking.metal.ironcore.dev
   resources:
   - interfaces
   - switchcredentials
@@ -20,7 +20,7 @@ rules:
   - update
   - watch
 - apiGroups:
-  - networking.metal.ironcore.dev
+  - sonic.networking.metal.ironcore.dev
   resources:
   - switchcredentials/finalizers
   - switches/finalizers
@@ -28,7 +28,7 @@ rules:
   verbs:
   - update
 - apiGroups:
-  - networking.metal.ironcore.dev
+  - sonic.networking.metal.ironcore.dev
   resources:
   - switchcredentials/status
   - switches/status

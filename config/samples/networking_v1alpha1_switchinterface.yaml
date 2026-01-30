@@ -1,7 +1,10 @@
-apiVersion: networking.metal.ironcore.dev/v1alpha1
+apiVersion: sonic.networking.metal.ironcore.dev/v1alpha1
 kind: SwitchInterface
 metadata:
-  name: spine-1-eth0
+  labels:
+    app.kubernetes.io/name: sonic-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: switchinterface-sample
 spec:
   handle: Ethernet0
   switchRef:

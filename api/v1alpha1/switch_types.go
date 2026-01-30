@@ -9,7 +9,7 @@ import (
 )
 
 var (
-	SwitchFinalizer = "networking.metal.ironcore.dev/switch-operator"
+	SwitchFinalizer = "sonic.networking.metal.ironcore.dev/sonic-operator"
 )
 
 type PortSpec struct {

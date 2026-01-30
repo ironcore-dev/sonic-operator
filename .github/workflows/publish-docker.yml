@@ -23,7 +23,7 @@ jobs:
     strategy:
       matrix:
         image:
-        - name: switch-operator-controller-manager
+        - name: sonic-operator-controller-manager
           target: manager
         - name: sonic-agent
           target: sonic-agent

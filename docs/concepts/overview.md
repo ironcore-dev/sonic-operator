@@ -1,6 +1,6 @@
 # Overview
 
-switch-operator is a Kubernetes-native, declarative operator for onboarding and managing the lifecycle of bare-metal network switches.
+sonic-operator is a Kubernetes-native, declarative operator for onboarding and managing the lifecycle of bare-metal network switches.
 
 ## Architecture
 - **Controller manager** runs in the cluster, reconciles CRDs, and maintains status.

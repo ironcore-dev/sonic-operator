@@ -9,8 +9,8 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/ironcore-dev/switch-operator/internal/onie"
-	"github.com/ironcore-dev/switch-operator/internal/ztp"
+	"github.com/ironcore-dev/sonic-operator/internal/onie"
+	"github.com/ironcore-dev/sonic-operator/internal/ztp"
 )
 
 func main() {

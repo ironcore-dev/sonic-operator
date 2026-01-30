@@ -1,6 +1,6 @@
 # Documentation
 
-This directory contains the main documentation for switch-operator.
+This directory contains the main documentation for sonic-operator.
 
 ## Concepts
 - `concepts/overview.md` — architecture, components, and reconciliation flow.

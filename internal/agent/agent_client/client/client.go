@@ -11,8 +11,8 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
-	pb "github.com/ironcore-dev/switch-operator/internal/agent/proto"
-	agent "github.com/ironcore-dev/switch-operator/internal/agent/types"
+	pb "github.com/ironcore-dev/sonic-operator/internal/agent/proto"
+	agent "github.com/ironcore-dev/sonic-operator/internal/agent/types"
 )
 
 type SwitchAgentClient interface {

@@ -1,7 +1,7 @@
 version = 1
-SPDX-PackageName = "switch-operator"
+SPDX-PackageName = "sonic-operator"
 SPDX-PackageSupplier = "IronCore authors <ospo@sap.com>"
-SPDX-PackageDownloadLocation = "https://github.com/ironcore-dev/switch-operator"
+SPDX-PackageDownloadLocation = "https://github.com/ironcore-dev/sonic-operator"
 
 [[annotations]]
 path = [

@@ -1,19 +1,19 @@
 <p>Packages:</p>
 <ul>
 <li>
-<a href="#networking.metal.ironcore.dev%2fv1alpha1">networking.metal.ironcore.dev/v1alpha1</a>
+<a href="#sonic.networking.metal.ironcore.dev%2fv1alpha1">sonic.networking.metal.ironcore.dev/v1alpha1</a>
 </li>
 </ul>
-<h2 id="networking.metal.ironcore.dev/v1alpha1">networking.metal.ironcore.dev/v1alpha1</h2>
+<h2 id="sonic.networking.metal.ironcore.dev/v1alpha1">sonic.networking.metal.ironcore.dev/v1alpha1</h2>
 <div>
 <p>Package v1alpha1 contains API Schema definitions for the settings.gardener.cloud API group</p>
 </div>
 Resource Types:
 <ul></ul>
-<h3 id="networking.metal.ironcore.dev/v1alpha1.AdminState">AdminState
+<h3 id="sonic.networking.metal.ironcore.dev/v1alpha1.AdminState">AdminState
 (<code>string</code> alias)</h3>
 <p>
-(<em>Appears on:</em><a href="#networking.metal.ironcore.dev/v1alpha1.SwitchInterfaceSpec">SwitchInterfaceSpec</a>, <a href="#networking.metal.ironcore.dev/v1alpha1.SwitchInterfaceStatus">SwitchInterfaceStatus</a>)
+(<em>Appears on:</em><a href="#sonic.networking.metal.ironcore.dev/v1alpha1.SwitchInterfaceSpec">SwitchInterfaceSpec</a>, <a href="#sonic.networking.metal.ironcore.dev/v1alpha1.SwitchInterfaceStatus">SwitchInterfaceStatus</a>)
 </p>
 <div>
 </div>
@@ -32,10 +32,10 @@ Resource Types:
 <td></td>
 </tr></tbody>
 </table>
-<h3 id="networking.metal.ironcore.dev/v1alpha1.Management">Management
+<h3 id="sonic.networking.metal.ironcore.dev/v1alpha1.Management">Management
 </h3>
 <p>
-(<em>Appears on:</em><a href="#networking.metal.ironcore.dev/v1alpha1.SwitchSpec">SwitchSpec</a>)
+(<em>Appears on:</em><a href="#sonic.networking.metal.ironcore.dev/v1alpha1.SwitchSpec">SwitchSpec</a>)
 </p>
 <div>
 </div>
@@ -81,10 +81,10 @@ Kubernetes core/v1.ObjectReference
 </tr>
 </tbody>
 </table>
-<h3 id="networking.metal.ironcore.dev/v1alpha1.Neighbor">Neighbor
+<h3 id="sonic.networking.metal.ironcore.dev/v1alpha1.Neighbor">Neighbor
 </h3>
 <p>
-(<em>Appears on:</em><a href="#networking.metal.ironcore.dev/v1alpha1.SwitchInterfaceStatus">SwitchInterfaceStatus</a>)
+(<em>Appears on:</em><a href="#sonic.networking.metal.ironcore.dev/v1alpha1.SwitchInterfaceStatus">SwitchInterfaceStatus</a>)
 </p>
 <div>
 <p>Neighbor represents a connected neighbor device.</p>
@@ -132,10 +132,10 @@ string
 </tr>
 </tbody>
 </table>
-<h3 id="networking.metal.ironcore.dev/v1alpha1.OperationState">OperationState
+<h3 id="sonic.networking.metal.ironcore.dev/v1alpha1.OperationState">OperationState
 (<code>string</code> alias)</h3>
 <p>
-(<em>Appears on:</em><a href="#networking.metal.ironcore.dev/v1alpha1.SwitchInterfaceStatus">SwitchInterfaceStatus</a>)
+(<em>Appears on:</em><a href="#sonic.networking.metal.ironcore.dev/v1alpha1.SwitchInterfaceStatus">SwitchInterfaceStatus</a>)
 </p>
 <div>
 </div>
@@ -154,10 +154,10 @@ string
 <td></td>
 </tr></tbody>
 </table>
-<h3 id="networking.metal.ironcore.dev/v1alpha1.PortSpec">PortSpec
+<h3 id="sonic.networking.metal.ironcore.dev/v1alpha1.PortSpec">PortSpec
 </h3>
 <p>
-(<em>Appears on:</em><a href="#networking.metal.ironcore.dev/v1alpha1.SwitchSpec">SwitchSpec</a>)
+(<em>Appears on:</em><a href="#sonic.networking.metal.ironcore.dev/v1alpha1.SwitchSpec">SwitchSpec</a>)
 </p>
 <div>
 </div>
@@ -181,10 +181,10 @@ string
 </tr>
 </tbody>
 </table>
-<h3 id="networking.metal.ironcore.dev/v1alpha1.PortStatus">PortStatus
+<h3 id="sonic.networking.metal.ironcore.dev/v1alpha1.PortStatus">PortStatus
 </h3>
 <p>
-(<em>Appears on:</em><a href="#networking.metal.ironcore.dev/v1alpha1.SwitchStatus">SwitchStatus</a>)
+(<em>Appears on:</em><a href="#sonic.networking.metal.ironcore.dev/v1alpha1.SwitchStatus">SwitchStatus</a>)
 </p>
 <div>
 <p>PortStatus defines the observed state of a port on the Switch.</p>
@@ -223,7 +223,7 @@ string
 </tr>
 </tbody>
 </table>
-<h3 id="networking.metal.ironcore.dev/v1alpha1.Switch">Switch
+<h3 id="sonic.networking.metal.ironcore.dev/v1alpha1.Switch">Switch
 </h3>
 <div>
 <p>Switch is the Schema for the switch API</p>
@@ -256,7 +256,7 @@ Refer to the Kubernetes API documentation for the fields of the
 <td>
 <code>spec</code><br/>
 <em>
-<a href="#networking.metal.ironcore.dev/v1alpha1.SwitchSpec">
+<a href="#sonic.networking.metal.ironcore.dev/v1alpha1.SwitchSpec">
 SwitchSpec
 </a>
 </em>
@@ -270,7 +270,7 @@ SwitchSpec
 <td>
 <code>management</code><br/>
 <em>
-<a href="#networking.metal.ironcore.dev/v1alpha1.Management">
+<a href="#sonic.networking.metal.ironcore.dev/v1alpha1.Management">
 Management
 </a>
 </em>
@@ -293,7 +293,7 @@ string
 <td>
 <code>ports</code><br/>
 <em>
-<a href="#networking.metal.ironcore.dev/v1alpha1.PortSpec">
+<a href="#sonic.networking.metal.ironcore.dev/v1alpha1.PortSpec">
 []PortSpec
 </a>
 </em>
@@ -309,7 +309,7 @@ string
 <td>
 <code>status,omitempty,omitzero</code><br/>
 <em>
-<a href="#networking.metal.ironcore.dev/v1alpha1.SwitchStatus">
+<a href="#sonic.networking.metal.ironcore.dev/v1alpha1.SwitchStatus">
 SwitchStatus
 </a>
 </em>
@@ -321,7 +321,7 @@ SwitchStatus
 </tr>
 </tbody>
 </table>
-<h3 id="networking.metal.ironcore.dev/v1alpha1.SwitchCredentials">SwitchCredentials
+<h3 id="sonic.networking.metal.ironcore.dev/v1alpha1.SwitchCredentials">SwitchCredentials
 </h3>
 <div>
 <p>SwitchCredentials is the Schema for the switchcredentials API</p>
@@ -413,7 +413,7 @@ More info: <a href="https://kubernetes.io/docs/concepts/configuration/secret/#se
 </tr>
 </tbody>
 </table>
-<h3 id="networking.metal.ironcore.dev/v1alpha1.SwitchInterface">SwitchInterface
+<h3 id="sonic.networking.metal.ironcore.dev/v1alpha1.SwitchInterface">SwitchInterface
 </h3>
 <div>
 <p>SwitchInterface is the Schema for the switchinterfaces API</p>
@@ -446,7 +446,7 @@ Refer to the Kubernetes API documentation for the fields of the
 <td>
 <code>spec</code><br/>
 <em>
-<a href="#networking.metal.ironcore.dev/v1alpha1.SwitchInterfaceSpec">
+<a href="#sonic.networking.metal.ironcore.dev/v1alpha1.SwitchInterfaceSpec">
 SwitchInterfaceSpec
 </a>
 </em>
@@ -484,7 +484,7 @@ Kubernetes core/v1.LocalObjectReference
 <td>
 <code>adminState</code><br/>
 <em>
-<a href="#networking.metal.ironcore.dev/v1alpha1.AdminState">
+<a href="#sonic.networking.metal.ironcore.dev/v1alpha1.AdminState">
 AdminState
 </a>
 </em>
@@ -501,7 +501,7 @@ AdminState
 <td>
 <code>status,omitempty,omitzero</code><br/>
 <em>
-<a href="#networking.metal.ironcore.dev/v1alpha1.SwitchInterfaceStatus">
+<a href="#sonic.networking.metal.ironcore.dev/v1alpha1.SwitchInterfaceStatus">
 SwitchInterfaceStatus
 </a>
 </em>
@@ -513,10 +513,10 @@ SwitchInterfaceStatus
 </tr>
 </tbody>
 </table>
-<h3 id="networking.metal.ironcore.dev/v1alpha1.SwitchInterfaceSpec">SwitchInterfaceSpec
+<h3 id="sonic.networking.metal.ironcore.dev/v1alpha1.SwitchInterfaceSpec">SwitchInterfaceSpec
 </h3>
 <p>
-(<em>Appears on:</em><a href="#networking.metal.ironcore.dev/v1alpha1.SwitchInterface">SwitchInterface</a>)
+(<em>Appears on:</em><a href="#sonic.networking.metal.ironcore.dev/v1alpha1.SwitchInterface">SwitchInterface</a>)
 </p>
 <div>
 <p>SwitchInterfaceSpec defines the desired state of SwitchInterface</p>
@@ -557,7 +557,7 @@ Kubernetes core/v1.LocalObjectReference
 <td>
 <code>adminState</code><br/>
 <em>
-<a href="#networking.metal.ironcore.dev/v1alpha1.AdminState">
+<a href="#sonic.networking.metal.ironcore.dev/v1alpha1.AdminState">
 AdminState
 </a>
 </em>
@@ -569,10 +569,10 @@ AdminState
 </tr>
 </tbody>
 </table>
-<h3 id="networking.metal.ironcore.dev/v1alpha1.SwitchInterfaceState">SwitchInterfaceState
+<h3 id="sonic.networking.metal.ironcore.dev/v1alpha1.SwitchInterfaceState">SwitchInterfaceState
 (<code>string</code> alias)</h3>
 <p>
-(<em>Appears on:</em><a href="#networking.metal.ironcore.dev/v1alpha1.SwitchInterfaceStatus">SwitchInterfaceStatus</a>)
+(<em>Appears on:</em><a href="#sonic.networking.metal.ironcore.dev/v1alpha1.SwitchInterfaceStatus">SwitchInterfaceStatus</a>)
 </p>
 <div>
 </div>
@@ -591,10 +591,10 @@ AdminState
 <td></td>
 </tr></tbody>
 </table>
-<h3 id="networking.metal.ironcore.dev/v1alpha1.SwitchInterfaceStatus">SwitchInterfaceStatus
+<h3 id="sonic.networking.metal.ironcore.dev/v1alpha1.SwitchInterfaceStatus">SwitchInterfaceStatus
 </h3>
 <p>
-(<em>Appears on:</em><a href="#networking.metal.ironcore.dev/v1alpha1.SwitchInterface">SwitchInterface</a>)
+(<em>Appears on:</em><a href="#sonic.networking.metal.ironcore.dev/v1alpha1.SwitchInterface">SwitchInterface</a>)
 </p>
 <div>
 <p>SwitchInterfaceStatus defines the observed state of SwitchInterface.</p>
@@ -611,7 +611,7 @@ AdminState
 <td>
 <code>adminState</code><br/>
 <em>
-<a href="#networking.metal.ironcore.dev/v1alpha1.AdminState">
+<a href="#sonic.networking.metal.ironcore.dev/v1alpha1.AdminState">
 AdminState
 </a>
 </em>
@@ -625,7 +625,7 @@ AdminState
 <td>
 <code>operationalState</code><br/>
 <em>
-<a href="#networking.metal.ironcore.dev/v1alpha1.OperationState">
+<a href="#sonic.networking.metal.ironcore.dev/v1alpha1.OperationState">
 OperationState
 </a>
 </em>
@@ -639,7 +639,7 @@ OperationState
 <td>
 <code>state</code><br/>
 <em>
-<a href="#networking.metal.ironcore.dev/v1alpha1.SwitchInterfaceState">
+<a href="#sonic.networking.metal.ironcore.dev/v1alpha1.SwitchInterfaceState">
 SwitchInterfaceState
 </a>
 </em>
@@ -653,7 +653,7 @@ SwitchInterfaceState
 <td>
 <code>neighbor</code><br/>
 <em>
-<a href="#networking.metal.ironcore.dev/v1alpha1.Neighbor">
+<a href="#sonic.networking.metal.ironcore.dev/v1alpha1.Neighbor">
 Neighbor
 </a>
 </em>
@@ -691,10 +691,10 @@ string
 </tr>
 </tbody>
 </table>
-<h3 id="networking.metal.ironcore.dev/v1alpha1.SwitchSpec">SwitchSpec
+<h3 id="sonic.networking.metal.ironcore.dev/v1alpha1.SwitchSpec">SwitchSpec
 </h3>
 <p>
-(<em>Appears on:</em><a href="#networking.metal.ironcore.dev/v1alpha1.Switch">Switch</a>)
+(<em>Appears on:</em><a href="#sonic.networking.metal.ironcore.dev/v1alpha1.Switch">Switch</a>)
 </p>
 <div>
 <p>SwitchSpec defines the desired state of Switch</p>
@@ -711,7 +711,7 @@ string
 <td>
 <code>management</code><br/>
 <em>
-<a href="#networking.metal.ironcore.dev/v1alpha1.Management">
+<a href="#sonic.networking.metal.ironcore.dev/v1alpha1.Management">
 Management
 </a>
 </em>
@@ -734,7 +734,7 @@ string
 <td>
 <code>ports</code><br/>
 <em>
-<a href="#networking.metal.ironcore.dev/v1alpha1.PortSpec">
+<a href="#sonic.networking.metal.ironcore.dev/v1alpha1.PortSpec">
 []PortSpec
 </a>
 </em>
@@ -745,10 +745,10 @@ string
 </tr>
 </tbody>
 </table>
-<h3 id="networking.metal.ironcore.dev/v1alpha1.SwitchState">SwitchState
+<h3 id="sonic.networking.metal.ironcore.dev/v1alpha1.SwitchState">SwitchState
 (<code>string</code> alias)</h3>
 <p>
-(<em>Appears on:</em><a href="#networking.metal.ironcore.dev/v1alpha1.SwitchStatus">SwitchStatus</a>)
+(<em>Appears on:</em><a href="#sonic.networking.metal.ironcore.dev/v1alpha1.SwitchStatus">SwitchStatus</a>)
 </p>
 <div>
 <p>SwitchState represents the high-level state of the Switch.</p>
@@ -768,10 +768,10 @@ string
 <td></td>
 </tr></tbody>
 </table>
-<h3 id="networking.metal.ironcore.dev/v1alpha1.SwitchStatus">SwitchStatus
+<h3 id="sonic.networking.metal.ironcore.dev/v1alpha1.SwitchStatus">SwitchStatus
 </h3>
 <p>
-(<em>Appears on:</em><a href="#networking.metal.ironcore.dev/v1alpha1.Switch">Switch</a>)
+(<em>Appears on:</em><a href="#sonic.networking.metal.ironcore.dev/v1alpha1.Switch">Switch</a>)
 </p>
 <div>
 <p>SwitchStatus defines the observed state of Switch.</p>
@@ -788,7 +788,7 @@ string
 <td>
 <code>state</code><br/>
 <em>
-<a href="#networking.metal.ironcore.dev/v1alpha1.SwitchState">
+<a href="#sonic.networking.metal.ironcore.dev/v1alpha1.SwitchState">
 SwitchState
 </a>
 </em>
@@ -802,7 +802,7 @@ SwitchState
 <td>
 <code>ports</code><br/>
 <em>
-<a href="#networking.metal.ironcore.dev/v1alpha1.PortStatus">
+<a href="#sonic.networking.metal.ironcore.dev/v1alpha1.PortStatus">
 []PortStatus
 </a>
 </em>

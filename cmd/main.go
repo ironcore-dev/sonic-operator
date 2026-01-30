@@ -25,10 +25,10 @@ import (
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
-	networkingv1alpha1 "github.com/ironcore-dev/switch-operator/api/v1alpha1"
-	"github.com/ironcore-dev/switch-operator/internal/controller"
-	"github.com/ironcore-dev/switch-operator/internal/onie"
-	"github.com/ironcore-dev/switch-operator/internal/ztp"
+	networkingv1alpha1 "github.com/ironcore-dev/sonic-operator/api/v1alpha1"
+	"github.com/ironcore-dev/sonic-operator/internal/controller"
+	"github.com/ironcore-dev/sonic-operator/internal/onie"
+	"github.com/ironcore-dev/sonic-operator/internal/ztp"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -74,7 +74,7 @@ func main() {
 		"If set, HTTP/2 will be enabled for the metrics and webhook servers")
 	flag.StringVar(&httpServerAddr, "http-server-address", "0", "The address the HTTP server for ZTP and ONIE binds to.")
 	flag.StringVar(&ztpConfigFile, "ztp-config-file", "/etc/ztp.json", "Config file containing the parameters to render ZTP scripts.")
-	flag.StringVar(&onieInstallerDir, "onie-installer-dir", "/var/lib/switch-operator/onie", "The directory which contains the onie installer files.")
+	flag.StringVar(&onieInstallerDir, "onie-installer-dir", "/var/lib/sonic-operator/onie", "The directory which contains the onie installer files.")
 	opts := zap.Options{
 		Development: true,
 	}
@@ -156,7 +156,7 @@ func main() {
 		WebhookServer:          webhookServer,
 		HealthProbeBindAddress: probeAddr,
 		LeaderElection:         enableLeaderElection,
-		LeaderElectionID:       "7ada019f.networking.metal.ironcore.dev",
+		LeaderElectionID:       "7ada019f.sonic.networking.metal.ironcore.dev",
 		// LeaderElectionReleaseOnCancel defines if the leader should step down voluntarily
 		// when the Manager ends. This requires the binary to immediately end when the
 		// Manager is stopped, otherwise, this setting is unsafe. Setting this significantly

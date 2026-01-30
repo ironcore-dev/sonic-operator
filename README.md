@@ -1,6 +1,6 @@
-# switch-operator
-[![REUSE status](https://api.reuse.software/badge/github.com/ironcore-dev/switch-operator)](https://api.reuse.software/info/github.com/ironcore-dev/switch-operator)
-[![Go Report Card](https://goreportcard.com/badge/github.com/ironcore-dev/switch-operator)](https://goreportcard.com/report/github.com/ironcore-dev/switch-operator)
+# sonic-operator
+[![REUSE status](https://api.reuse.software/badge/github.com/ironcore-dev/sonic-operator)](https://api.reuse.software/info/github.com/ironcore-dev/sonic-operator)
+[![Go Report Card](https://goreportcard.com/badge/github.com/ironcore-dev/sonic-operator)](https://goreportcard.com/report/github.com/ironcore-dev/sonic-operator)
 [![GitHub License](https://img.shields.io/static/v1?label=License&message=Apache-2.0&color=blue)](LICENSE)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://makeapullrequest.com)
 
@@ -36,7 +36,7 @@ Start at `docs/README.md`.
 **Build and push your image to the location specified by `IMG`:**
 
 ```sh
-make docker-build docker-push IMG=<some-registry>/switch-operator:tag
+make docker-build docker-push IMG=<some-registry>/sonic-operator:tag
 ```
 
 **NOTE:** This image ought to be published in the personal registry you specified.
@@ -52,7 +52,7 @@ make install
 **Deploy the Manager to the cluster with the image specified by `IMG`:**
 
 ```sh
-make deploy IMG=<some-registry>/switch-operator:tag
+make deploy IMG=<some-registry>/sonic-operator:tag
 ```
 
 > **NOTE**: If you encounter RBAC errors, you may need to grant yourself cluster-admin
@@ -95,7 +95,7 @@ Following the options to release and provide this solution to the users.
 1. Build the installer for the image built and published in the registry:
 
 ```sh
-make build-installer IMG=<some-registry>/switch-operator:tag
+make build-installer IMG=<some-registry>/sonic-operator:tag
 ```
 
 **NOTE:** The makefile target mentioned above generates an 'install.yaml'
@@ -109,7 +109,7 @@ Users can just run 'kubectl apply -f <URL for YAML BUNDLE>' to install
 the project, i.e.:
 
 ```sh
-kubectl apply -f https://raw.githubusercontent.com/<org>/switch-operator/<tag or branch>/dist/install.yaml
+kubectl apply -f https://raw.githubusercontent.com/<org>/sonic-operator/<tag or branch>/dist/install.yaml
 ```
 
 ### By providing a Helm Chart
@@ -152,4 +152,3 @@ distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
-

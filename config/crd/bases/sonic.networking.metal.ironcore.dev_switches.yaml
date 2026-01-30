@@ -4,9 +4,9 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.19.0
-  name: switches.networking.metal.ironcore.dev
+  name: switches.sonic.networking.metal.ironcore.dev
 spec:
-  group: networking.metal.ironcore.dev
+  group: sonic.networking.metal.ironcore.dev
   names:
     kind: Switch
     listKind: SwitchList

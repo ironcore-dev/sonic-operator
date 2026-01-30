@@ -4,7 +4,7 @@
 package errors
 
 import (
-	agent "github.com/ironcore-dev/switch-operator/internal/agent/types"
+	agent "github.com/ironcore-dev/sonic-operator/internal/agent/types"
 )
 
 const (

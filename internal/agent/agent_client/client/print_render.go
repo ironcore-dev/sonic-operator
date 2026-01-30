@@ -8,8 +8,8 @@ import (
 	"io"
 	"strings"
 
-	errors "github.com/ironcore-dev/switch-operator/internal/agent/errors"
-	agent "github.com/ironcore-dev/switch-operator/internal/agent/types"
+	errors "github.com/ironcore-dev/sonic-operator/internal/agent/errors"
+	agent "github.com/ironcore-dev/sonic-operator/internal/agent/types"
 
 	"github.com/jedib0t/go-pretty/v6/table"
 )

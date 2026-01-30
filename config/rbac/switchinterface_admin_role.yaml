@@ -1,7 +1,7 @@
-# This rule is not used by the project switch-operator itself.
+# This rule is not used by the project sonic-operator itself.
 # It is provided to allow the cluster admin to help manage permissions for users.
 #
-# Grants full permissions ('*') over networking.networking.metal.ironcore.dev.
+# Grants full permissions ('*') over sonic.networking.metal.ironcore.dev.
 # This role is intended for users authorized to modify roles and bindings within the cluster,
 # enabling them to delegate specific permissions to other users or groups as needed.
 
@@ -9,18 +9,18 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   labels:
-    app.kubernetes.io/name: switch-operator
+    app.kubernetes.io/name: sonic-operator
     app.kubernetes.io/managed-by: kustomize
   name: switchinterface-admin-role
 rules:
 - apiGroups:
-  - networking.networking.metal.ironcore.dev
+  - sonic.networking.metal.ironcore.dev
   resources:
   - switchinterfaces
   verbs:
   - '*'
 - apiGroups:
-  - networking.networking.metal.ironcore.dev
+  - sonic.networking.metal.ironcore.dev
   resources:
   - switchinterfaces/status
   verbs:

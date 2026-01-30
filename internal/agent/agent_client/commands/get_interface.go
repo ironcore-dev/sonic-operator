@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"os"
 
-	client "github.com/ironcore-dev/switch-operator/internal/agent/agent_client/client"
-	agent "github.com/ironcore-dev/switch-operator/internal/agent/types"
+	client "github.com/ironcore-dev/sonic-operator/internal/agent/agent_client/client"
+	agent "github.com/ironcore-dev/sonic-operator/internal/agent/types"
 
 	"github.com/spf13/cobra"
 )

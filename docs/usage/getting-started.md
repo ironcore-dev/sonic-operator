@@ -10,7 +10,7 @@
 1. Build and push the image:
 
 ```sh
-make docker-build docker-push IMG=<some-registry>/switch-operator:tag
+make docker-build docker-push IMG=<some-registry>/sonic-operator:tag
 ```
 
 2. Install CRDs:
@@ -22,7 +22,7 @@ make install
 3. Deploy the controller:
 
 ```sh
-make deploy IMG=<some-registry>/switch-operator:tag
+make deploy IMG=<some-registry>/sonic-operator:tag
 ```
 
 ## Create resources
