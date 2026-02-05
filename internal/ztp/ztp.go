@@ -33,7 +33,7 @@ type Config struct {
 	// Based on the type and ID each device will get a name such as spine-2 or
 	// oob-leaf-1 to create FQDNs like this:
 	//
-	//   spine-2.wdf-b.infra.staging.ironcore.dev
+	//   spine-2.region-b.infra.staging.ironcore.dev
 	//
 	// which uniqely identifies each device.
 	SearchDomain string `json:"searchDomain"`
