@@ -6,6 +6,7 @@ package sonic
 import (
 	"context"
 	"fmt"
+	"os/exec"
 	"sync"
 	"time"
 
@@ -295,6 +296,14 @@ func (m *SonicAgent) ListInterfaces(ctx context.Context) (*agent.InterfaceList, 
 	}, nil
 }
 
+func (m *SonicAgent) saveConfig() error {
+	cmd := exec.Command("config", "save", "-y")
+	if output, err := cmd.CombinedOutput(); err != nil {
+		return fmt.Errorf("failed to save config: %w, output: %s", err, string(output))
+	}
+	return nil
+}
+
 func (m *SonicAgent) SetInterfaceAdminStatus(ctx context.Context, iface *agent.Interface) (*agent.Interface, *agent.Status) {
 	configDB, err := m.Connect("CONFIG_DB")
 	if err != nil {
@@ -320,6 +329,13 @@ func (m *SonicAgent) SetInterfaceAdminStatus(ctx context.Context, iface *agent.I
 	err = configDB.HSet(ctx, portKey, "admin_status", adminStatusStr).Err()
 	if err != nil {
 		return nil, errors.NewErrorStatus(errors.REDIS_HSET_FAIL, fmt.Sprintf("failed to set admin status: %v", err))
+	}
+
+	// Persist changes to config_db.json
+	if err := m.saveConfig(); err != nil {
+		// Try to rollback if save fails
+		_ = configDB.HSet(ctx, portKey, "admin_status", currentAdminStatus).Err()
+		return nil, errors.NewErrorStatus(errors.BAD_REQUEST, fmt.Sprintf("failed to persist config: %v", err))
 	}
 
 	// Verify the interface exists by checking if we can get its current state
