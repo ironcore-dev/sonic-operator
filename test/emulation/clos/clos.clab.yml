@@ -1,0 +1,29 @@
+name: clos
+
+topology:
+  nodes:
+    sonic-spine1:
+      kind: sonic-vm
+      image: dberes/sonic-vs:latest
+    sonic-spine2:
+      kind: sonic-vm
+      image: dberes/sonic-vs:latest 
+    sonic-leaf1:
+      kind: sonic-vm
+      image: dberes/sonic-vs:latest 
+    sonic-leaf2:
+      kind: sonic-vm
+      image: dberes/sonic-vs:latest 
+    client1:
+      kind: linux
+      image: ghcr.io/hellt/network-multitool:latest
+    client2:
+      kind: linux
+      image: ghcr.io/hellt/network-multitool:latest
+  links:
+    - endpoints: ["sonic-spine1:eth1", "sonic-leaf1:eth1"]
+    - endpoints: ["sonic-spine1:eth2", "sonic-leaf2:eth1"]
+    - endpoints: ["sonic-spine2:eth1", "sonic-leaf1:eth2"]
+    - endpoints: ["sonic-spine2:eth2", "sonic-leaf2:eth2"]
+    - endpoints: ["sonic-leaf1:eth3", "client1:eth1"]
+    - endpoints: ["sonic-leaf2:eth3", "client2:eth1"]
