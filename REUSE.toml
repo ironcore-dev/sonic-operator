@@ -26,6 +26,7 @@ SPDX-PackageDownloadLocation = "https://github.com/ironcore-dev/sonic-operator"
 	    "README.md",
 	    "internal/agent/hack/**",
 	    "internal/agent/proto/**",
+		 "test/emulation/**",
 	]
 precedence = "aggregate"
 SPDX-FileCopyrightText = "2025 SAP SE or an SAP affiliate company and IronCore contributors"

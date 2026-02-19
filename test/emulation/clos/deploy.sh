@@ -1,4 +1,8 @@
 #!/bin/bash
+
+# SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and IronCore contributors
+# SPDX-License-Identifier: Apache-2.0
+
 set -eu
 HELM="docker run --network host -ti --rm -v $(pwd):/apps -w /apps \
     -v $HOME/.kube:/root/.kube -v $HOME/.helm:/root/.helm \
