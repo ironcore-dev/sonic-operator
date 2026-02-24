@@ -26,6 +26,11 @@ make test
 make docs
 ```
 
+## Local docs preview (VitePress)
+```sh
+make startdocs
+```
+
 ## Codegen and manifests
 ```sh
 make generate
