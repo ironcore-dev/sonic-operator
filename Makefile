@@ -127,7 +127,14 @@ check-license: addlicense ## Check that every file has a license header present.
 
 .PHONY: startdocs
 startdocs: ## Start the local VitePress based development environment.
-	$(CONTAINER_TOOL) build -t $(DOCS_IMAGE) -f docs/Dockerfile .
+	@# When users have `docker build` forwarded to buildx (via `docker buildx install`),
+	@# the resulting image may remain only in the build cache unless `--load` is used.
+	@# Prefer `buildx --load` when available to keep `$(CONTAINER_TOOL) run $(DOCS_IMAGE)` working.
+	@if $(CONTAINER_TOOL) buildx version >/dev/null 2>&1; then \
+		$(CONTAINER_TOOL) buildx build --load -t $(DOCS_IMAGE) -f docs/Dockerfile .; \
+	else \
+		$(CONTAINER_TOOL) build -t $(DOCS_IMAGE) -f docs/Dockerfile .; \
+	fi
 	$(CONTAINER_TOOL) run --rm -p $(DOCS_PORT):5173 -v "$(shell pwd)":/app $(DOCS_IMAGE)
 
 .PHONY: cleandocs
