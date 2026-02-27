@@ -26,3 +26,8 @@ go.work
 *.swp
 *.swo
 *~
+
+# Docs tooling
+node_modules
+docs/.vitepress/cache
+docs/.vitepress/dist

@@ -1,6 +1,10 @@
 # Image URL to use all building/pushing image targets
 IMG ?= controller:latest
 
+# Docker image name for the VitePress based local development setup
+DOCS_IMAGE ?= ironcore-dev/sonic-operator-docs
+DOCS_PORT ?= 5173
+
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
 GOBIN=$(shell go env GOPATH)/bin
@@ -119,6 +123,25 @@ add-license: addlicense ## Add license headers to all go files.
 check-license: addlicense ## Check that every file has a license header present.
 	find . -name '*.go' -exec $(ADDLICENSE) -check -c 'IronCore authors' {} +
 
+##@ Docs
+
+.PHONY: startdocs
+startdocs: ## Start the local VitePress based development environment.
+	@# When users have `docker build` forwarded to buildx (via `docker buildx install`),
+	@# the resulting image may remain only in the build cache unless `--load` is used.
+	@# Prefer `buildx --load` when available to keep `$(CONTAINER_TOOL) run $(DOCS_IMAGE)` working.
+	@if $(CONTAINER_TOOL) buildx version >/dev/null 2>&1; then \
+		$(CONTAINER_TOOL) buildx build --load -t $(DOCS_IMAGE) -f docs/Dockerfile .; \
+	else \
+		$(CONTAINER_TOOL) build -t $(DOCS_IMAGE) -f docs/Dockerfile .; \
+	fi
+	$(CONTAINER_TOOL) run --rm -p $(DOCS_PORT):5173 -v "$(shell pwd)":/app $(DOCS_IMAGE)
+
+.PHONY: cleandocs
+cleandocs: ## Cleanup local docs Docker artifacts (image + dangling layers).
+	-$(CONTAINER_TOOL) image rm --force $(DOCS_IMAGE)
+	-$(CONTAINER_TOOL) image prune --force --filter "label=project=sonic_operator"
+
 ##@ proto
 .PHONY: proto
 proto:
@@ -131,8 +154,8 @@ proto:
 ##@ Build
 
 .PHONY: docs
-docs: gen-crd-api-reference-docs ## Run go generate to generate API reference documentation.
-	$(GEN_CRD_API_REFERENCE_DOCS) -api-dir ./api/v1alpha1 -config ./hack/api-reference/config.json -template-dir ./hack/api-reference/template -out-file ./docs/api-reference/api.md
+docs: crd-ref-docs ## Generate API reference documentation.
+	$(CRD_REF_DOCS) --source-path=./api/v1alpha1 --config=./hack/api-reference/config.yaml --renderer=markdown --output-path=./docs/api-reference/api.md
 
 
 .PHONY: build-agent
@@ -229,6 +252,7 @@ GOLANGCI_LINT = $(LOCALBIN)/golangci-lint
 GOIMPORTS ?= $(LOCALBIN)/goimports
 ADDLICENSE ?= $(LOCALBIN)/addlicense
 GEN_CRD_API_REFERENCE_DOCS ?= $(LOCALBIN)/gen-crd-api-reference-docs
+CRD_REF_DOCS ?= $(LOCALBIN)/crd-ref-docs
 
 ## Tool Versions
 KUSTOMIZE_VERSION ?= v5.7.1
@@ -241,6 +265,7 @@ GOLANGCI_LINT_VERSION ?= v2.5.0
 ADDLICENSE_VERSION ?= v1.1.1
 GOIMPORTS_VERSION ?= v0.31.0
 GEN_CRD_API_REFERENCE_DOCS_VERSION ?= v0.3.0
+CRD_REF_DOCS_VERSION ?= v0.2.0
 
 .PHONY: kustomize
 kustomize: $(KUSTOMIZE) ## Download kustomize locally if necessary.
@@ -284,6 +309,11 @@ $(GOIMPORTS): $(LOCALBIN)
 gen-crd-api-reference-docs: $(GEN_CRD_API_REFERENCE_DOCS) ## Download gen-crd-api-reference-docs locally if necessary.
 $(GEN_CRD_API_REFERENCE_DOCS): $(LOCALBIN)
 	$(call go-install-tool,$(GEN_CRD_API_REFERENCE_DOCS),github.com/ahmetb/gen-crd-api-reference-docs,$(GEN_CRD_API_REFERENCE_DOCS_VERSION))
+
+.PHONY: crd-ref-docs
+crd-ref-docs: $(CRD_REF_DOCS) ## Download crd-ref-docs locally if necessary.
+$(CRD_REF_DOCS): $(LOCALBIN)
+	$(call go-install-tool,$(CRD_REF_DOCS),github.com/elastic/crd-ref-docs,$(CRD_REF_DOCS_VERSION))
 
 
 # go-install-tool will 'go install' any package with custom target and name of binary, if it doesn't exist

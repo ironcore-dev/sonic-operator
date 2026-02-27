@@ -14,8 +14,14 @@ This directory contains the main documentation for sonic-operator.
 ## Development
 - `development/dev-workflow.md` — build, lint, test, and docs generation.
 - `development/reuse.md` — REUSE compliance and license checks.
+- `development/dev-docs.md` — documentation tooling and release pipeline.
 
-## Examples
-- `examples/switch.yaml`
-- `examples/switchinterface.yaml`
-- `examples/switchcredentials.yaml`
+## Local preview (VitePress)
+```sh
+make startdocs
+```
+
+Cleanup:
+```sh
+make cleandocs
+```

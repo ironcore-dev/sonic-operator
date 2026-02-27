@@ -4,27 +4,29 @@ SPDX-PackageSupplier = "IronCore authors <ospo@sap.com>"
 SPDX-PackageDownloadLocation = "https://github.com/ironcore-dev/sonic-operator"
 
 [[annotations]]
-path = [
-    ".github/**",
-    ".gitignore",
-    ".dockerignore",
-    ".golangci.yml",
-    "CODEOWNERS",
-    "Dockerfile",
-    "Makefile",
-    "PROJECT",
-    "config/**",
-    "go.mod",
-    "go.sum",
-    "internal/ztp/templates/**",
-    "REUSE.toml",
-    "hack/**",
-    ".devcontainer/**",
-    "docs/**",
-    "README.md",
-    "internal/agent/hack/**",
-    "internal/agent/proto/**",
-]
+	path = [
+	    ".github/**",
+	    ".gitignore",
+	    ".dockerignore",
+	    ".golangci.yml",
+	    "CODEOWNERS",
+	    "Dockerfile",
+	    "Makefile",
+	    "PROJECT",
+	    "config/**",
+	    "go.mod",
+	    "go.sum",
+	    "package-lock.json",
+	    "package.json",
+	    "internal/ztp/templates/**",
+	    "REUSE.toml",
+	    "hack/**",
+	    ".devcontainer/**",
+	    "docs/**",
+	    "README.md",
+	    "internal/agent/hack/**",
+	    "internal/agent/proto/**",
+	]
 precedence = "aggregate"
 SPDX-FileCopyrightText = "2025 SAP SE or an SAP affiliate company and IronCore contributors"
 SPDX-License-Identifier = "Apache-2.0"
