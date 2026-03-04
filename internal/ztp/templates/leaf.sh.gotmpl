@@ -177,14 +177,31 @@ EOF
     # 7. Restart BGP to load new config
     systemctl restart bgp
 
-    # 8. Stop ZTP daemon
+    # 8. Mount ONIE-BOOT partition for ONIE grubenv changes
+    cat <<EOF >/etc/systemd/system/onieboot.mount
+[Unit]
+Description=ONIE boot partition
+After=local-fs-pre.target
+
+[Mount]
+What=LABEL=ONIE-BOOT
+Where=/onieboot
+Type=auto
+Options=defaults
+
+[Install]
+WantedBy=multi-user.target
+EOF
+    systemctl enable onieboot.mount
+
+    # 9. Install Switch Operator Sonic Agent
+    docker pull ghcr.io/ironcore-dev/sonic-agent:sha-5dfeeb5
+    docker run --name sonic-agent --network=host --restart=always -d ghcr.io/ironcore-dev/sonic-agent:sha-5dfeeb5
+
+    # 10. Stop ZTP daemon
     touch "$FLAG_FILE_STAGE_TWO"
     echo "=== ZTP Stage 2 complete. Provisioning done, rebooting! ==="
     reboot
 fi
-
-# Install Switch Operator Sonic Agent
-docker pull ghcr.io/ironcore-dev/sonic-agent:sha-5dfeeb5
-docker run --name sonic-agent --network=host --restart=always -d ghcr.io/ironcore-dev/sonic-agent:sha-5dfeeb5
 
 exit 0
