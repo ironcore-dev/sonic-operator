@@ -3,7 +3,7 @@
 # SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and IronCore contributors
 # SPDX-License-Identifier: Apache-2.0
 
-set -eux
+set -eu
 
 echo "Starting destruction of SONiC lab infrastructure..."
 
@@ -44,3 +44,12 @@ kubectl delete serviceaccount -n kube-vip kube-vip-cloud-controller --ignore-not
 
 echo "Destruction complete!"
 echo "All SONiC lab resources have been removed."
+
+# Cleanup Kind cluster used for e2e tests
+KIND_CLUSTER="sonic-operator-test-e2e"
+echo "Tearing down Kind cluster '${KIND_CLUSTER}'..."
+if command -v kind &> /dev/null; then
+    kind delete cluster --name "${KIND_CLUSTER}" 2>/dev/null || true
+else
+    echo "Kind is not installed, skipping cluster cleanup."
+fi

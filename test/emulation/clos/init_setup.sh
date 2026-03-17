@@ -23,6 +23,8 @@ echo "Pulling agent image..."
 docker pull "$IMAGE"
 
 echo "Starting agent container..."
-docker run --pull always -d --name switch-operator-agent --entrypoint /switch-agent-server --network host --restart unless-stopped  "$IMAGE" -port 57400
+docker run --pull always -d --name switch-operator-agent --entrypoint /switch-agent-server --network host --restart unless-stopped -v /var/run/dbus:/var/run/dbus:rw  "$IMAGE" -port 57400
 
 echo "Agent setup completed successfully"
+
+

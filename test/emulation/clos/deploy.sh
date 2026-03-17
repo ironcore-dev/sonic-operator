@@ -4,6 +4,30 @@
 # SPDX-License-Identifier: Apache-2.0
 
 set -eu
+
+# Setup Kind cluster for e2e tests if it does not exist
+KIND_CLUSTER="clos-lab-kind"
+echo "Setting up Kind cluster for tests..."
+if ! command -v kind &> /dev/null; then
+    echo "Kind is not installed. Please install Kind manually."
+    exit 1
+fi
+
+if kind get clusters 2>/dev/null | grep -q "^${KIND_CLUSTER}$"; then
+    echo "Kind cluster '${KIND_CLUSTER}' already exists. Skipping creation."
+else
+    echo "Creating Kind cluster '${KIND_CLUSTER}'..."
+    kind create cluster --name "${KIND_CLUSTER}"
+fi
+
+# Go to git repo root
+pushd "$(git rev-parse --show-toplevel)" || exit 1
+
+echo "Installing CRDs..."
+make install
+# Return to original directory
+popd || exit 1
+
 HELM="docker run --network host -ti --rm -v $(pwd):/apps -w /apps \
     -v $HOME/.kube:/root/.kube -v $HOME/.helm:/root/.helm \
     -v $HOME/.config/helm:/root/.config/helm \
@@ -41,15 +65,37 @@ else
   
   # Wait for services to be ready
   echo "Waiting for services to be ready..."
-  sleep 180
+  kubectl wait --namespace c9s --for=condition=ready --timeout=300s pods --all
+  kubectl wait --namespace c9s-clos --for=condition=ready --timeout=300s pods --all
+
 
   # Run script on each sonic node
   echo "Provisioning SONiC nodes..."
-  for service in $(kubectl get -n c9s-clos svc -o jsonpath='{.items[*].metadata.name}' 2>/dev/null | tr ' ' '\n' | grep '^sonic-'); do
+  for service in $(kubectl get -n c9s-clos svc -o jsonpath='{.items[*].metadata.name}' 2>/dev/null | tr ' ' '\n' | grep '^sonic-' | grep -v '\-vx$'); do
+      until IP=$(kubectl get svc "$service" -n c9s-clos -o jsonpath='{.status.loadBalancer.ingress[0].ip}') && [ -n "$IP" ]; do
+        echo "Waiting for external IP..."
+        sleep 1
+      done
+      
     h=$(kubectl get -n c9s-clos svc "$service" -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null)
     if [ ! -z "$h" ]; then
       echo "Running init_setup.sh on $h"
-      sshpass -p 'admin' ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null admin@"$h" 'bash -s' < init_setup.sh || true
+      max_attempts=36 # 36 attempts with 10 seconds sleep = 6 minutes total wait time
+      attempt=1
+      while [ $attempt -le $max_attempts ]; do
+        if sshpass -p 'admin' ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null admin@"$h" 'bash -s' < init_setup.sh; then
+          echo "Successfully provisioned $h"
+          break
+        else
+          if [ $attempt -lt $max_attempts ]; then
+            echo "Provisioning attempt $attempt of $max_attempts failed for $h. Retrying in 10 seconds..."
+            sleep 10
+          else
+            echo "Failed to provision $h after $max_attempts attempts"
+          fi
+        fi
+        ((attempt++))
+      done
     fi
   done
 
@@ -60,11 +106,32 @@ echo ""
 echo "=========================================="
 echo "SONiC Lab Topology - External IPs"
 echo "=========================================="
-for service in $(kubectl get -n c9s-clos svc -o jsonpath='{.items[*].metadata.name}' 2>/dev/null | tr ' ' '\n'); do
+for service in $(kubectl get -n c9s-clos svc -o jsonpath='{.items[*].metadata.name}' 2>/dev/null | tr ' ' '\n'| grep -v '\-vx$'); do
   ip=$(kubectl get -n c9s-clos svc "$service" -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null)
   if [ -n "$ip" ]; then
     echo "$service -> $ip"
+
+    if [[ "$service" == *sonic* ]]; then
+      cat <<EOF | kubectl apply -f -
+      apiVersion: sonic.networking.metal.ironcore.dev/v1alpha1
+      kind: Switch
+      metadata:
+        labels:
+          app.kubernetes.io/name: sonic-operator
+          app.kubernetes.io/managed-by: kustomize
+        name: $service
+        namespace: c9s-clos    
+      spec:
+        management:
+          host: $ip
+          port: "57400"
+          credentials:
+            name: switchcredentials-sample
+        macAddress: "aa:bb:cc:dd:ee:ff"
+EOF
+    fi
   fi
+  
 done
 
 echo ""
