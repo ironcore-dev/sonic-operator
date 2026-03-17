@@ -64,19 +64,15 @@ jq              - JSON processor
 ### 1. Prerequisites
 Ensure all dependencies are installed and Kubernetes cluster is ready:
 
-### 2. Initialize Kind Cluster
-Run the initialization setup from the root level Makefile by:
-```bash
-make setup-test-e2e
-```
-
-### 3. Deploy the Lab Environment
+### 2. Deploy the Lab Environment
 Deploy the full topology to Kubernetes:
 ```bash
 ./deploy.sh
 ```
 
 **What it does**:
+- Creates Kind Cluster `clos-lab-kind`
+- Install CRDs
 - Installs Clabernetes via Helm in `c9s` namespace
 - Applies kube-vip RBAC policies
 - Deploys kube-vip cloud controller
@@ -86,6 +82,7 @@ Deploy the full topology to Kubernetes:
 - Applies topology configuration to cluster
 - Waits for services to be ready (180 seconds)
 - Configure DNS, Pulls and starts Sonic Agenton port 57400 for each SONiC node via SSH
+- Creates CRs for the switches
 - Displays external IPs for all services
 
 ### 4. Access the Lab
