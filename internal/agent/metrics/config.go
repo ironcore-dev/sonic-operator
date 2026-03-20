@@ -1,13 +1,15 @@
-// SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and IronCore contributors
+// SPDX-FileCopyrightText: 2026 SAP SE or an SAP affiliate company and IronCore contributors
 // SPDX-License-Identifier: Apache-2.0
 
 package metrics
 
 import (
 	"embed"
+	"encoding/json"
 	"fmt"
 	"os"
 	"regexp"
+	"strconv"
 
 	"sigs.k8s.io/yaml"
 )
@@ -76,6 +78,8 @@ type Transform struct {
 	RegexCapture *RegexCapture `json:"regex_capture,omitempty"`
 	// DOMFlagSeverity computes a severity rollup (0=ok, 1=warning, 2=alarm) from all hash fields.
 	DOMFlagSeverity bool `json:"dom_flag_severity,omitempty"`
+	// Histogram maps upper bounds to Redis field names, emitting a Prometheus histogram.
+	Histogram *HistogramBuckets `json:"histogram,omitempty"`
 }
 
 // RegexCapture defines a regex-based field name matching transform.
@@ -84,6 +88,35 @@ type Transform struct {
 type RegexCapture struct {
 	// Pattern is a Go regex with named capture groups (e.g. "^rx(?P<lane>\\d+)power$").
 	Pattern string `json:"pattern"`
+}
+
+// HistogramBuckets defines a histogram transform that maps Redis field names to
+// Prometheus histogram bucket upper bounds.
+type HistogramBuckets struct {
+	// Buckets maps upper bounds (in bytes, seconds, etc.) to Redis hash field names.
+	// Values are read, parsed as uint64, and accumulated into cumulative histogram buckets.
+	Buckets map[float64]string `json:"buckets"`
+}
+
+// UnmarshalJSON implements custom JSON unmarshaling for HistogramBuckets.
+// sigs.k8s.io/yaml converts YAML→JSON, so numeric YAML keys become JSON string keys.
+// This method parses those string keys back to float64.
+func (hb *HistogramBuckets) UnmarshalJSON(data []byte) error {
+	var raw struct {
+		Buckets map[string]string `json:"buckets"`
+	}
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	hb.Buckets = make(map[float64]string, len(raw.Buckets))
+	for k, v := range raw.Buckets {
+		f, err := strconv.ParseFloat(k, 64)
+		if err != nil {
+			return fmt.Errorf("histogram bucket key %q is not a valid number: %w", k, err)
+		}
+		hb.Buckets[f] = v
+	}
+	return nil
 }
 
 // effectiveSeparator returns the key separator, defaulting to "|".
@@ -135,8 +168,13 @@ func validateConfig(cfg *MetricsConfig) error {
 			if f.Metric == "" {
 				return fmt.Errorf("metrics[%d].fields[%d]: metric is required", i, j)
 			}
-			if f.Type != "gauge" && f.Type != "counter" {
-				return fmt.Errorf("metrics[%d].fields[%d]: type must be 'gauge' or 'counter', got %q", i, j, f.Type)
+			if f.Type != metricTypeGauge && f.Type != metricTypeCounter && f.Type != metricTypeHistogram {
+				return fmt.Errorf("metrics[%d].fields[%d]: type must be 'gauge', 'counter', or 'histogram', got %q", i, j, f.Type)
+			}
+			if f.Type == metricTypeHistogram {
+				if f.Transform == nil || f.Transform.Histogram == nil || len(f.Transform.Histogram.Buckets) == 0 {
+					return fmt.Errorf("metrics[%d].fields[%d]: histogram type requires transform.histogram.buckets", i, j)
+				}
 			}
 			if f.Field != "" && f.FieldPattern != "" {
 				return fmt.Errorf("metrics[%d].fields[%d]: field and field_pattern are mutually exclusive", i, j)
