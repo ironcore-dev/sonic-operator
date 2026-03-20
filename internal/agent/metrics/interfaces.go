@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and IronCore contributors
+// SPDX-FileCopyrightText: 2026 SAP SE or an SAP affiliate company and IronCore contributors
 // SPDX-License-Identifier: Apache-2.0
 
 package metrics
@@ -74,7 +74,9 @@ func (c *InterfaceCollector) Collect(ch chan<- prometheus.Metric) {
 		return
 	}
 
-	// Get all configured port keys from CONFIG_DB
+	// Get all configured port keys from CONFIG_DB.
+	// NOTE: Redis KEYS is O(N) but acceptable here — SONiC switches have a bounded
+	// number of physical ports (typically <256).
 	portKeys, err := configDB.Keys(ctx, "PORT|*").Result()
 	if err != nil {
 		log.Printf("InterfaceCollector: failed to list PORT keys: %v", err)
