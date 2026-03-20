@@ -62,7 +62,8 @@ These are defined in YAML and can be customized or extended by operators. The de
 | `sonic_switch_interface_fec_frames_total` | counter | `interface`, `type` | FEC frame counters (correctable, uncorrectable, symbol_errors) |
 | `sonic_switch_interface_queue_length` | gauge | `interface` | Current output queue length |
 | `sonic_switch_interface_pfc_packets_total` | counter | `interface`, `direction`, `priority` | PFC packets per priority (0-7) |
-| `sonic_switch_interface_packet_size_total` | counter | `interface`, `direction`, `size` | Packets by size bucket |
+| `sonic_switch_interface_rx_packet_size_bytes` | histogram | `interface` | RX packet size distribution (buckets: 64, 127, 255, 511, 1023, 1518, 2047, 4095, 9216, 16383) |
+| `sonic_switch_interface_tx_packet_size_bytes` | histogram | `interface` | TX packet size distribution (buckets: 64, 127, 255, 511, 1023, 1518, 2047, 4095, 9216, 16383) |
 | `sonic_switch_interface_anomaly_packets_total` | counter | `interface`, `type` | Anomalous packets (undersize, oversize, fragments, jabbers, unknown_protos) |
 
 ## Metrics configuration schema
@@ -99,7 +100,7 @@ Each entry maps a Redis hash field (or set of fields) to a Prometheus metric.
 | `field` | no | — | Specific Redis hash field name. Mutually exclusive with `field_pattern` |
 | `field_pattern` | no | — | Set to `*` to iterate all hash fields. Mutually exclusive with `field` |
 | `metric` | yes | — | Prometheus metric name |
-| `type` | yes | — | `gauge` or `counter` |
+| `type` | yes | — | `gauge`, `counter`, or `histogram` |
 | `help` | no | — | Metric help string |
 | `value` | no | — | Fixed metric value (ignores field value). Use for `_info` pattern metrics |
 | `labels` | no | — | Map of label names to [value templates](#label-value-templates) |
@@ -190,6 +191,29 @@ Computes a severity rollup from all DOM flag fields in the hash. Each field is p
 transform:
   dom_flag_severity: true
 ```
+
+#### `histogram`
+
+Maps multiple Redis hash fields to a single Prometheus histogram. Each entry in `buckets` maps an upper bound (float64) to a Redis hash field name. The transform reads each field, parses the count as an unsigned integer, and accumulates cumulative bucket counts. The resulting histogram has `sum=0` because SAI counters don't provide total bytes — but bucket-based percentile queries and heatmap visualizations still work. Requires `type: "histogram"`.
+
+```yaml
+- metric: sonic_switch_interface_rx_packet_size_bytes
+  type: histogram
+  help: "RX packet size distribution"
+  labels:
+    interface: "$port_name"
+  transform:
+    histogram:
+      buckets:
+        64: SAI_PORT_STAT_ETHER_IN_PKTS_64_OCTETS
+        127: SAI_PORT_STAT_ETHER_IN_PKTS_65_TO_127_OCTETS
+        255: SAI_PORT_STAT_ETHER_IN_PKTS_128_TO_255_OCTETS
+        511: SAI_PORT_STAT_ETHER_IN_PKTS_256_TO_511_OCTETS
+        1023: SAI_PORT_STAT_ETHER_IN_PKTS_512_TO_1023_OCTETS
+        1518: SAI_PORT_STAT_ETHER_IN_PKTS_1024_TO_1518_OCTETS
+```
+
+This emits `_bucket`, `_count`, and `_sum` series automatically — Prometheus handles the histogram suffixes.
 
 ## Examples
 
