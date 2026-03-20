@@ -1,0 +1,182 @@
+# Default metrics configuration for the sonic-agent.
+# This file is embedded in the agent binary and used when no custom config is provided.
+# Operators can override by providing their own file via the -metrics-config flag.
+
+metrics:
+  # Transceiver DOM sensor readings
+  - redis_db: STATE_DB
+    key_pattern: "TRANSCEIVER_DOM_SENSOR|*"
+    key_separator: "|"
+    fields:
+      - field: temperature
+        metric: sonic_switch_transceiver_dom_temperature_celsius
+        type: gauge
+        help: "Transceiver temperature in Celsius"
+        labels:
+          interface: "$key_suffix"
+      - field: voltage
+        metric: sonic_switch_transceiver_dom_voltage_volts
+        type: gauge
+        help: "Transceiver supply voltage in Volts"
+        labels:
+          interface: "$key_suffix"
+      - field_pattern: "*"
+        metric: sonic_switch_transceiver_dom_rx_power_dbm
+        type: gauge
+        help: "Transceiver RX power in dBm"
+        labels:
+          interface: "$key_suffix"
+        transform:
+          regex_capture:
+            pattern: "^rx(?P<lane>\\d+)power$"
+      - field_pattern: "*"
+        metric: sonic_switch_transceiver_dom_tx_bias_milliamps
+        type: gauge
+        help: "Transceiver TX bias current in milliamps"
+        labels:
+          interface: "$key_suffix"
+        transform:
+          regex_capture:
+            pattern: "^tx(?P<lane>\\d+)bias$"
+
+  # Transceiver DOM thresholds — single metric with sensor/level/direction labels
+  - redis_db: STATE_DB
+    key_pattern: "TRANSCEIVER_DOM_THRESHOLD|*"
+    key_separator: "|"
+    fields:
+      - field_pattern: "*"
+        metric: sonic_switch_transceiver_dom_threshold
+        type: gauge
+        help: "Transceiver DOM threshold value"
+        labels:
+          interface: "$key_suffix"
+        transform:
+          parse_threshold_field: true
+
+  # Transceiver static info — _info pattern with metadata as labels
+  - redis_db: STATE_DB
+    key_pattern: "TRANSCEIVER_INFO|*"
+    key_separator: "|"
+    fields:
+      - metric: sonic_switch_transceiver_info
+        type: gauge
+        help: "Transceiver static metadata as labels, always 1"
+        value: 1
+        labels:
+          interface: "$key_suffix"
+          type: "$type"
+          vendor: "$manufacturer"
+          model: "$model"
+          serial: "$serial"
+
+  # Transceiver status — per-lane RX loss of signal and TX fault
+  - redis_db: STATE_DB
+    key_pattern: "TRANSCEIVER_STATUS|*"
+    key_separator: "|"
+    fields:
+      - field_pattern: "*"
+        metric: sonic_switch_transceiver_rxlos
+        type: gauge
+        help: "Transceiver RX loss of signal (1=loss, 0=ok)"
+        labels:
+          interface: "$key_suffix"
+        transform:
+          regex_capture:
+            pattern: "^rxlos(?P<lane>\\d+)$"
+          map:
+            "True": 1
+            "False": 0
+      - field_pattern: "*"
+        metric: sonic_switch_transceiver_txfault
+        type: gauge
+        help: "Transceiver TX fault (1=fault, 0=ok)"
+        labels:
+          interface: "$key_suffix"
+        transform:
+          regex_capture:
+            pattern: "^txfault(?P<lane>\\d+)$"
+          map:
+            "True": 1
+            "False": 0
+
+  # Chassis temperature sensors
+  - redis_db: STATE_DB
+    key_pattern: "TEMPERATURE_INFO|*"
+    key_separator: "|"
+    fields:
+      - field: temperature
+        metric: sonic_switch_temperature_celsius
+        type: gauge
+        help: "Chassis temperature sensor reading in Celsius"
+        labels:
+          sensor: "$key_suffix"
+      - field: high_threshold
+        metric: sonic_switch_temperature_high_threshold_celsius
+        type: gauge
+        help: "Chassis temperature sensor high threshold in Celsius"
+        labels:
+          sensor: "$key_suffix"
+
+  # LLDP neighbor info — metadata as labels
+  - redis_db: APPL_DB
+    key_pattern: "LLDP_ENTRY_TABLE:*"
+    key_separator: ":"
+    fields:
+      - metric: sonic_switch_interface_neighbor_info
+        type: gauge
+        help: "LLDP neighbor metadata as labels, always 1"
+        value: 1
+        labels:
+          interface: "$key_suffix"
+          neighbor_mac: "$lldp_rem_chassis_id"
+          neighbor_name: "$lldp_rem_sys_name"
+          neighbor_port: "$lldp_rem_port_desc"
+
+  # Interface error counters — OID resolved via COUNTERS_PORT_NAME_MAP
+  - redis_db: COUNTERS_DB
+    key_pattern: "COUNTERS:*"
+    key_separator: ":"
+    key_resolver: COUNTERS_PORT_NAME_MAP
+    fields:
+      - field: SAI_PORT_STAT_IF_IN_ERRORS
+        metric: sonic_switch_interface_errors_total
+        type: counter
+        help: "Total interface errors"
+        labels:
+          interface: "$port_name"
+          direction: "rx"
+      - field: SAI_PORT_STAT_IF_OUT_ERRORS
+        metric: sonic_switch_interface_errors_total
+        type: counter
+        help: "Total interface errors"
+        labels:
+          interface: "$port_name"
+          direction: "tx"
+      - field: SAI_PORT_STAT_IF_IN_DISCARDS
+        metric: sonic_switch_interface_discards_total
+        type: counter
+        help: "Total interface discards"
+        labels:
+          interface: "$port_name"
+          direction: "rx"
+      - field: SAI_PORT_STAT_IF_OUT_DISCARDS
+        metric: sonic_switch_interface_discards_total
+        type: counter
+        help: "Total interface discards"
+        labels:
+          interface: "$port_name"
+          direction: "tx"
+      - field: SAI_PORT_STAT_IF_IN_FEC_CORRECTABLE_FRAMES
+        metric: sonic_switch_interface_fec_frames_total
+        type: counter
+        help: "Total FEC frames"
+        labels:
+          interface: "$port_name"
+          type: "correctable"
+      - field: SAI_PORT_STAT_IF_IN_FEC_NOT_CORRECTABLE_FRAMES
+        metric: sonic_switch_interface_fec_frames_total
+        type: counter
+        help: "Total FEC frames"
+        labels:
+          interface: "$port_name"
+          type: "uncorrectable"

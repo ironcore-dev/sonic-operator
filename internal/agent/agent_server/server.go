@@ -9,20 +9,23 @@ import (
 	"fmt"
 	"log"
 	"net"
-
-	pb "github.com/ironcore-dev/sonic-operator/internal/agent/proto"
-	agent "github.com/ironcore-dev/sonic-operator/internal/agent/types"
+	"net/http"
 
 	switchAgent "github.com/ironcore-dev/sonic-operator/internal/agent/interface"
+	"github.com/ironcore-dev/sonic-operator/internal/agent/metrics"
+	pb "github.com/ironcore-dev/sonic-operator/internal/agent/proto"
 	"github.com/ironcore-dev/sonic-operator/internal/agent/sonic"
+	agent "github.com/ironcore-dev/sonic-operator/internal/agent/types"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 )
 
 var (
-	port      = flag.Int("port", 50051, "The server port")
-	redisAddr = flag.String("redis-addr", "127.0.0.1:6379", "The Redis address")
+	port          = flag.Int("port", 50051, "The server port")
+	redisAddr     = flag.String("redis-addr", "127.0.0.1:6379", "The Redis address")
+	metricsPort   = flag.Int("metrics-port", 9100, "The metrics server port")
+	metricsConfig = flag.String("metrics-config", "", "Path to metrics mapping config YAML (uses built-in defaults if empty)")
 )
 
 type proxyServer struct {
@@ -233,6 +236,15 @@ func StartServer() {
 		log.Fatalf("failed to create SonicRedisAgent: %v", err)
 		panic(err)
 	}
+
+	// Start Prometheus metrics HTTP server
+	metricsSrv := metrics.NewMetricsServer(fmt.Sprintf("0.0.0.0:%d", *metricsPort), swAgent, sonic.GetSonicVersionInfo, *metricsConfig)
+	go func() {
+		log.Printf("metrics server listening at 0.0.0.0:%d", *metricsPort)
+		if err := metricsSrv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("metrics server failed: %v", err)
+		}
+	}()
 
 	pb.RegisterSwitchAgentServiceServer(s, &proxyServer{
 		SwitchAgent: swAgent,
