@@ -34,6 +34,7 @@ These require custom logic (cross-database joins, aggregate counting, error fall
 | `sonic_switch_interface_admin_state` | gauge | `interface` | Admin state (1=up, 0=down) |
 | `sonic_switch_interfaces_total` | gauge | `operational_status` | Number of interfaces by status |
 | `sonic_switch_ports_total` | gauge | — | Total physical ports |
+| `sonic_scrape_duration_seconds` | gauge | — | Duration of the last metrics scrape |
 
 ### Config-driven collectors
 
@@ -52,9 +53,17 @@ These are defined in YAML and can be customized or extended by operators. The de
 | `sonic_switch_interface_neighbor_info` | gauge | `interface`, `neighbor_mac`, `neighbor_name`, `neighbor_port` | LLDP neighbor metadata, always 1 |
 | `sonic_switch_temperature_celsius` | gauge | `sensor` | Chassis temperature sensor reading |
 | `sonic_switch_temperature_high_threshold_celsius` | gauge | `sensor` | Chassis temperature sensor high threshold |
+| `sonic_switch_temperature_warning` | gauge | `sensor` | Chassis temperature warning status (1=warning, 0=ok) |
+| `sonic_switch_interface_bytes_total` | counter | `interface`, `direction` | Bytes transferred |
+| `sonic_switch_interface_packets_total` | counter | `interface`, `direction`, `type` | Packets by type (unicast, multicast, broadcast, non_unicast) |
 | `sonic_switch_interface_errors_total` | counter | `interface`, `direction` | Interface error counters |
 | `sonic_switch_interface_discards_total` | counter | `interface`, `direction` | Interface discard counters |
-| `sonic_switch_interface_fec_frames_total` | counter | `interface`, `type` | FEC frame counters |
+| `sonic_switch_interface_dropped_packets_total` | counter | `interface`, `direction` | SAI-level dropped packets |
+| `sonic_switch_interface_fec_frames_total` | counter | `interface`, `type` | FEC frame counters (correctable, uncorrectable, symbol_errors) |
+| `sonic_switch_interface_queue_length` | gauge | `interface` | Current output queue length |
+| `sonic_switch_interface_pfc_packets_total` | counter | `interface`, `direction`, `priority` | PFC packets per priority (0-7) |
+| `sonic_switch_interface_packet_size_total` | counter | `interface`, `direction`, `size` | Packets by size bucket |
+| `sonic_switch_interface_anomaly_packets_total` | counter | `interface`, `type` | Anomalous packets (undersize, oversize, fragments, jabbers, unknown_protos) |
 
 ## Metrics configuration schema
 

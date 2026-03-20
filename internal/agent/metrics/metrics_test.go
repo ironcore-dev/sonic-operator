@@ -558,6 +558,16 @@ func TestConfigCollectorTemperature(t *testing.T) {
 				Help:   "Chassis temperature sensor high threshold in Celsius",
 				Labels: map[string]string{"sensor": "$key_suffix"},
 			},
+			{
+				Field:  "warning_status",
+				Metric: "sonic_switch_temperature_warning",
+				Type:   "gauge",
+				Help:   "Chassis temperature sensor warning status (1=warning, 0=ok)",
+				Labels: map[string]string{"sensor": "$key_suffix"},
+				Transform: &Transform{
+					Map: map[string]float64{"True": 1, "False": 0},
+				},
+			},
 		},
 	}
 
@@ -571,6 +581,10 @@ func TestConfigCollectorTemperature(t *testing.T) {
 		# TYPE sonic_switch_temperature_high_threshold_celsius gauge
 		sonic_switch_temperature_high_threshold_celsius{sensor="CPU_temp(0x4b)"} 95
 		sonic_switch_temperature_high_threshold_celsius{sensor="MB_RearMAC_temp(0x48)"} 80
+		# HELP sonic_switch_temperature_warning Chassis temperature sensor warning status (1=warning, 0=ok)
+		# TYPE sonic_switch_temperature_warning gauge
+		sonic_switch_temperature_warning{sensor="CPU_temp(0x4b)"} 0
+		sonic_switch_temperature_warning{sensor="MB_RearMAC_temp(0x48)"} 0
 	`
 	if err := testutil.CollectAndCompare(collector, strings.NewReader(expected)); err != nil {
 		t.Errorf("ConfigCollector temperature mismatch: %v", err)
@@ -688,12 +702,36 @@ func TestConfigCollectorCounters(t *testing.T) {
 		"COUNTERS:oid:0x100000000003",
 	})
 	mc.mocks["COUNTERS_DB"].ExpectHGetAll("COUNTERS:oid:0x100000000003").SetVal(map[string]string{
+		"SAI_PORT_STAT_IF_IN_OCTETS":                      "123456789",
+		"SAI_PORT_STAT_IF_OUT_OCTETS":                     "987654321",
+		"SAI_PORT_STAT_IF_IN_UCAST_PKTS":                  "100000",
+		"SAI_PORT_STAT_IF_OUT_UCAST_PKTS":                 "200000",
+		"SAI_PORT_STAT_IF_IN_MULTICAST_PKTS":              "500",
+		"SAI_PORT_STAT_IF_OUT_MULTICAST_PKTS":             "300",
+		"SAI_PORT_STAT_IF_IN_BROADCAST_PKTS":              "50",
+		"SAI_PORT_STAT_IF_OUT_BROADCAST_PKTS":             "20",
+		"SAI_PORT_STAT_IF_IN_NON_UCAST_PKTS":             "550",
+		"SAI_PORT_STAT_IF_OUT_NON_UCAST_PKTS":            "320",
 		"SAI_PORT_STAT_IF_IN_ERRORS":                      "42",
 		"SAI_PORT_STAT_IF_OUT_ERRORS":                     "0",
 		"SAI_PORT_STAT_IF_IN_DISCARDS":                    "7",
 		"SAI_PORT_STAT_IF_OUT_DISCARDS":                   "3",
+		"SAI_PORT_STAT_IN_DROPPED_PKTS":                   "2",
+		"SAI_PORT_STAT_OUT_DROPPED_PKTS":                  "1",
 		"SAI_PORT_STAT_IF_IN_FEC_CORRECTABLE_FRAMES":      "1580",
 		"SAI_PORT_STAT_IF_IN_FEC_NOT_CORRECTABLE_FRAMES":  "0",
+		"SAI_PORT_STAT_IF_IN_FEC_SYMBOL_ERRORS":           "23",
+		"SAI_PORT_STAT_IF_OUT_QLEN":                       "5",
+		"SAI_PORT_STAT_PFC_0_RX_PKTS":                     "100",
+		"SAI_PORT_STAT_PFC_0_TX_PKTS":                     "50",
+		"SAI_PORT_STAT_ETHER_IN_PKTS_64_OCTETS":           "10000",
+		"SAI_PORT_STAT_ETHER_OUT_PKTS_64_OCTETS":          "8000",
+		"SAI_PORT_STAT_ETHER_STATS_UNDERSIZE_PKTS":        "0",
+		"SAI_PORT_STAT_ETHER_STATS_FRAGMENTS":             "0",
+		"SAI_PORT_STAT_ETHER_STATS_JABBERS":               "0",
+		"SAI_PORT_STAT_IF_IN_UNKNOWN_PROTOS":              "0",
+		"SAI_PORT_STAT_ETHER_RX_OVERSIZE_PKTS":            "0",
+		"SAI_PORT_STAT_ETHER_TX_OVERSIZE_PKTS":            "0",
 	})
 
 	mapping := MetricMapping{
@@ -702,17 +740,47 @@ func TestConfigCollectorCounters(t *testing.T) {
 		KeySeparator: ":",
 		KeyResolver:  "COUNTERS_PORT_NAME_MAP",
 		Fields: []FieldMapping{
+			{Field: "SAI_PORT_STAT_IF_IN_OCTETS", Metric: "sonic_switch_interface_bytes_total", Type: "counter", Help: "Total bytes transferred", Labels: map[string]string{"interface": "$port_name", "direction": "rx"}},
+			{Field: "SAI_PORT_STAT_IF_OUT_OCTETS", Metric: "sonic_switch_interface_bytes_total", Type: "counter", Help: "Total bytes transferred", Labels: map[string]string{"interface": "$port_name", "direction": "tx"}},
+			{Field: "SAI_PORT_STAT_IF_IN_UCAST_PKTS", Metric: "sonic_switch_interface_packets_total", Type: "counter", Help: "Total packets transferred", Labels: map[string]string{"interface": "$port_name", "direction": "rx", "type": "unicast"}},
+			{Field: "SAI_PORT_STAT_IF_OUT_UCAST_PKTS", Metric: "sonic_switch_interface_packets_total", Type: "counter", Help: "Total packets transferred", Labels: map[string]string{"interface": "$port_name", "direction": "tx", "type": "unicast"}},
+			{Field: "SAI_PORT_STAT_IF_IN_MULTICAST_PKTS", Metric: "sonic_switch_interface_packets_total", Type: "counter", Help: "Total packets transferred", Labels: map[string]string{"interface": "$port_name", "direction": "rx", "type": "multicast"}},
+			{Field: "SAI_PORT_STAT_IF_OUT_MULTICAST_PKTS", Metric: "sonic_switch_interface_packets_total", Type: "counter", Help: "Total packets transferred", Labels: map[string]string{"interface": "$port_name", "direction": "tx", "type": "multicast"}},
+			{Field: "SAI_PORT_STAT_IF_IN_BROADCAST_PKTS", Metric: "sonic_switch_interface_packets_total", Type: "counter", Help: "Total packets transferred", Labels: map[string]string{"interface": "$port_name", "direction": "rx", "type": "broadcast"}},
+			{Field: "SAI_PORT_STAT_IF_OUT_BROADCAST_PKTS", Metric: "sonic_switch_interface_packets_total", Type: "counter", Help: "Total packets transferred", Labels: map[string]string{"interface": "$port_name", "direction": "tx", "type": "broadcast"}},
+			{Field: "SAI_PORT_STAT_IF_IN_NON_UCAST_PKTS", Metric: "sonic_switch_interface_packets_total", Type: "counter", Help: "Total packets transferred", Labels: map[string]string{"interface": "$port_name", "direction": "rx", "type": "non_unicast"}},
+			{Field: "SAI_PORT_STAT_IF_OUT_NON_UCAST_PKTS", Metric: "sonic_switch_interface_packets_total", Type: "counter", Help: "Total packets transferred", Labels: map[string]string{"interface": "$port_name", "direction": "tx", "type": "non_unicast"}},
 			{Field: "SAI_PORT_STAT_IF_IN_ERRORS", Metric: "sonic_switch_interface_errors_total", Type: "counter", Help: "Total interface errors", Labels: map[string]string{"interface": "$port_name", "direction": "rx"}},
 			{Field: "SAI_PORT_STAT_IF_OUT_ERRORS", Metric: "sonic_switch_interface_errors_total", Type: "counter", Help: "Total interface errors", Labels: map[string]string{"interface": "$port_name", "direction": "tx"}},
 			{Field: "SAI_PORT_STAT_IF_IN_DISCARDS", Metric: "sonic_switch_interface_discards_total", Type: "counter", Help: "Total interface discards", Labels: map[string]string{"interface": "$port_name", "direction": "rx"}},
 			{Field: "SAI_PORT_STAT_IF_OUT_DISCARDS", Metric: "sonic_switch_interface_discards_total", Type: "counter", Help: "Total interface discards", Labels: map[string]string{"interface": "$port_name", "direction": "tx"}},
+			{Field: "SAI_PORT_STAT_IN_DROPPED_PKTS", Metric: "sonic_switch_interface_dropped_packets_total", Type: "counter", Help: "Total SAI-level dropped packets", Labels: map[string]string{"interface": "$port_name", "direction": "rx"}},
+			{Field: "SAI_PORT_STAT_OUT_DROPPED_PKTS", Metric: "sonic_switch_interface_dropped_packets_total", Type: "counter", Help: "Total SAI-level dropped packets", Labels: map[string]string{"interface": "$port_name", "direction": "tx"}},
 			{Field: "SAI_PORT_STAT_IF_IN_FEC_CORRECTABLE_FRAMES", Metric: "sonic_switch_interface_fec_frames_total", Type: "counter", Help: "Total FEC frames", Labels: map[string]string{"interface": "$port_name", "type": "correctable"}},
 			{Field: "SAI_PORT_STAT_IF_IN_FEC_NOT_CORRECTABLE_FRAMES", Metric: "sonic_switch_interface_fec_frames_total", Type: "counter", Help: "Total FEC frames", Labels: map[string]string{"interface": "$port_name", "type": "uncorrectable"}},
+			{Field: "SAI_PORT_STAT_IF_IN_FEC_SYMBOL_ERRORS", Metric: "sonic_switch_interface_fec_frames_total", Type: "counter", Help: "Total FEC frames", Labels: map[string]string{"interface": "$port_name", "type": "symbol_errors"}},
+			{Field: "SAI_PORT_STAT_IF_OUT_QLEN", Metric: "sonic_switch_interface_queue_length", Type: "gauge", Help: "Current output queue length", Labels: map[string]string{"interface": "$port_name"}},
+			{Field: "SAI_PORT_STAT_PFC_0_RX_PKTS", Metric: "sonic_switch_interface_pfc_packets_total", Type: "counter", Help: "Total PFC packets", Labels: map[string]string{"interface": "$port_name", "direction": "rx", "priority": "0"}},
+			{Field: "SAI_PORT_STAT_PFC_0_TX_PKTS", Metric: "sonic_switch_interface_pfc_packets_total", Type: "counter", Help: "Total PFC packets", Labels: map[string]string{"interface": "$port_name", "direction": "tx", "priority": "0"}},
+			{Field: "SAI_PORT_STAT_ETHER_IN_PKTS_64_OCTETS", Metric: "sonic_switch_interface_packet_size_total", Type: "counter", Help: "Total packets by size bucket", Labels: map[string]string{"interface": "$port_name", "direction": "rx", "size": "64"}},
+			{Field: "SAI_PORT_STAT_ETHER_OUT_PKTS_64_OCTETS", Metric: "sonic_switch_interface_packet_size_total", Type: "counter", Help: "Total packets by size bucket", Labels: map[string]string{"interface": "$port_name", "direction": "tx", "size": "64"}},
+			{Field: "SAI_PORT_STAT_ETHER_STATS_UNDERSIZE_PKTS", Metric: "sonic_switch_interface_anomaly_packets_total", Type: "counter", Help: "Total anomalous packets", Labels: map[string]string{"interface": "$port_name", "type": "undersize"}},
+			{Field: "SAI_PORT_STAT_ETHER_STATS_FRAGMENTS", Metric: "sonic_switch_interface_anomaly_packets_total", Type: "counter", Help: "Total anomalous packets", Labels: map[string]string{"interface": "$port_name", "type": "fragments"}},
+			{Field: "SAI_PORT_STAT_ETHER_STATS_JABBERS", Metric: "sonic_switch_interface_anomaly_packets_total", Type: "counter", Help: "Total anomalous packets", Labels: map[string]string{"interface": "$port_name", "type": "jabbers"}},
+			{Field: "SAI_PORT_STAT_IF_IN_UNKNOWN_PROTOS", Metric: "sonic_switch_interface_anomaly_packets_total", Type: "counter", Help: "Total anomalous packets", Labels: map[string]string{"interface": "$port_name", "type": "unknown_protos"}},
+			{Field: "SAI_PORT_STAT_ETHER_RX_OVERSIZE_PKTS", Metric: "sonic_switch_interface_anomaly_packets_total", Type: "counter", Help: "Total anomalous packets", Labels: map[string]string{"interface": "$port_name", "type": "rx_oversize"}},
+			{Field: "SAI_PORT_STAT_ETHER_TX_OVERSIZE_PKTS", Metric: "sonic_switch_interface_anomaly_packets_total", Type: "counter", Help: "Total anomalous packets", Labels: map[string]string{"interface": "$port_name", "type": "tx_oversize"}},
 		},
 	}
 
 	collector := NewConfigCollector(mc, mapping)
+
+	// Verify a representative subset of metrics
 	expected := `
+		# HELP sonic_switch_interface_bytes_total Total bytes transferred
+		# TYPE sonic_switch_interface_bytes_total counter
+		sonic_switch_interface_bytes_total{direction="rx",interface="Ethernet0"} 1.23456789e+08
+		sonic_switch_interface_bytes_total{direction="tx",interface="Ethernet0"} 9.87654321e+08
 		# HELP sonic_switch_interface_errors_total Total interface errors
 		# TYPE sonic_switch_interface_errors_total counter
 		sonic_switch_interface_errors_total{direction="rx",interface="Ethernet0"} 42
@@ -721,10 +789,44 @@ func TestConfigCollectorCounters(t *testing.T) {
 		# TYPE sonic_switch_interface_discards_total counter
 		sonic_switch_interface_discards_total{direction="rx",interface="Ethernet0"} 7
 		sonic_switch_interface_discards_total{direction="tx",interface="Ethernet0"} 3
+		# HELP sonic_switch_interface_dropped_packets_total Total SAI-level dropped packets
+		# TYPE sonic_switch_interface_dropped_packets_total counter
+		sonic_switch_interface_dropped_packets_total{direction="rx",interface="Ethernet0"} 2
+		sonic_switch_interface_dropped_packets_total{direction="tx",interface="Ethernet0"} 1
 		# HELP sonic_switch_interface_fec_frames_total Total FEC frames
 		# TYPE sonic_switch_interface_fec_frames_total counter
 		sonic_switch_interface_fec_frames_total{interface="Ethernet0",type="correctable"} 1580
+		sonic_switch_interface_fec_frames_total{interface="Ethernet0",type="symbol_errors"} 23
 		sonic_switch_interface_fec_frames_total{interface="Ethernet0",type="uncorrectable"} 0
+		# HELP sonic_switch_interface_queue_length Current output queue length
+		# TYPE sonic_switch_interface_queue_length gauge
+		sonic_switch_interface_queue_length{interface="Ethernet0"} 5
+		# HELP sonic_switch_interface_packets_total Total packets transferred
+		# TYPE sonic_switch_interface_packets_total counter
+		sonic_switch_interface_packets_total{direction="rx",interface="Ethernet0",type="broadcast"} 50
+		sonic_switch_interface_packets_total{direction="rx",interface="Ethernet0",type="multicast"} 500
+		sonic_switch_interface_packets_total{direction="rx",interface="Ethernet0",type="non_unicast"} 550
+		sonic_switch_interface_packets_total{direction="rx",interface="Ethernet0",type="unicast"} 100000
+		sonic_switch_interface_packets_total{direction="tx",interface="Ethernet0",type="broadcast"} 20
+		sonic_switch_interface_packets_total{direction="tx",interface="Ethernet0",type="multicast"} 300
+		sonic_switch_interface_packets_total{direction="tx",interface="Ethernet0",type="non_unicast"} 320
+		sonic_switch_interface_packets_total{direction="tx",interface="Ethernet0",type="unicast"} 200000
+		# HELP sonic_switch_interface_pfc_packets_total Total PFC packets
+		# TYPE sonic_switch_interface_pfc_packets_total counter
+		sonic_switch_interface_pfc_packets_total{direction="rx",interface="Ethernet0",priority="0"} 100
+		sonic_switch_interface_pfc_packets_total{direction="tx",interface="Ethernet0",priority="0"} 50
+		# HELP sonic_switch_interface_packet_size_total Total packets by size bucket
+		# TYPE sonic_switch_interface_packet_size_total counter
+		sonic_switch_interface_packet_size_total{direction="rx",interface="Ethernet0",size="64"} 10000
+		sonic_switch_interface_packet_size_total{direction="tx",interface="Ethernet0",size="64"} 8000
+		# HELP sonic_switch_interface_anomaly_packets_total Total anomalous packets
+		# TYPE sonic_switch_interface_anomaly_packets_total counter
+		sonic_switch_interface_anomaly_packets_total{interface="Ethernet0",type="fragments"} 0
+		sonic_switch_interface_anomaly_packets_total{interface="Ethernet0",type="jabbers"} 0
+		sonic_switch_interface_anomaly_packets_total{interface="Ethernet0",type="rx_oversize"} 0
+		sonic_switch_interface_anomaly_packets_total{interface="Ethernet0",type="tx_oversize"} 0
+		sonic_switch_interface_anomaly_packets_total{interface="Ethernet0",type="undersize"} 0
+		sonic_switch_interface_anomaly_packets_total{interface="Ethernet0",type="unknown_protos"} 0
 	`
 	if err := testutil.CollectAndCompare(collector, strings.NewReader(expected)); err != nil {
 		t.Errorf("ConfigCollector counters mismatch: %v", err)
@@ -806,6 +908,14 @@ func TestDefaultConfigLoads(t *testing.T) {
 		"sonic_switch_interface_neighbor_info",
 		"sonic_switch_temperature_celsius",
 		"sonic_switch_temperature_high_threshold_celsius",
+		"sonic_switch_temperature_warning",
+		"sonic_switch_interface_bytes_total",
+		"sonic_switch_interface_packets_total",
+		"sonic_switch_interface_dropped_packets_total",
+		"sonic_switch_interface_queue_length",
+		"sonic_switch_interface_pfc_packets_total",
+		"sonic_switch_interface_packet_size_total",
+		"sonic_switch_interface_anomaly_packets_total",
 	} {
 		if !metricNames[want] {
 			t.Errorf("DefaultConfig missing expected metric %q", want)
@@ -886,6 +996,32 @@ func TestHealthEndpointRedisDown(t *testing.T) {
 
 	if w.Code != http.StatusInternalServerError {
 		t.Errorf("expected 500, got %d", w.Code)
+	}
+}
+
+// --- Scrape Duration Test ---
+
+func TestScrapeDurationMetric(t *testing.T) {
+	mc := newMockConnector("CONFIG_DB")
+	// DeviceCollector will read DEVICE_METADATA
+	mc.mocks["CONFIG_DB"].ExpectHGetAll("DEVICE_METADATA|localhost").SetVal(map[string]string{
+		"mac": "aa:bb:cc:dd:ee:ff",
+	})
+	// InterfaceCollector will list ports
+	mc.mocks["CONFIG_DB"].ExpectKeys("PORT|*").SetVal([]string{})
+
+	srv := NewMetricsServer(":0", mc, nil, "")
+
+	req := httptest.NewRequest("GET", "/metrics", nil)
+	w := httptest.NewRecorder()
+	srv.Handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", w.Code)
+	}
+	body := w.Body.String()
+	if !strings.Contains(body, "sonic_scrape_duration_seconds") {
+		t.Error("response missing sonic_scrape_duration_seconds metric")
 	}
 }
 
