@@ -6,6 +6,7 @@ package metrics
 import (
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -43,8 +44,20 @@ func NewMetricsServer(addr string, connector RedisConnector, versionInfo Version
 		}
 	}
 
+	// Scrape duration gauge — records wall-clock time of the last /metrics request
+	scrapeDuration := prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "sonic_scrape_duration_seconds",
+		Help: "Duration of the last metrics scrape in seconds",
+	})
+	registry.MustRegister(scrapeDuration)
+
 	mux := http.NewServeMux()
-	mux.Handle("GET /metrics", promhttp.HandlerFor(registry, promhttp.HandlerOpts{}))
+	handler := promhttp.HandlerFor(registry, promhttp.HandlerOpts{})
+	mux.Handle("GET /metrics", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+		handler.ServeHTTP(w, r)
+		scrapeDuration.Set(time.Since(start).Seconds())
+	}))
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) {
 		client, err := connector.Connect("CONFIG_DB")
 		if err != nil {
