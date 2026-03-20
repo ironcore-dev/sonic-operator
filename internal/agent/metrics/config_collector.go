@@ -136,6 +136,14 @@ func (c *ConfigCollector) Collect(ch chan<- prometheus.Metric) {
 				continue
 			}
 
+			// histogram operates on the whole hash — reads specific bucket fields
+			if fm.Type == "histogram" && fm.Transform != nil && fm.Transform.Histogram != nil {
+				desc := c.descs[fm.Metric]
+				labels := resolveLabels(fm.Labels, keySuffix, portName, "", fields)
+				collectHistogram(ch, desc, fm.Transform.Histogram, fields, labels)
+				continue
+			}
+
 			if fm.FieldPattern == "*" {
 				// Iterate all fields
 				c.collectAllFields(ch, fi, fm, fields, keySuffix, portName)
@@ -312,4 +320,48 @@ func appendUnique(slice []string, items ...string) []string {
 		}
 	}
 	return slice
+}
+
+// collectHistogram reads bucket fields from the hash, accumulates cumulative counts,
+// and emits a prometheus.MustNewConstHistogram.
+func collectHistogram(
+	ch chan<- prometheus.Metric,
+	desc *prometheus.Desc,
+	hb *HistogramBuckets,
+	hashFields map[string]string,
+	labels []string,
+) {
+	// Sort upper bounds
+	bounds := make([]float64, 0, len(hb.Buckets))
+	for ub := range hb.Buckets {
+		bounds = append(bounds, ub)
+	}
+	sort.Float64s(bounds)
+
+	// Read non-cumulative counts from Redis and accumulate into cumulative buckets.
+	var totalCount uint64
+	cumBuckets := make(map[float64]uint64, len(bounds))
+	var cumulative uint64
+	for _, ub := range bounds {
+		fieldName := hb.Buckets[ub]
+		val, ok := hashFields[fieldName]
+		if !ok {
+			cumBuckets[ub] = cumulative
+			continue
+		}
+		n, err := strconv.ParseUint(val, 10, 64)
+		if err != nil {
+			cumBuckets[ub] = cumulative
+			continue
+		}
+		cumulative += n
+		cumBuckets[ub] = cumulative
+	}
+	totalCount = cumulative
+
+	// +Inf bucket count equals totalCount (Prometheus adds it automatically).
+	// sum is 0 — SAI doesn't provide total bytes, only bucket counts.
+	ch <- prometheus.MustNewConstHistogram(
+		desc, totalCount, 0, cumBuckets, labels...,
+	)
 }

@@ -724,8 +724,6 @@ func TestConfigCollectorCounters(t *testing.T) {
 		"SAI_PORT_STAT_IF_OUT_QLEN":                       "5",
 		"SAI_PORT_STAT_PFC_0_RX_PKTS":                     "100",
 		"SAI_PORT_STAT_PFC_0_TX_PKTS":                     "50",
-		"SAI_PORT_STAT_ETHER_IN_PKTS_64_OCTETS":           "10000",
-		"SAI_PORT_STAT_ETHER_OUT_PKTS_64_OCTETS":          "8000",
 		"SAI_PORT_STAT_ETHER_STATS_UNDERSIZE_PKTS":        "0",
 		"SAI_PORT_STAT_ETHER_STATS_FRAGMENTS":             "0",
 		"SAI_PORT_STAT_ETHER_STATS_JABBERS":               "0",
@@ -762,8 +760,6 @@ func TestConfigCollectorCounters(t *testing.T) {
 			{Field: "SAI_PORT_STAT_IF_OUT_QLEN", Metric: "sonic_switch_interface_queue_length", Type: "gauge", Help: "Current output queue length", Labels: map[string]string{"interface": "$port_name"}},
 			{Field: "SAI_PORT_STAT_PFC_0_RX_PKTS", Metric: "sonic_switch_interface_pfc_packets_total", Type: "counter", Help: "Total PFC packets", Labels: map[string]string{"interface": "$port_name", "direction": "rx", "priority": "0"}},
 			{Field: "SAI_PORT_STAT_PFC_0_TX_PKTS", Metric: "sonic_switch_interface_pfc_packets_total", Type: "counter", Help: "Total PFC packets", Labels: map[string]string{"interface": "$port_name", "direction": "tx", "priority": "0"}},
-			{Field: "SAI_PORT_STAT_ETHER_IN_PKTS_64_OCTETS", Metric: "sonic_switch_interface_packet_size_total", Type: "counter", Help: "Total packets by size bucket", Labels: map[string]string{"interface": "$port_name", "direction": "rx", "size": "64"}},
-			{Field: "SAI_PORT_STAT_ETHER_OUT_PKTS_64_OCTETS", Metric: "sonic_switch_interface_packet_size_total", Type: "counter", Help: "Total packets by size bucket", Labels: map[string]string{"interface": "$port_name", "direction": "tx", "size": "64"}},
 			{Field: "SAI_PORT_STAT_ETHER_STATS_UNDERSIZE_PKTS", Metric: "sonic_switch_interface_anomaly_packets_total", Type: "counter", Help: "Total anomalous packets", Labels: map[string]string{"interface": "$port_name", "type": "undersize"}},
 			{Field: "SAI_PORT_STAT_ETHER_STATS_FRAGMENTS", Metric: "sonic_switch_interface_anomaly_packets_total", Type: "counter", Help: "Total anomalous packets", Labels: map[string]string{"interface": "$port_name", "type": "fragments"}},
 			{Field: "SAI_PORT_STAT_ETHER_STATS_JABBERS", Metric: "sonic_switch_interface_anomaly_packets_total", Type: "counter", Help: "Total anomalous packets", Labels: map[string]string{"interface": "$port_name", "type": "jabbers"}},
@@ -815,10 +811,6 @@ func TestConfigCollectorCounters(t *testing.T) {
 		# TYPE sonic_switch_interface_pfc_packets_total counter
 		sonic_switch_interface_pfc_packets_total{direction="rx",interface="Ethernet0",priority="0"} 100
 		sonic_switch_interface_pfc_packets_total{direction="tx",interface="Ethernet0",priority="0"} 50
-		# HELP sonic_switch_interface_packet_size_total Total packets by size bucket
-		# TYPE sonic_switch_interface_packet_size_total counter
-		sonic_switch_interface_packet_size_total{direction="rx",interface="Ethernet0",size="64"} 10000
-		sonic_switch_interface_packet_size_total{direction="tx",interface="Ethernet0",size="64"} 8000
 		# HELP sonic_switch_interface_anomaly_packets_total Total anomalous packets
 		# TYPE sonic_switch_interface_anomaly_packets_total counter
 		sonic_switch_interface_anomaly_packets_total{interface="Ethernet0",type="fragments"} 0
@@ -830,6 +822,88 @@ func TestConfigCollectorCounters(t *testing.T) {
 	`
 	if err := testutil.CollectAndCompare(collector, strings.NewReader(expected)); err != nil {
 		t.Errorf("ConfigCollector counters mismatch: %v", err)
+	}
+	mc.expectationsMet(t)
+}
+
+func TestConfigCollectorHistogram(t *testing.T) {
+	mc := newMockConnector("COUNTERS_DB")
+
+	mc.mocks["COUNTERS_DB"].ExpectHGetAll("COUNTERS_PORT_NAME_MAP").SetVal(map[string]string{
+		"Ethernet0": "oid:0x100000000003",
+	})
+	mc.mocks["COUNTERS_DB"].ExpectKeys("COUNTERS:*").SetVal([]string{
+		"COUNTERS:oid:0x100000000003",
+	})
+	mc.mocks["COUNTERS_DB"].ExpectHGetAll("COUNTERS:oid:0x100000000003").SetVal(map[string]string{
+		"SAI_PORT_STAT_ETHER_IN_PKTS_64_OCTETS":           "10000",
+		"SAI_PORT_STAT_ETHER_IN_PKTS_65_TO_127_OCTETS":    "5000",
+		"SAI_PORT_STAT_ETHER_IN_PKTS_128_TO_255_OCTETS":   "2000",
+		"SAI_PORT_STAT_ETHER_IN_PKTS_256_TO_511_OCTETS":   "1000",
+		"SAI_PORT_STAT_ETHER_IN_PKTS_512_TO_1023_OCTETS":  "500",
+		"SAI_PORT_STAT_ETHER_IN_PKTS_1024_TO_1518_OCTETS": "200",
+		"SAI_PORT_STAT_ETHER_IN_PKTS_1519_TO_2047_OCTETS": "50",
+		"SAI_PORT_STAT_ETHER_IN_PKTS_2048_TO_4095_OCTETS": "10",
+		"SAI_PORT_STAT_ETHER_IN_PKTS_4096_TO_9216_OCTETS": "5",
+		"SAI_PORT_STAT_ETHER_IN_PKTS_9217_TO_16383_OCTETS": "0",
+	})
+
+	mapping := MetricMapping{
+		RedisDB:      "COUNTERS_DB",
+		KeyPattern:   "COUNTERS:*",
+		KeySeparator: ":",
+		KeyResolver:  "COUNTERS_PORT_NAME_MAP",
+		Fields: []FieldMapping{
+			{
+				Metric: "sonic_switch_interface_rx_packet_size_bytes",
+				Type:   "histogram",
+				Help:   "RX packet size distribution",
+				Labels: map[string]string{"interface": "$port_name"},
+				Transform: &Transform{
+					Histogram: &HistogramBuckets{
+						Buckets: map[float64]string{
+							64:    "SAI_PORT_STAT_ETHER_IN_PKTS_64_OCTETS",
+							127:   "SAI_PORT_STAT_ETHER_IN_PKTS_65_TO_127_OCTETS",
+							255:   "SAI_PORT_STAT_ETHER_IN_PKTS_128_TO_255_OCTETS",
+							511:   "SAI_PORT_STAT_ETHER_IN_PKTS_256_TO_511_OCTETS",
+							1023:  "SAI_PORT_STAT_ETHER_IN_PKTS_512_TO_1023_OCTETS",
+							1518:  "SAI_PORT_STAT_ETHER_IN_PKTS_1024_TO_1518_OCTETS",
+							2047:  "SAI_PORT_STAT_ETHER_IN_PKTS_1519_TO_2047_OCTETS",
+							4095:  "SAI_PORT_STAT_ETHER_IN_PKTS_2048_TO_4095_OCTETS",
+							9216:  "SAI_PORT_STAT_ETHER_IN_PKTS_4096_TO_9216_OCTETS",
+							16383: "SAI_PORT_STAT_ETHER_IN_PKTS_9217_TO_16383_OCTETS",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	collector := NewConfigCollector(mc, mapping)
+
+	// Cumulative counts:
+	// 64: 10000, 127: 15000, 255: 17000, 511: 18000, 1023: 18500,
+	// 1518: 18700, 2047: 18750, 4095: 18760, 9216: 18765, 16383: 18765
+	// count=18765, sum=0
+	expected := `
+		# HELP sonic_switch_interface_rx_packet_size_bytes RX packet size distribution
+		# TYPE sonic_switch_interface_rx_packet_size_bytes histogram
+		sonic_switch_interface_rx_packet_size_bytes_bucket{interface="Ethernet0",le="64"} 10000
+		sonic_switch_interface_rx_packet_size_bytes_bucket{interface="Ethernet0",le="127"} 15000
+		sonic_switch_interface_rx_packet_size_bytes_bucket{interface="Ethernet0",le="255"} 17000
+		sonic_switch_interface_rx_packet_size_bytes_bucket{interface="Ethernet0",le="511"} 18000
+		sonic_switch_interface_rx_packet_size_bytes_bucket{interface="Ethernet0",le="1023"} 18500
+		sonic_switch_interface_rx_packet_size_bytes_bucket{interface="Ethernet0",le="1518"} 18700
+		sonic_switch_interface_rx_packet_size_bytes_bucket{interface="Ethernet0",le="2047"} 18750
+		sonic_switch_interface_rx_packet_size_bytes_bucket{interface="Ethernet0",le="4095"} 18760
+		sonic_switch_interface_rx_packet_size_bytes_bucket{interface="Ethernet0",le="9216"} 18765
+		sonic_switch_interface_rx_packet_size_bytes_bucket{interface="Ethernet0",le="16383"} 18765
+		sonic_switch_interface_rx_packet_size_bytes_bucket{interface="Ethernet0",le="+Inf"} 18765
+		sonic_switch_interface_rx_packet_size_bytes_sum{interface="Ethernet0"} 0
+		sonic_switch_interface_rx_packet_size_bytes_count{interface="Ethernet0"} 18765
+	`
+	if err := testutil.CollectAndCompare(collector, strings.NewReader(expected)); err != nil {
+		t.Errorf("ConfigCollector histogram mismatch: %v", err)
 	}
 	mc.expectationsMet(t)
 }
@@ -914,7 +988,8 @@ func TestDefaultConfigLoads(t *testing.T) {
 		"sonic_switch_interface_dropped_packets_total",
 		"sonic_switch_interface_queue_length",
 		"sonic_switch_interface_pfc_packets_total",
-		"sonic_switch_interface_packet_size_total",
+		"sonic_switch_interface_rx_packet_size_bytes",
+		"sonic_switch_interface_tx_packet_size_bytes",
 		"sonic_switch_interface_anomaly_packets_total",
 	} {
 		if !metricNames[want] {
