@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and IronCore contributors
+// SPDX-FileCopyrightText: 2026 SAP SE or an SAP affiliate company and IronCore contributors
 // SPDX-License-Identifier: Apache-2.0
 
 package metrics
@@ -44,7 +44,9 @@ func NewMetricsServer(addr string, connector RedisConnector, versionInfo Version
 		}
 	}
 
-	// Scrape duration gauge — records wall-clock time of the last /metrics request
+	// Scrape duration gauge — updated after each /metrics response is written,
+	// so it reports the duration of the previous scrape (not the current one).
+	// This is consistent with how node_exporter and similar exporters work.
 	scrapeDuration := prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "sonic_scrape_duration_seconds",
 		Help: "Duration of the last metrics scrape in seconds",

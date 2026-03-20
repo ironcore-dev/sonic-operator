@@ -1,12 +1,16 @@
-// SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and IronCore contributors
+// SPDX-FileCopyrightText: 2026 SAP SE or an SAP affiliate company and IronCore contributors
 // SPDX-License-Identifier: Apache-2.0
 
 package metrics
 
 import (
 	"fmt"
+	"io"
+	"log"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -712,26 +716,24 @@ func TestConfigCollectorCounters(t *testing.T) {
 		"SAI_PORT_STAT_IF_OUT_BROADCAST_PKTS":            "20",
 		"SAI_PORT_STAT_IF_IN_NON_UCAST_PKTS":             "550",
 		"SAI_PORT_STAT_IF_OUT_NON_UCAST_PKTS":            "320",
-		"SAI_PORT_STAT_IF_IN_ERRORS":                      "42",
-		"SAI_PORT_STAT_IF_OUT_ERRORS":                     "0",
-		"SAI_PORT_STAT_IF_IN_DISCARDS":                    "7",
-		"SAI_PORT_STAT_IF_OUT_DISCARDS":                   "3",
-		"SAI_PORT_STAT_IN_DROPPED_PKTS":                   "2",
-		"SAI_PORT_STAT_OUT_DROPPED_PKTS":                  "1",
-		"SAI_PORT_STAT_IF_IN_FEC_CORRECTABLE_FRAMES":      "1580",
-		"SAI_PORT_STAT_IF_IN_FEC_NOT_CORRECTABLE_FRAMES":  "0",
-		"SAI_PORT_STAT_IF_IN_FEC_SYMBOL_ERRORS":           "23",
-		"SAI_PORT_STAT_IF_OUT_QLEN":                       "5",
-		"SAI_PORT_STAT_PFC_0_RX_PKTS":                     "100",
-		"SAI_PORT_STAT_PFC_0_TX_PKTS":                     "50",
-		"SAI_PORT_STAT_ETHER_IN_PKTS_64_OCTETS":           "10000",
-		"SAI_PORT_STAT_ETHER_OUT_PKTS_64_OCTETS":          "8000",
-		"SAI_PORT_STAT_ETHER_STATS_UNDERSIZE_PKTS":        "0",
-		"SAI_PORT_STAT_ETHER_STATS_FRAGMENTS":             "0",
-		"SAI_PORT_STAT_ETHER_STATS_JABBERS":               "0",
-		"SAI_PORT_STAT_IF_IN_UNKNOWN_PROTOS":              "0",
-		"SAI_PORT_STAT_ETHER_RX_OVERSIZE_PKTS":            "0",
-		"SAI_PORT_STAT_ETHER_TX_OVERSIZE_PKTS":            "0",
+		"SAI_PORT_STAT_IF_IN_ERRORS":                     "42",
+		"SAI_PORT_STAT_IF_OUT_ERRORS":                    "0",
+		"SAI_PORT_STAT_IF_IN_DISCARDS":                   "7",
+		"SAI_PORT_STAT_IF_OUT_DISCARDS":                  "3",
+		"SAI_PORT_STAT_IN_DROPPED_PKTS":                  "2",
+		"SAI_PORT_STAT_OUT_DROPPED_PKTS":                 "1",
+		"SAI_PORT_STAT_IF_IN_FEC_CORRECTABLE_FRAMES":     "1580",
+		"SAI_PORT_STAT_IF_IN_FEC_NOT_CORRECTABLE_FRAMES": "0",
+		"SAI_PORT_STAT_IF_IN_FEC_SYMBOL_ERRORS":          "23",
+		"SAI_PORT_STAT_IF_OUT_QLEN":                      "5",
+		"SAI_PORT_STAT_PFC_0_RX_PKTS":                    "100",
+		"SAI_PORT_STAT_PFC_0_TX_PKTS":                    "50",
+		"SAI_PORT_STAT_ETHER_STATS_UNDERSIZE_PKTS":       "0",
+		"SAI_PORT_STAT_ETHER_STATS_FRAGMENTS":            "0",
+		"SAI_PORT_STAT_ETHER_STATS_JABBERS":              "0",
+		"SAI_PORT_STAT_IF_IN_UNKNOWN_PROTOS":             "0",
+		"SAI_PORT_STAT_ETHER_RX_OVERSIZE_PKTS":           "0",
+		"SAI_PORT_STAT_ETHER_TX_OVERSIZE_PKTS":           "0",
 	})
 
 	mapping := MetricMapping{
@@ -762,8 +764,6 @@ func TestConfigCollectorCounters(t *testing.T) {
 			{Field: "SAI_PORT_STAT_IF_OUT_QLEN", Metric: "sonic_switch_interface_queue_length", Type: "gauge", Help: "Current output queue length", Labels: map[string]string{"interface": "$port_name"}},
 			{Field: "SAI_PORT_STAT_PFC_0_RX_PKTS", Metric: "sonic_switch_interface_pfc_packets_total", Type: "counter", Help: "Total PFC packets", Labels: map[string]string{"interface": "$port_name", "direction": "rx", "priority": "0"}},
 			{Field: "SAI_PORT_STAT_PFC_0_TX_PKTS", Metric: "sonic_switch_interface_pfc_packets_total", Type: "counter", Help: "Total PFC packets", Labels: map[string]string{"interface": "$port_name", "direction": "tx", "priority": "0"}},
-			{Field: "SAI_PORT_STAT_ETHER_IN_PKTS_64_OCTETS", Metric: "sonic_switch_interface_packet_size_total", Type: "counter", Help: "Total packets by size bucket", Labels: map[string]string{"interface": "$port_name", "direction": "rx", "size": "64"}},
-			{Field: "SAI_PORT_STAT_ETHER_OUT_PKTS_64_OCTETS", Metric: "sonic_switch_interface_packet_size_total", Type: "counter", Help: "Total packets by size bucket", Labels: map[string]string{"interface": "$port_name", "direction": "tx", "size": "64"}},
 			{Field: "SAI_PORT_STAT_ETHER_STATS_UNDERSIZE_PKTS", Metric: "sonic_switch_interface_anomaly_packets_total", Type: "counter", Help: "Total anomalous packets", Labels: map[string]string{"interface": "$port_name", "type": "undersize"}},
 			{Field: "SAI_PORT_STAT_ETHER_STATS_FRAGMENTS", Metric: "sonic_switch_interface_anomaly_packets_total", Type: "counter", Help: "Total anomalous packets", Labels: map[string]string{"interface": "$port_name", "type": "fragments"}},
 			{Field: "SAI_PORT_STAT_ETHER_STATS_JABBERS", Metric: "sonic_switch_interface_anomaly_packets_total", Type: "counter", Help: "Total anomalous packets", Labels: map[string]string{"interface": "$port_name", "type": "jabbers"}},
@@ -815,10 +815,6 @@ func TestConfigCollectorCounters(t *testing.T) {
 		# TYPE sonic_switch_interface_pfc_packets_total counter
 		sonic_switch_interface_pfc_packets_total{direction="rx",interface="Ethernet0",priority="0"} 100
 		sonic_switch_interface_pfc_packets_total{direction="tx",interface="Ethernet0",priority="0"} 50
-		# HELP sonic_switch_interface_packet_size_total Total packets by size bucket
-		# TYPE sonic_switch_interface_packet_size_total counter
-		sonic_switch_interface_packet_size_total{direction="rx",interface="Ethernet0",size="64"} 10000
-		sonic_switch_interface_packet_size_total{direction="tx",interface="Ethernet0",size="64"} 8000
 		# HELP sonic_switch_interface_anomaly_packets_total Total anomalous packets
 		# TYPE sonic_switch_interface_anomaly_packets_total counter
 		sonic_switch_interface_anomaly_packets_total{interface="Ethernet0",type="fragments"} 0
@@ -830,6 +826,88 @@ func TestConfigCollectorCounters(t *testing.T) {
 	`
 	if err := testutil.CollectAndCompare(collector, strings.NewReader(expected)); err != nil {
 		t.Errorf("ConfigCollector counters mismatch: %v", err)
+	}
+	mc.expectationsMet(t)
+}
+
+func TestConfigCollectorHistogram(t *testing.T) {
+	mc := newMockConnector("COUNTERS_DB")
+
+	mc.mocks["COUNTERS_DB"].ExpectHGetAll("COUNTERS_PORT_NAME_MAP").SetVal(map[string]string{
+		"Ethernet0": "oid:0x100000000003",
+	})
+	mc.mocks["COUNTERS_DB"].ExpectKeys("COUNTERS:*").SetVal([]string{
+		"COUNTERS:oid:0x100000000003",
+	})
+	mc.mocks["COUNTERS_DB"].ExpectHGetAll("COUNTERS:oid:0x100000000003").SetVal(map[string]string{
+		"SAI_PORT_STAT_ETHER_IN_PKTS_64_OCTETS":            "10000",
+		"SAI_PORT_STAT_ETHER_IN_PKTS_65_TO_127_OCTETS":     "5000",
+		"SAI_PORT_STAT_ETHER_IN_PKTS_128_TO_255_OCTETS":    "2000",
+		"SAI_PORT_STAT_ETHER_IN_PKTS_256_TO_511_OCTETS":    "1000",
+		"SAI_PORT_STAT_ETHER_IN_PKTS_512_TO_1023_OCTETS":   "500",
+		"SAI_PORT_STAT_ETHER_IN_PKTS_1024_TO_1518_OCTETS":  "200",
+		"SAI_PORT_STAT_ETHER_IN_PKTS_1519_TO_2047_OCTETS":  "50",
+		"SAI_PORT_STAT_ETHER_IN_PKTS_2048_TO_4095_OCTETS":  "10",
+		"SAI_PORT_STAT_ETHER_IN_PKTS_4096_TO_9216_OCTETS":  "5",
+		"SAI_PORT_STAT_ETHER_IN_PKTS_9217_TO_16383_OCTETS": "0",
+	})
+
+	mapping := MetricMapping{
+		RedisDB:      "COUNTERS_DB",
+		KeyPattern:   "COUNTERS:*",
+		KeySeparator: ":",
+		KeyResolver:  "COUNTERS_PORT_NAME_MAP",
+		Fields: []FieldMapping{
+			{
+				Metric: "sonic_switch_interface_rx_packet_size_bytes",
+				Type:   "histogram",
+				Help:   "RX packet size distribution",
+				Labels: map[string]string{"interface": "$port_name"},
+				Transform: &Transform{
+					Histogram: &HistogramBuckets{
+						Buckets: map[float64]string{
+							64:    "SAI_PORT_STAT_ETHER_IN_PKTS_64_OCTETS",
+							127:   "SAI_PORT_STAT_ETHER_IN_PKTS_65_TO_127_OCTETS",
+							255:   "SAI_PORT_STAT_ETHER_IN_PKTS_128_TO_255_OCTETS",
+							511:   "SAI_PORT_STAT_ETHER_IN_PKTS_256_TO_511_OCTETS",
+							1023:  "SAI_PORT_STAT_ETHER_IN_PKTS_512_TO_1023_OCTETS",
+							1518:  "SAI_PORT_STAT_ETHER_IN_PKTS_1024_TO_1518_OCTETS",
+							2047:  "SAI_PORT_STAT_ETHER_IN_PKTS_1519_TO_2047_OCTETS",
+							4095:  "SAI_PORT_STAT_ETHER_IN_PKTS_2048_TO_4095_OCTETS",
+							9216:  "SAI_PORT_STAT_ETHER_IN_PKTS_4096_TO_9216_OCTETS",
+							16383: "SAI_PORT_STAT_ETHER_IN_PKTS_9217_TO_16383_OCTETS",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	collector := NewConfigCollector(mc, mapping)
+
+	// Cumulative counts:
+	// 64: 10000, 127: 15000, 255: 17000, 511: 18000, 1023: 18500,
+	// 1518: 18700, 2047: 18750, 4095: 18760, 9216: 18765, 16383: 18765
+	// count=18765, sum=0
+	expected := `
+		# HELP sonic_switch_interface_rx_packet_size_bytes RX packet size distribution
+		# TYPE sonic_switch_interface_rx_packet_size_bytes histogram
+		sonic_switch_interface_rx_packet_size_bytes_bucket{interface="Ethernet0",le="64"} 10000
+		sonic_switch_interface_rx_packet_size_bytes_bucket{interface="Ethernet0",le="127"} 15000
+		sonic_switch_interface_rx_packet_size_bytes_bucket{interface="Ethernet0",le="255"} 17000
+		sonic_switch_interface_rx_packet_size_bytes_bucket{interface="Ethernet0",le="511"} 18000
+		sonic_switch_interface_rx_packet_size_bytes_bucket{interface="Ethernet0",le="1023"} 18500
+		sonic_switch_interface_rx_packet_size_bytes_bucket{interface="Ethernet0",le="1518"} 18700
+		sonic_switch_interface_rx_packet_size_bytes_bucket{interface="Ethernet0",le="2047"} 18750
+		sonic_switch_interface_rx_packet_size_bytes_bucket{interface="Ethernet0",le="4095"} 18760
+		sonic_switch_interface_rx_packet_size_bytes_bucket{interface="Ethernet0",le="9216"} 18765
+		sonic_switch_interface_rx_packet_size_bytes_bucket{interface="Ethernet0",le="16383"} 18765
+		sonic_switch_interface_rx_packet_size_bytes_bucket{interface="Ethernet0",le="+Inf"} 18765
+		sonic_switch_interface_rx_packet_size_bytes_sum{interface="Ethernet0"} 0
+		sonic_switch_interface_rx_packet_size_bytes_count{interface="Ethernet0"} 18765
+	`
+	if err := testutil.CollectAndCompare(collector, strings.NewReader(expected)); err != nil {
+		t.Errorf("ConfigCollector histogram mismatch: %v", err)
 	}
 	mc.expectationsMet(t)
 }
@@ -914,7 +992,8 @@ func TestDefaultConfigLoads(t *testing.T) {
 		"sonic_switch_interface_dropped_packets_total",
 		"sonic_switch_interface_queue_length",
 		"sonic_switch_interface_pfc_packets_total",
-		"sonic_switch_interface_packet_size_total",
+		"sonic_switch_interface_rx_packet_size_bytes",
+		"sonic_switch_interface_tx_packet_size_bytes",
 		"sonic_switch_interface_anomaly_packets_total",
 	} {
 		if !metricNames[want] {
@@ -1002,6 +1081,10 @@ func TestHealthEndpointRedisDown(t *testing.T) {
 // --- Scrape Duration Test ---
 
 func TestScrapeDurationMetric(t *testing.T) {
+	// Suppress expected "failed to connect" logs from collectors whose DBs aren't mocked
+	log.SetOutput(io.Discard)
+	defer log.SetOutput(os.Stderr)
+
 	mc := newMockConnector("CONFIG_DB")
 	// DeviceCollector will read DEVICE_METADATA
 	mc.mocks["CONFIG_DB"].ExpectHGetAll("DEVICE_METADATA|localhost").SetVal(map[string]string{
@@ -1028,6 +1111,9 @@ func TestScrapeDurationMetric(t *testing.T) {
 // --- Error Handling Test ---
 
 func TestDeviceCollectorRedisDown(t *testing.T) {
+	log.SetOutput(io.Discard)
+	defer log.SetOutput(os.Stderr)
+
 	mc := newMockConnector()
 	collector := NewDeviceCollector(mc, nil)
 
@@ -1048,5 +1134,194 @@ func TestDeviceCollectorRedisDown(t *testing.T) {
 	}
 	if !found {
 		t.Error("sonic_switch_ready metric not found")
+	}
+}
+
+// --- LoadConfig from file Tests ---
+
+func TestLoadConfigFromFile(t *testing.T) {
+	content := `
+metrics:
+  - redis_db: STATE_DB
+    key_pattern: "FOO|*"
+    fields:
+      - field: bar
+        metric: test_metric
+        type: gauge
+        help: "A test metric"
+        labels:
+          name: "$key_suffix"
+`
+	dir := t.TempDir()
+	path := filepath.Join(dir, "config.yaml")
+	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+		t.Fatalf("failed to write temp config: %v", err)
+	}
+
+	cfg, err := LoadConfig(path)
+	if err != nil {
+		t.Fatalf("LoadConfig() failed: %v", err)
+	}
+	if len(cfg.Metrics) != 1 {
+		t.Fatalf("expected 1 metric mapping, got %d", len(cfg.Metrics))
+	}
+	if cfg.Metrics[0].RedisDB != "STATE_DB" {
+		t.Errorf("expected redis_db=STATE_DB, got %s", cfg.Metrics[0].RedisDB)
+	}
+	if len(cfg.Metrics[0].Fields) != 1 {
+		t.Fatalf("expected 1 field, got %d", len(cfg.Metrics[0].Fields))
+	}
+	if cfg.Metrics[0].Fields[0].Metric != "test_metric" {
+		t.Errorf("expected metric=test_metric, got %s", cfg.Metrics[0].Fields[0].Metric)
+	}
+}
+
+func TestLoadConfigFileNotFound(t *testing.T) {
+	_, err := LoadConfig("/nonexistent/path/config.yaml")
+	if err == nil {
+		t.Fatal("expected error for nonexistent file, got nil")
+	}
+}
+
+func TestLoadConfigInvalidYAML(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "bad.yaml")
+	if err := os.WriteFile(path, []byte("not: [valid: yaml: {{"), 0o644); err != nil {
+		t.Fatalf("failed to write temp config: %v", err)
+	}
+	_, err := LoadConfig(path)
+	if err == nil {
+		t.Fatal("expected error for invalid YAML, got nil")
+	}
+}
+
+// --- Config Validation Edge Cases ---
+
+func TestConfigValidationRegexUnnamedGroup(t *testing.T) {
+	cfg := MetricsConfig{Metrics: []MetricMapping{{
+		RedisDB: "STATE_DB", KeyPattern: "FOO|*",
+		Fields: []FieldMapping{{
+			Metric:       "test_metric",
+			Type:         "gauge",
+			FieldPattern: "*",
+			Transform: &Transform{
+				RegexCapture: &RegexCapture{
+					Pattern: `^rx(\d+)power$`, // unnamed group
+				},
+			},
+		}},
+	}}}
+	err := validateConfig(&cfg)
+	if err == nil {
+		t.Fatal("expected error for unnamed capture group, got nil")
+	}
+	if !strings.Contains(err.Error(), "unnamed") {
+		t.Errorf("expected error about unnamed group, got: %v", err)
+	}
+}
+
+func TestConfigValidationRegexEmptyPattern(t *testing.T) {
+	cfg := MetricsConfig{Metrics: []MetricMapping{{
+		RedisDB: "STATE_DB", KeyPattern: "FOO|*",
+		Fields: []FieldMapping{{
+			Metric:       "test_metric",
+			Type:         "gauge",
+			FieldPattern: "*",
+			Transform: &Transform{
+				RegexCapture: &RegexCapture{
+					Pattern: "",
+				},
+			},
+		}},
+	}}}
+	err := validateConfig(&cfg)
+	if err == nil {
+		t.Fatal("expected error for empty regex pattern, got nil")
+	}
+}
+
+func TestConfigValidationRegexInvalidPattern(t *testing.T) {
+	cfg := MetricsConfig{Metrics: []MetricMapping{{
+		RedisDB: "STATE_DB", KeyPattern: "FOO|*",
+		Fields: []FieldMapping{{
+			Metric:       "test_metric",
+			Type:         "gauge",
+			FieldPattern: "*",
+			Transform: &Transform{
+				RegexCapture: &RegexCapture{
+					Pattern: `^rx[unclosed`,
+				},
+			},
+		}},
+	}}}
+	err := validateConfig(&cfg)
+	if err == nil {
+		t.Fatal("expected error for invalid regex, got nil")
+	}
+}
+
+// --- Interface Collector Per-Interface State Tests ---
+
+func TestInterfaceCollectorPerInterfaceState(t *testing.T) {
+	mc := newMockConnector("CONFIG_DB", "STATE_DB")
+
+	mc.mocks["CONFIG_DB"].ExpectKeys("PORT|*").SetVal([]string{
+		"PORT|Ethernet0", "PORT|Ethernet4",
+	})
+	mc.mocks["STATE_DB"].ExpectHGetAll("PORT_TABLE|Ethernet0").SetVal(map[string]string{
+		"netdev_oper_status": "up",
+		"admin_status":       "up",
+	})
+	mc.mocks["STATE_DB"].ExpectHGetAll("PORT_TABLE|Ethernet4").SetVal(map[string]string{
+		"netdev_oper_status": "down",
+		"admin_status":       "up",
+	})
+
+	collector := NewInterfaceCollector(mc)
+
+	expected := `
+		# HELP sonic_switch_interface_oper_state Operational state of the interface (1=up, 0=down)
+		# TYPE sonic_switch_interface_oper_state gauge
+		sonic_switch_interface_oper_state{interface="Ethernet0"} 1
+		sonic_switch_interface_oper_state{interface="Ethernet4"} 0
+		# HELP sonic_switch_interface_admin_state Admin state of the interface (1=up, 0=down)
+		# TYPE sonic_switch_interface_admin_state gauge
+		sonic_switch_interface_admin_state{interface="Ethernet0"} 1
+		sonic_switch_interface_admin_state{interface="Ethernet4"} 1
+	`
+	if err := testutil.CollectAndCompare(collector, strings.NewReader(expected),
+		"sonic_switch_interface_oper_state", "sonic_switch_interface_admin_state"); err != nil {
+		t.Errorf("InterfaceCollector per-interface state mismatch: %v", err)
+	}
+	mc.expectationsMet(t)
+}
+
+// --- Config Collector Error Handling Tests ---
+
+func TestConfigCollectorRedisConnectError(t *testing.T) {
+	// Collector with no mock for the required DB should produce no metrics, not panic
+	mc := newMockConnector()
+	log.SetOutput(io.Discard)
+	defer log.SetOutput(os.Stderr)
+
+	mapping := MetricMapping{
+		RedisDB:    "STATE_DB",
+		KeyPattern: "FOO|*",
+		Fields: []FieldMapping{{
+			Field:  "bar",
+			Metric: "test_metric",
+			Type:   "gauge",
+		}},
+	}
+	collector := NewConfigCollector(mc, mapping)
+
+	reg := prometheus.NewRegistry()
+	reg.MustRegister(collector)
+	metrics, err := reg.Gather()
+	if err != nil {
+		t.Fatalf("Gather failed: %v", err)
+	}
+	if len(metrics) != 0 {
+		t.Errorf("expected 0 metric families, got %d", len(metrics))
 	}
 }

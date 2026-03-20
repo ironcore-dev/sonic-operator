@@ -5,11 +5,16 @@ package agent_server
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"log"
 	"net"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	switchAgent "github.com/ironcore-dev/sonic-operator/internal/agent/interface"
 	"github.com/ironcore-dev/sonic-operator/internal/agent/metrics"
@@ -241,7 +246,7 @@ func StartServer() {
 	metricsSrv := metrics.NewMetricsServer(fmt.Sprintf("0.0.0.0:%d", *metricsPort), swAgent, sonic.GetSonicVersionInfo, *metricsConfig)
 	go func() {
 		log.Printf("metrics server listening at 0.0.0.0:%d", *metricsPort)
-		if err := metricsSrv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		if err := metricsSrv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			log.Fatalf("metrics server failed: %v", err)
 		}
 	}()
@@ -252,6 +257,24 @@ func StartServer() {
 
 	// Register reflection service on gRPC server for debugging
 	reflection.Register(s)
+
+	// Handle OS signals for graceful shutdown
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
+	go func() {
+		sig := <-sigCh
+		log.Printf("received signal %v, shutting down", sig)
+
+		// Gracefully stop the gRPC server (drains in-flight RPCs)
+		s.GracefulStop()
+
+		// Shut down the metrics HTTP server with a timeout
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if err := metricsSrv.Shutdown(ctx); err != nil {
+			log.Printf("metrics server shutdown error: %v", err)
+		}
+	}()
 
 	log.Printf("gRPC server listening at %v", lis.Addr())
 	if err := s.Serve(lis); err != nil {

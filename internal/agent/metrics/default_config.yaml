@@ -440,169 +440,45 @@ metrics:
           direction: "tx"
           priority: "7"
 
-      # Packet size distribution (RX)
-      - field: SAI_PORT_STAT_ETHER_IN_PKTS_64_OCTETS
-        metric: sonic_switch_interface_packet_size_total
-        type: counter
-        help: "Total packets by size bucket"
+      # Packet size distribution (RX) — Prometheus histogram
+      - metric: sonic_switch_interface_rx_packet_size_bytes
+        type: histogram
+        help: "RX packet size distribution"
         labels:
           interface: "$port_name"
-          direction: "rx"
-          size: "64"
-      - field: SAI_PORT_STAT_ETHER_IN_PKTS_65_TO_127_OCTETS
-        metric: sonic_switch_interface_packet_size_total
-        type: counter
-        help: "Total packets by size bucket"
-        labels:
-          interface: "$port_name"
-          direction: "rx"
-          size: "65_to_127"
-      - field: SAI_PORT_STAT_ETHER_IN_PKTS_128_TO_255_OCTETS
-        metric: sonic_switch_interface_packet_size_total
-        type: counter
-        help: "Total packets by size bucket"
-        labels:
-          interface: "$port_name"
-          direction: "rx"
-          size: "128_to_255"
-      - field: SAI_PORT_STAT_ETHER_IN_PKTS_256_TO_511_OCTETS
-        metric: sonic_switch_interface_packet_size_total
-        type: counter
-        help: "Total packets by size bucket"
-        labels:
-          interface: "$port_name"
-          direction: "rx"
-          size: "256_to_511"
-      - field: SAI_PORT_STAT_ETHER_IN_PKTS_512_TO_1023_OCTETS
-        metric: sonic_switch_interface_packet_size_total
-        type: counter
-        help: "Total packets by size bucket"
-        labels:
-          interface: "$port_name"
-          direction: "rx"
-          size: "512_to_1023"
-      - field: SAI_PORT_STAT_ETHER_IN_PKTS_1024_TO_1518_OCTETS
-        metric: sonic_switch_interface_packet_size_total
-        type: counter
-        help: "Total packets by size bucket"
-        labels:
-          interface: "$port_name"
-          direction: "rx"
-          size: "1024_to_1518"
-      - field: SAI_PORT_STAT_ETHER_IN_PKTS_1519_TO_2047_OCTETS
-        metric: sonic_switch_interface_packet_size_total
-        type: counter
-        help: "Total packets by size bucket"
-        labels:
-          interface: "$port_name"
-          direction: "rx"
-          size: "1519_to_2047"
-      - field: SAI_PORT_STAT_ETHER_IN_PKTS_2048_TO_4095_OCTETS
-        metric: sonic_switch_interface_packet_size_total
-        type: counter
-        help: "Total packets by size bucket"
-        labels:
-          interface: "$port_name"
-          direction: "rx"
-          size: "2048_to_4095"
-      - field: SAI_PORT_STAT_ETHER_IN_PKTS_4096_TO_9216_OCTETS
-        metric: sonic_switch_interface_packet_size_total
-        type: counter
-        help: "Total packets by size bucket"
-        labels:
-          interface: "$port_name"
-          direction: "rx"
-          size: "4096_to_9216"
-      - field: SAI_PORT_STAT_ETHER_IN_PKTS_9217_TO_16383_OCTETS
-        metric: sonic_switch_interface_packet_size_total
-        type: counter
-        help: "Total packets by size bucket"
-        labels:
-          interface: "$port_name"
-          direction: "rx"
-          size: "9217_to_16383"
+        transform:
+          histogram:
+            buckets:
+              64: SAI_PORT_STAT_ETHER_IN_PKTS_64_OCTETS
+              127: SAI_PORT_STAT_ETHER_IN_PKTS_65_TO_127_OCTETS
+              255: SAI_PORT_STAT_ETHER_IN_PKTS_128_TO_255_OCTETS
+              511: SAI_PORT_STAT_ETHER_IN_PKTS_256_TO_511_OCTETS
+              1023: SAI_PORT_STAT_ETHER_IN_PKTS_512_TO_1023_OCTETS
+              1518: SAI_PORT_STAT_ETHER_IN_PKTS_1024_TO_1518_OCTETS
+              2047: SAI_PORT_STAT_ETHER_IN_PKTS_1519_TO_2047_OCTETS
+              4095: SAI_PORT_STAT_ETHER_IN_PKTS_2048_TO_4095_OCTETS
+              9216: SAI_PORT_STAT_ETHER_IN_PKTS_4096_TO_9216_OCTETS
+              16383: SAI_PORT_STAT_ETHER_IN_PKTS_9217_TO_16383_OCTETS
 
-      # Packet size distribution (TX)
-      - field: SAI_PORT_STAT_ETHER_OUT_PKTS_64_OCTETS
-        metric: sonic_switch_interface_packet_size_total
-        type: counter
-        help: "Total packets by size bucket"
+      # Packet size distribution (TX) — Prometheus histogram
+      - metric: sonic_switch_interface_tx_packet_size_bytes
+        type: histogram
+        help: "TX packet size distribution"
         labels:
           interface: "$port_name"
-          direction: "tx"
-          size: "64"
-      - field: SAI_PORT_STAT_ETHER_OUT_PKTS_65_TO_127_OCTETS
-        metric: sonic_switch_interface_packet_size_total
-        type: counter
-        help: "Total packets by size bucket"
-        labels:
-          interface: "$port_name"
-          direction: "tx"
-          size: "65_to_127"
-      - field: SAI_PORT_STAT_ETHER_OUT_PKTS_128_TO_255_OCTETS
-        metric: sonic_switch_interface_packet_size_total
-        type: counter
-        help: "Total packets by size bucket"
-        labels:
-          interface: "$port_name"
-          direction: "tx"
-          size: "128_to_255"
-      - field: SAI_PORT_STAT_ETHER_OUT_PKTS_256_TO_511_OCTETS
-        metric: sonic_switch_interface_packet_size_total
-        type: counter
-        help: "Total packets by size bucket"
-        labels:
-          interface: "$port_name"
-          direction: "tx"
-          size: "256_to_511"
-      - field: SAI_PORT_STAT_ETHER_OUT_PKTS_512_TO_1023_OCTETS
-        metric: sonic_switch_interface_packet_size_total
-        type: counter
-        help: "Total packets by size bucket"
-        labels:
-          interface: "$port_name"
-          direction: "tx"
-          size: "512_to_1023"
-      - field: SAI_PORT_STAT_ETHER_OUT_PKTS_1024_TO_1518_OCTETS
-        metric: sonic_switch_interface_packet_size_total
-        type: counter
-        help: "Total packets by size bucket"
-        labels:
-          interface: "$port_name"
-          direction: "tx"
-          size: "1024_to_1518"
-      - field: SAI_PORT_STAT_ETHER_OUT_PKTS_1519_TO_2047_OCTETS
-        metric: sonic_switch_interface_packet_size_total
-        type: counter
-        help: "Total packets by size bucket"
-        labels:
-          interface: "$port_name"
-          direction: "tx"
-          size: "1519_to_2047"
-      - field: SAI_PORT_STAT_ETHER_OUT_PKTS_2048_TO_4095_OCTETS
-        metric: sonic_switch_interface_packet_size_total
-        type: counter
-        help: "Total packets by size bucket"
-        labels:
-          interface: "$port_name"
-          direction: "tx"
-          size: "2048_to_4095"
-      - field: SAI_PORT_STAT_ETHER_OUT_PKTS_4096_TO_9216_OCTETS
-        metric: sonic_switch_interface_packet_size_total
-        type: counter
-        help: "Total packets by size bucket"
-        labels:
-          interface: "$port_name"
-          direction: "tx"
-          size: "4096_to_9216"
-      - field: SAI_PORT_STAT_ETHER_OUT_PKTS_9217_TO_16383_OCTETS
-        metric: sonic_switch_interface_packet_size_total
-        type: counter
-        help: "Total packets by size bucket"
-        labels:
-          interface: "$port_name"
-          direction: "tx"
-          size: "9217_to_16383"
+        transform:
+          histogram:
+            buckets:
+              64: SAI_PORT_STAT_ETHER_OUT_PKTS_64_OCTETS
+              127: SAI_PORT_STAT_ETHER_OUT_PKTS_65_TO_127_OCTETS
+              255: SAI_PORT_STAT_ETHER_OUT_PKTS_128_TO_255_OCTETS
+              511: SAI_PORT_STAT_ETHER_OUT_PKTS_256_TO_511_OCTETS
+              1023: SAI_PORT_STAT_ETHER_OUT_PKTS_512_TO_1023_OCTETS
+              1518: SAI_PORT_STAT_ETHER_OUT_PKTS_1024_TO_1518_OCTETS
+              2047: SAI_PORT_STAT_ETHER_OUT_PKTS_1519_TO_2047_OCTETS
+              4095: SAI_PORT_STAT_ETHER_OUT_PKTS_2048_TO_4095_OCTETS
+              9216: SAI_PORT_STAT_ETHER_OUT_PKTS_4096_TO_9216_OCTETS
+              16383: SAI_PORT_STAT_ETHER_OUT_PKTS_9217_TO_16383_OCTETS
 
       # Anomaly counters
       - field: SAI_PORT_STAT_ETHER_STATS_UNDERSIZE_PKTS
