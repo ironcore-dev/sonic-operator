@@ -12,3 +12,6 @@
 
 # Re-include template files for go:embed
 !**/*.gotmpl
+
+# Re-include yaml for default mapping config
+!**/*.yaml
