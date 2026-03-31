@@ -1,0 +1,525 @@
+# SPDX-FileCopyrightText: 2026 SAP SE or an SAP affiliate company and IronCore contributors
+# SPDX-License-Identifier: Apache-2.0
+
+# Default metrics configuration for the sonic-agent.
+# This file is embedded in the agent binary and used when no custom config is provided.
+# Operators can override by providing their own file via the -metrics-config flag.
+
+metrics:
+  # Transceiver DOM sensor readings
+  - redis_db: STATE_DB
+    key_pattern: "TRANSCEIVER_DOM_SENSOR|*"
+    key_separator: "|"
+    fields:
+      - field: temperature
+        metric: sonic_switch_transceiver_dom_temperature_celsius
+        type: gauge
+        help: "Transceiver temperature in Celsius"
+        labels:
+          interface: "$key_suffix"
+      - field: voltage
+        metric: sonic_switch_transceiver_dom_voltage_volts
+        type: gauge
+        help: "Transceiver supply voltage in Volts"
+        labels:
+          interface: "$key_suffix"
+      - field_pattern: "*"
+        metric: sonic_switch_transceiver_dom_rx_power_dbm
+        type: gauge
+        help: "Transceiver RX power in dBm"
+        labels:
+          interface: "$key_suffix"
+        transform:
+          regex_capture:
+            pattern: "^rx(?P<lane>\\d+)power$"
+      - field_pattern: "*"
+        metric: sonic_switch_transceiver_dom_tx_bias_milliamps
+        type: gauge
+        help: "Transceiver TX bias current in milliamps"
+        labels:
+          interface: "$key_suffix"
+        transform:
+          regex_capture:
+            pattern: "^tx(?P<lane>\\d+)bias$"
+
+  # Transceiver DOM thresholds — single metric with sensor/level/direction labels
+  - redis_db: STATE_DB
+    key_pattern: "TRANSCEIVER_DOM_THRESHOLD|*"
+    key_separator: "|"
+    fields:
+      - field_pattern: "*"
+        metric: sonic_switch_transceiver_dom_threshold
+        type: gauge
+        help: "Transceiver DOM threshold value"
+        labels:
+          interface: "$key_suffix"
+        transform:
+          parse_threshold_field: true
+
+  # Transceiver static info — _info pattern with metadata as labels
+  - redis_db: STATE_DB
+    key_pattern: "TRANSCEIVER_INFO|*"
+    key_separator: "|"
+    fields:
+      - metric: sonic_switch_transceiver_info
+        type: gauge
+        help: "Transceiver static metadata as labels, always 1"
+        value: 1
+        labels:
+          interface: "$key_suffix"
+          type: "$type"
+          vendor: "$manufacturer"
+          model: "$model"
+          serial: "$serial"
+
+  # Transceiver status — per-lane RX loss of signal and TX fault
+  - redis_db: STATE_DB
+    key_pattern: "TRANSCEIVER_STATUS|*"
+    key_separator: "|"
+    fields:
+      - field_pattern: "*"
+        metric: sonic_switch_transceiver_rxlos
+        type: gauge
+        help: "Transceiver RX loss of signal (1=loss, 0=ok)"
+        labels:
+          interface: "$key_suffix"
+        transform:
+          regex_capture:
+            pattern: "^rxlos(?P<lane>\\d+)$"
+          map:
+            "True": 1
+            "False": 0
+      - field_pattern: "*"
+        metric: sonic_switch_transceiver_txfault
+        type: gauge
+        help: "Transceiver TX fault (1=fault, 0=ok)"
+        labels:
+          interface: "$key_suffix"
+        transform:
+          regex_capture:
+            pattern: "^txfault(?P<lane>\\d+)$"
+          map:
+            "True": 1
+            "False": 0
+
+  # Chassis temperature sensors
+  - redis_db: STATE_DB
+    key_pattern: "TEMPERATURE_INFO|*"
+    key_separator: "|"
+    fields:
+      - field: temperature
+        metric: sonic_switch_temperature_celsius
+        type: gauge
+        help: "Chassis temperature sensor reading in Celsius"
+        labels:
+          sensor: "$key_suffix"
+      - field: high_threshold
+        metric: sonic_switch_temperature_high_threshold_celsius
+        type: gauge
+        help: "Chassis temperature sensor high threshold in Celsius"
+        labels:
+          sensor: "$key_suffix"
+      - field: warning_status
+        metric: sonic_switch_temperature_warning
+        type: gauge
+        help: "Chassis temperature sensor warning status (1=warning, 0=ok)"
+        labels:
+          sensor: "$key_suffix"
+        transform:
+          map:
+            "True": 1
+            "False": 0
+
+  # LLDP neighbor info — metadata as labels
+  - redis_db: APPL_DB
+    key_pattern: "LLDP_ENTRY_TABLE:*"
+    key_separator: ":"
+    fields:
+      - metric: sonic_switch_interface_neighbor_info
+        type: gauge
+        help: "LLDP neighbor metadata as labels, always 1"
+        value: 1
+        labels:
+          interface: "$key_suffix"
+          neighbor_mac: "$lldp_rem_chassis_id"
+          neighbor_name: "$lldp_rem_sys_name"
+          neighbor_port: "$lldp_rem_port_desc"
+
+  # Interface counters — OID resolved via COUNTERS_PORT_NAME_MAP
+  - redis_db: COUNTERS_DB
+    key_pattern: "COUNTERS:*"
+    key_separator: ":"
+    key_resolver: COUNTERS_PORT_NAME_MAP
+    fields:
+      # Traffic volume (bytes)
+      - field: SAI_PORT_STAT_IF_IN_OCTETS
+        metric: sonic_switch_interface_bytes_total
+        type: counter
+        help: "Total bytes transferred"
+        labels:
+          interface: "$port_name"
+          direction: "rx"
+      - field: SAI_PORT_STAT_IF_OUT_OCTETS
+        metric: sonic_switch_interface_bytes_total
+        type: counter
+        help: "Total bytes transferred"
+        labels:
+          interface: "$port_name"
+          direction: "tx"
+
+      # Packet counts by type
+      - field: SAI_PORT_STAT_IF_IN_UCAST_PKTS
+        metric: sonic_switch_interface_packets_total
+        type: counter
+        help: "Total packets transferred"
+        labels:
+          interface: "$port_name"
+          direction: "rx"
+          type: "unicast"
+      - field: SAI_PORT_STAT_IF_OUT_UCAST_PKTS
+        metric: sonic_switch_interface_packets_total
+        type: counter
+        help: "Total packets transferred"
+        labels:
+          interface: "$port_name"
+          direction: "tx"
+          type: "unicast"
+      - field: SAI_PORT_STAT_IF_IN_MULTICAST_PKTS
+        metric: sonic_switch_interface_packets_total
+        type: counter
+        help: "Total packets transferred"
+        labels:
+          interface: "$port_name"
+          direction: "rx"
+          type: "multicast"
+      - field: SAI_PORT_STAT_IF_OUT_MULTICAST_PKTS
+        metric: sonic_switch_interface_packets_total
+        type: counter
+        help: "Total packets transferred"
+        labels:
+          interface: "$port_name"
+          direction: "tx"
+          type: "multicast"
+      - field: SAI_PORT_STAT_IF_IN_BROADCAST_PKTS
+        metric: sonic_switch_interface_packets_total
+        type: counter
+        help: "Total packets transferred"
+        labels:
+          interface: "$port_name"
+          direction: "rx"
+          type: "broadcast"
+      - field: SAI_PORT_STAT_IF_OUT_BROADCAST_PKTS
+        metric: sonic_switch_interface_packets_total
+        type: counter
+        help: "Total packets transferred"
+        labels:
+          interface: "$port_name"
+          direction: "tx"
+          type: "broadcast"
+      - field: SAI_PORT_STAT_IF_IN_NON_UCAST_PKTS
+        metric: sonic_switch_interface_packets_total
+        type: counter
+        help: "Total packets transferred"
+        labels:
+          interface: "$port_name"
+          direction: "rx"
+          type: "non_unicast"
+      - field: SAI_PORT_STAT_IF_OUT_NON_UCAST_PKTS
+        metric: sonic_switch_interface_packets_total
+        type: counter
+        help: "Total packets transferred"
+        labels:
+          interface: "$port_name"
+          direction: "tx"
+          type: "non_unicast"
+
+      # Errors and discards
+      - field: SAI_PORT_STAT_IF_IN_ERRORS
+        metric: sonic_switch_interface_errors_total
+        type: counter
+        help: "Total interface errors"
+        labels:
+          interface: "$port_name"
+          direction: "rx"
+      - field: SAI_PORT_STAT_IF_OUT_ERRORS
+        metric: sonic_switch_interface_errors_total
+        type: counter
+        help: "Total interface errors"
+        labels:
+          interface: "$port_name"
+          direction: "tx"
+      - field: SAI_PORT_STAT_IF_IN_DISCARDS
+        metric: sonic_switch_interface_discards_total
+        type: counter
+        help: "Total interface discards"
+        labels:
+          interface: "$port_name"
+          direction: "rx"
+      - field: SAI_PORT_STAT_IF_OUT_DISCARDS
+        metric: sonic_switch_interface_discards_total
+        type: counter
+        help: "Total interface discards"
+        labels:
+          interface: "$port_name"
+          direction: "tx"
+
+      # Dropped packets (SAI-level drops)
+      - field: SAI_PORT_STAT_IN_DROPPED_PKTS
+        metric: sonic_switch_interface_dropped_packets_total
+        type: counter
+        help: "Total SAI-level dropped packets"
+        labels:
+          interface: "$port_name"
+          direction: "rx"
+      - field: SAI_PORT_STAT_OUT_DROPPED_PKTS
+        metric: sonic_switch_interface_dropped_packets_total
+        type: counter
+        help: "Total SAI-level dropped packets"
+        labels:
+          interface: "$port_name"
+          direction: "tx"
+
+      # FEC counters
+      - field: SAI_PORT_STAT_IF_IN_FEC_CORRECTABLE_FRAMES
+        metric: sonic_switch_interface_fec_frames_total
+        type: counter
+        help: "Total FEC frames"
+        labels:
+          interface: "$port_name"
+          type: "correctable"
+      - field: SAI_PORT_STAT_IF_IN_FEC_NOT_CORRECTABLE_FRAMES
+        metric: sonic_switch_interface_fec_frames_total
+        type: counter
+        help: "Total FEC frames"
+        labels:
+          interface: "$port_name"
+          type: "uncorrectable"
+      - field: SAI_PORT_STAT_IF_IN_FEC_SYMBOL_ERRORS
+        metric: sonic_switch_interface_fec_frames_total
+        type: counter
+        help: "Total FEC frames"
+        labels:
+          interface: "$port_name"
+          type: "symbol_errors"
+
+      # Queue depth
+      - field: SAI_PORT_STAT_IF_OUT_QLEN
+        metric: sonic_switch_interface_queue_length
+        type: gauge
+        help: "Current output queue length"
+        labels:
+          interface: "$port_name"
+
+      # PFC (Priority Flow Control) counters
+      - field: SAI_PORT_STAT_PFC_0_RX_PKTS
+        metric: sonic_switch_interface_pfc_packets_total
+        type: counter
+        help: "Total PFC packets"
+        labels:
+          interface: "$port_name"
+          direction: "rx"
+          priority: "0"
+      - field: SAI_PORT_STAT_PFC_1_RX_PKTS
+        metric: sonic_switch_interface_pfc_packets_total
+        type: counter
+        help: "Total PFC packets"
+        labels:
+          interface: "$port_name"
+          direction: "rx"
+          priority: "1"
+      - field: SAI_PORT_STAT_PFC_2_RX_PKTS
+        metric: sonic_switch_interface_pfc_packets_total
+        type: counter
+        help: "Total PFC packets"
+        labels:
+          interface: "$port_name"
+          direction: "rx"
+          priority: "2"
+      - field: SAI_PORT_STAT_PFC_3_RX_PKTS
+        metric: sonic_switch_interface_pfc_packets_total
+        type: counter
+        help: "Total PFC packets"
+        labels:
+          interface: "$port_name"
+          direction: "rx"
+          priority: "3"
+      - field: SAI_PORT_STAT_PFC_4_RX_PKTS
+        metric: sonic_switch_interface_pfc_packets_total
+        type: counter
+        help: "Total PFC packets"
+        labels:
+          interface: "$port_name"
+          direction: "rx"
+          priority: "4"
+      - field: SAI_PORT_STAT_PFC_5_RX_PKTS
+        metric: sonic_switch_interface_pfc_packets_total
+        type: counter
+        help: "Total PFC packets"
+        labels:
+          interface: "$port_name"
+          direction: "rx"
+          priority: "5"
+      - field: SAI_PORT_STAT_PFC_6_RX_PKTS
+        metric: sonic_switch_interface_pfc_packets_total
+        type: counter
+        help: "Total PFC packets"
+        labels:
+          interface: "$port_name"
+          direction: "rx"
+          priority: "6"
+      - field: SAI_PORT_STAT_PFC_7_RX_PKTS
+        metric: sonic_switch_interface_pfc_packets_total
+        type: counter
+        help: "Total PFC packets"
+        labels:
+          interface: "$port_name"
+          direction: "rx"
+          priority: "7"
+      - field: SAI_PORT_STAT_PFC_0_TX_PKTS
+        metric: sonic_switch_interface_pfc_packets_total
+        type: counter
+        help: "Total PFC packets"
+        labels:
+          interface: "$port_name"
+          direction: "tx"
+          priority: "0"
+      - field: SAI_PORT_STAT_PFC_1_TX_PKTS
+        metric: sonic_switch_interface_pfc_packets_total
+        type: counter
+        help: "Total PFC packets"
+        labels:
+          interface: "$port_name"
+          direction: "tx"
+          priority: "1"
+      - field: SAI_PORT_STAT_PFC_2_TX_PKTS
+        metric: sonic_switch_interface_pfc_packets_total
+        type: counter
+        help: "Total PFC packets"
+        labels:
+          interface: "$port_name"
+          direction: "tx"
+          priority: "2"
+      - field: SAI_PORT_STAT_PFC_3_TX_PKTS
+        metric: sonic_switch_interface_pfc_packets_total
+        type: counter
+        help: "Total PFC packets"
+        labels:
+          interface: "$port_name"
+          direction: "tx"
+          priority: "3"
+      - field: SAI_PORT_STAT_PFC_4_TX_PKTS
+        metric: sonic_switch_interface_pfc_packets_total
+        type: counter
+        help: "Total PFC packets"
+        labels:
+          interface: "$port_name"
+          direction: "tx"
+          priority: "4"
+      - field: SAI_PORT_STAT_PFC_5_TX_PKTS
+        metric: sonic_switch_interface_pfc_packets_total
+        type: counter
+        help: "Total PFC packets"
+        labels:
+          interface: "$port_name"
+          direction: "tx"
+          priority: "5"
+      - field: SAI_PORT_STAT_PFC_6_TX_PKTS
+        metric: sonic_switch_interface_pfc_packets_total
+        type: counter
+        help: "Total PFC packets"
+        labels:
+          interface: "$port_name"
+          direction: "tx"
+          priority: "6"
+      - field: SAI_PORT_STAT_PFC_7_TX_PKTS
+        metric: sonic_switch_interface_pfc_packets_total
+        type: counter
+        help: "Total PFC packets"
+        labels:
+          interface: "$port_name"
+          direction: "tx"
+          priority: "7"
+
+      # Packet size distribution (RX) — Prometheus histogram
+      - metric: sonic_switch_interface_rx_packet_size_bytes
+        type: histogram
+        help: "RX packet size distribution"
+        labels:
+          interface: "$port_name"
+        transform:
+          histogram:
+            buckets:
+              64: SAI_PORT_STAT_ETHER_IN_PKTS_64_OCTETS
+              127: SAI_PORT_STAT_ETHER_IN_PKTS_65_TO_127_OCTETS
+              255: SAI_PORT_STAT_ETHER_IN_PKTS_128_TO_255_OCTETS
+              511: SAI_PORT_STAT_ETHER_IN_PKTS_256_TO_511_OCTETS
+              1023: SAI_PORT_STAT_ETHER_IN_PKTS_512_TO_1023_OCTETS
+              1518: SAI_PORT_STAT_ETHER_IN_PKTS_1024_TO_1518_OCTETS
+              2047: SAI_PORT_STAT_ETHER_IN_PKTS_1519_TO_2047_OCTETS
+              4095: SAI_PORT_STAT_ETHER_IN_PKTS_2048_TO_4095_OCTETS
+              9216: SAI_PORT_STAT_ETHER_IN_PKTS_4096_TO_9216_OCTETS
+              16383: SAI_PORT_STAT_ETHER_IN_PKTS_9217_TO_16383_OCTETS
+
+      # Packet size distribution (TX) — Prometheus histogram
+      - metric: sonic_switch_interface_tx_packet_size_bytes
+        type: histogram
+        help: "TX packet size distribution"
+        labels:
+          interface: "$port_name"
+        transform:
+          histogram:
+            buckets:
+              64: SAI_PORT_STAT_ETHER_OUT_PKTS_64_OCTETS
+              127: SAI_PORT_STAT_ETHER_OUT_PKTS_65_TO_127_OCTETS
+              255: SAI_PORT_STAT_ETHER_OUT_PKTS_128_TO_255_OCTETS
+              511: SAI_PORT_STAT_ETHER_OUT_PKTS_256_TO_511_OCTETS
+              1023: SAI_PORT_STAT_ETHER_OUT_PKTS_512_TO_1023_OCTETS
+              1518: SAI_PORT_STAT_ETHER_OUT_PKTS_1024_TO_1518_OCTETS
+              2047: SAI_PORT_STAT_ETHER_OUT_PKTS_1519_TO_2047_OCTETS
+              4095: SAI_PORT_STAT_ETHER_OUT_PKTS_2048_TO_4095_OCTETS
+              9216: SAI_PORT_STAT_ETHER_OUT_PKTS_4096_TO_9216_OCTETS
+              16383: SAI_PORT_STAT_ETHER_OUT_PKTS_9217_TO_16383_OCTETS
+
+      # Anomaly counters
+      - field: SAI_PORT_STAT_ETHER_STATS_UNDERSIZE_PKTS
+        metric: sonic_switch_interface_anomaly_packets_total
+        type: counter
+        help: "Total anomalous packets"
+        labels:
+          interface: "$port_name"
+          type: "undersize"
+      - field: SAI_PORT_STAT_ETHER_RX_OVERSIZE_PKTS
+        metric: sonic_switch_interface_anomaly_packets_total
+        type: counter
+        help: "Total anomalous packets"
+        labels:
+          interface: "$port_name"
+          type: "rx_oversize"
+      - field: SAI_PORT_STAT_ETHER_TX_OVERSIZE_PKTS
+        metric: sonic_switch_interface_anomaly_packets_total
+        type: counter
+        help: "Total anomalous packets"
+        labels:
+          interface: "$port_name"
+          type: "tx_oversize"
+      - field: SAI_PORT_STAT_ETHER_STATS_FRAGMENTS
+        metric: sonic_switch_interface_anomaly_packets_total
+        type: counter
+        help: "Total anomalous packets"
+        labels:
+          interface: "$port_name"
+          type: "fragments"
+      - field: SAI_PORT_STAT_ETHER_STATS_JABBERS
+        metric: sonic_switch_interface_anomaly_packets_total
+        type: counter
+        help: "Total anomalous packets"
+        labels:
+          interface: "$port_name"
+          type: "jabbers"
+      - field: SAI_PORT_STAT_IF_IN_UNKNOWN_PROTOS
+        metric: sonic_switch_interface_anomaly_packets_total
+        type: counter
+        help: "Total anomalous packets"
+        labels:
+          interface: "$port_name"
+          type: "unknown_protos"
