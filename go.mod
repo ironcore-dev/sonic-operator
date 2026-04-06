@@ -5,7 +5,7 @@ go 1.24.5
 require (
 	github.com/go-logr/logr v1.4.3
 	github.com/ironcore-dev/controller-utils v0.11.0
-	github.com/jedib0t/go-pretty/v6 v6.7.8
+	github.com/jedib0t/go-pretty/v6 v6.7.9
 	github.com/onsi/ginkgo/v2 v2.28.1
 	github.com/onsi/gomega v1.39.1
 	github.com/redis/go-redis/v9 v9.18.0
