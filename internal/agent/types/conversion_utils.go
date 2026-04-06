@@ -5,6 +5,7 @@ package types
 
 import (
 	"fmt"
+	"strings"
 
 	pb "github.com/ironcore-dev/sonic-operator/internal/agent/proto"
 
@@ -73,4 +74,26 @@ func APIOperationStateToAgentDeviceStatus(opState api.OperationState) (DeviceSta
 	default:
 		return StatusUnknown, fmt.Errorf("unknown operation state: %s", opState)
 	}
+}
+
+func NativeNameToAbstractName(nativeName string) (string, error) {
+
+	if strings.HasPrefix(nativeName, "Ethernet") {
+		var port, vport int
+		number := strings.TrimPrefix(nativeName, "Ethernet")
+		fmt.Sscanf(number, "%d", &port)
+		vport = port % 4
+		port = port / 4
+		return fmt.Sprintf("eth%d-%d", port, vport), nil
+	}
+	return "", fmt.Errorf("unknown native interface name: %s", nativeName)
+
+}
+func AbstractNameToNativeName(abstractName string) (string, error) {
+	if strings.HasPrefix(abstractName, "eth") {
+		var port, vport int
+		fmt.Sscanf(abstractName, "eth%d-%d", &port, &vport)
+		return fmt.Sprintf("Ethernet%d", 4*port+vport), nil
+	}
+	return "", fmt.Errorf("unknown abstract interface name: %s", abstractName)
 }

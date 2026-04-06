@@ -6,6 +6,8 @@ package client
 import (
 	"fmt"
 	"io"
+	"sort"
+	"strconv"
 	"strings"
 
 	errors "github.com/ironcore-dev/sonic-operator/internal/agent/errors"
@@ -148,12 +150,21 @@ func (t defaultTableConverter) deviceToTable(device agent.SwitchDevice) (*TableD
 }
 
 func (t defaultTableConverter) interfaceToTable(ifaces []agent.Interface) (*TableData, error) {
-	headers := []any{"Name", "MAC Address", "Operation Status", "Admin Status"}
+	headers := []any{"Name", "Native Name", "Alias Name", "MAC Address", "Operation Status", "Admin Status"}
 	rows := make([][]any, len(ifaces))
 
+	sort.Slice(ifaces, func(i, j int) bool {
+		// Extract numeric part
+		numI, _ := strconv.Atoi(strings.TrimPrefix(ifaces[i].NativeName, "Ethernet"))
+		numJ, _ := strconv.Atoi(strings.TrimPrefix(ifaces[j].NativeName, "Ethernet"))
+
+		return numI < numJ
+	})
 	for _, iface := range ifaces {
 		rows = append(rows, []any{
 			iface.Name,
+			iface.NativeName,
+			iface.AliasName,
 			iface.MacAddress,
 			iface.OperationStatus,
 			iface.AdminStatus,

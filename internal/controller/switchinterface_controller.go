@@ -91,7 +91,7 @@ func (r *SwitchInterfaceReconciler) reconcile(ctx context.Context, log logr.Logg
 		return ctrl.Result{}, err
 	}
 
-	iface, err := switchAgentClient.GetInterface(ctx, &agent.Interface{
+	iface, err := switchAgentClient.GetInterfaceByAbstractName(ctx, &agent.Interface{
 		TypeMeta: agent.TypeMeta{
 			Kind: agent.InterfaceKind,
 		},
@@ -103,6 +103,20 @@ func (r *SwitchInterfaceReconciler) reconcile(ctx context.Context, log logr.Logg
 	}
 
 	if iface != nil {
+		if iface.AliasName != i.Spec.Handle {
+			log.Info("Interface alias name does not match the expected handle, updating it", "expected", i.Spec.Handle, "actual", iface.AliasName)
+			if _, err := switchAgentClient.SetInterfaceAliasName(ctx, &agent.Interface{
+				TypeMeta: agent.TypeMeta{
+					Kind: agent.InterfaceKind,
+				},
+				Name:      iface.Name,
+				AliasName: i.Spec.Handle,
+			}); err != nil {
+				i.Status.State = networkingv1alpha1.SwitchInterfaceStateFailed
+				return ctrl.Result{}, err
+			}
+		}
+
 		if iface.OperationStatus == agent.StatusUp {
 			i.Status.OperationalState = networkingv1alpha1.OperationStateUp
 		} else {
@@ -132,7 +146,7 @@ func (r *SwitchInterfaceReconciler) reconcile(ctx context.Context, log logr.Logg
 		TypeMeta: agent.TypeMeta{
 			Kind: agent.InterfaceKind,
 		},
-		Name:        i.Spec.Handle,
+		Name:        i.Spec.NativeName,
 		AdminStatus: desired_state,
 	}); err != nil {
 		i.Status.State = networkingv1alpha1.SwitchInterfaceStateFailed
@@ -166,7 +180,7 @@ func (r *SwitchInterfaceReconciler) reconcile(ctx context.Context, log logr.Logg
 		TypeMeta: agent.TypeMeta{
 			Kind: agent.InterfaceKind,
 		},
-		Name: i.Spec.Handle,
+		Name: i.Spec.NativeName,
 	})
 	if err != nil {
 		if neighbor == nil || neighbor.Status.Code != agenterrors.NOT_FOUND {

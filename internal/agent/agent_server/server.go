@@ -75,6 +75,8 @@ func (s *proxyServer) ListInterfaces(ctx context.Context, request *pb.ListInterf
 	for _, iface := range interfaceList.Items {
 		interfaces = append(interfaces, &pb.Interface{
 			Name:              iface.Name,
+			NativeName:        iface.NativeName,
+			AliasName:         iface.AliasName,
 			MacAddress:        iface.MacAddress,
 			OperationalStatus: string(iface.OperationStatus),
 			AdminStatus:       string(iface.AdminStatus),
@@ -179,7 +181,45 @@ func (s *proxyServer) GetInterface(ctx context.Context, request *pb.GetInterface
 		},
 		Interface: &pb.Interface{
 			Name:              iface.Name,
+			NativeName:        iface.NativeName,
+			AliasName:         iface.AliasName,
 			MacAddress:        iface.MacAddress,
+			OperationalStatus: string(iface.OperationStatus),
+			AdminStatus:       string(iface.AdminStatus),
+		},
+	}, nil
+}
+
+func (s *proxyServer) SetInterfaceAliasName(ctx context.Context, request *pb.SetInterfaceAliasNameRequest) (*pb.SetInterfaceAliasNameResponse, error) {
+	log.Printf("SetInterfaceAliasName called: interface=%s, alias=%s", request.GetInterfaceName(), request.GetAliasName())
+
+	iface, status := s.SwitchAgent.SetInterfaceAliasName(ctx, &agent.Interface{
+		TypeMeta: agent.TypeMeta{
+			Kind: agent.InterfaceKind,
+		},
+		Name:      request.GetInterfaceName(),
+		AliasName: request.GetAliasName(),
+	})
+
+	if status != nil {
+		return &pb.SetInterfaceAliasNameResponse{
+			Status: &pb.Status{
+				Code:    status.Code,
+				Message: status.Message,
+			},
+		}, nil
+	}
+
+	return &pb.SetInterfaceAliasNameResponse{
+		Status: &pb.Status{
+			Code:    0,
+			Message: "Success",
+		},
+		Interface: &pb.Interface{
+			Name:              iface.Name,
+			AliasName:         iface.AliasName,
+			NativeName:        iface.GetNativeName(),
+			MacAddress:        "",
 			OperationalStatus: string(iface.OperationStatus),
 			AdminStatus:       string(iface.AdminStatus),
 		},
@@ -218,6 +258,33 @@ func (s *proxyServer) GetInterfaceNeighbor(ctx context.Context, request *pb.GetI
 	}, nil
 }
 
+func (s *proxyServer) SaveConfig(ctx context.Context, request *pb.SaveConfigRequest) (*pb.SaveConfigResponse, error) {
+	log.Printf("SaveConfig called")
+
+	status := s.SwitchAgent.SaveConfig(ctx)
+	if status != nil {
+		return &pb.SaveConfigResponse{
+			Status: &pb.Status{
+				Code:    status.Code,
+				Message: fmt.Sprintf("failed to save config: %v", status.Message),
+			},
+		}, nil
+	}
+
+	return &pb.SaveConfigResponse{
+		Status: &pb.Status{
+			Code:    0,
+			Message: "Success",
+		},
+	}, nil
+}
+
+// NewProxyServer creates a proxyServer backed by the given SwitchAgent.
+// This is exported so tests can instantiate a server with a fake agent.
+func NewProxyServer(agent switchAgent.SwitchAgent) pb.SwitchAgentServiceServer {
+	return &proxyServer{SwitchAgent: agent}
+}
+
 func StartServer() {
 	flag.Parse()
 
@@ -234,9 +301,7 @@ func StartServer() {
 		panic(err)
 	}
 
-	pb.RegisterSwitchAgentServiceServer(s, &proxyServer{
-		SwitchAgent: swAgent,
-	})
+	pb.RegisterSwitchAgentServiceServer(s, NewProxyServer(swAgent))
 
 	// Register reflection service on gRPC server for debugging
 	reflection.Register(s)

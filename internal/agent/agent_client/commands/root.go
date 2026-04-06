@@ -43,6 +43,7 @@ func Command() *cobra.Command {
 		Get(),
 		List(),
 		Set(),
+		Gnoi(),
 	)
 
 	grpcPort := os.Getenv("SWITCH_PROXY_GRPC_PORT")

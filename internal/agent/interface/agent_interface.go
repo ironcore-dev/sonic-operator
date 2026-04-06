@@ -14,8 +14,12 @@ type SwitchAgent interface {
 	ListInterfaces(ctx context.Context) (*agent.InterfaceList, *agent.Status)
 
 	SetInterfaceAdminStatus(ctx context.Context, iface *agent.Interface) (*agent.Interface, *agent.Status)
+	SetInterfaceAliasName(ctx context.Context, iface *agent.Interface) (*agent.Interface, *agent.Status)
+
 	GetInterface(ctx context.Context, iface *agent.Interface) (*agent.Interface, *agent.Status)
 	GetInterfaceNeighbor(ctx context.Context, iface *agent.Interface) (*agent.InterfaceNeighbor, *agent.Status)
 
 	ListPorts(ctx context.Context) (*agent.PortList, *agent.Status)
+
+	SaveConfig(ctx context.Context) *agent.Status
 }
