@@ -196,6 +196,7 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `handle` _string_ | Handle uniquely identifies this interface on the switch. |  |  |
+| `nativeName` _string_ | NativeName is the native name of the interface on the switch (e.g., "Ethernet0"). |  |  |
 | `switchRef` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#localobjectreference-v1-core)_ | SwitchRef is a reference to the Switch this interface is connected to. |  |  |
 | `adminState` _[AdminState](#adminstate)_ | AdminState represents the desired administrative state of the interface. |  |  |
 
@@ -214,6 +215,7 @@ _Appears in:_
 | Field | Description |
 | --- | --- |
 | `Pending` |  |
+| `Initializing` |  |
 | `Ready` |  |
 | `Failed` |  |
 
@@ -236,6 +238,7 @@ _Appears in:_
 | `state` _[SwitchInterfaceState](#switchinterfacestate)_ | State represents the high-level state of the SwitchInterface. |  |  |
 | `neighbor` _[Neighbor](#neighbor)_ | Neighbor is a reference to the connected neighbor device, if any. |  |  |
 | `macAddress` _string_ | MacAddress is the MAC address assigned to this interface. |  |  |
+| `aliasName` _string_ | AliasName is the alias name of the interface. |  |  |
 | `conditions` _[Condition](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#condition-v1-meta) array_ | The status of each condition is one of True, False, or Unknown. |  |  |
 
 
