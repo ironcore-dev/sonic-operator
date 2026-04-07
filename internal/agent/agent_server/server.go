@@ -281,8 +281,8 @@ func (s *proxyServer) SaveConfig(ctx context.Context, request *pb.SaveConfigRequ
 
 // NewProxyServer creates a proxyServer backed by the given SwitchAgent.
 // This is exported so tests can instantiate a server with a fake agent.
-func NewProxyServer(agent switchAgent.SwitchAgent) pb.SwitchAgentServiceServer {
-	return &proxyServer{SwitchAgent: agent}
+func NewProxyServer(switchAgentImpl switchAgent.SwitchAgent) pb.SwitchAgentServiceServer {
+	return &proxyServer{SwitchAgent: switchAgentImpl}
 }
 
 func StartServer() {

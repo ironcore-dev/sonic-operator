@@ -81,7 +81,9 @@ func NativeNameToAbstractName(nativeName string) (string, error) {
 	if strings.HasPrefix(nativeName, "Ethernet") {
 		var port, vport int
 		number := strings.TrimPrefix(nativeName, "Ethernet")
-		fmt.Sscanf(number, "%d", &port)
+		if _, err := fmt.Sscanf(number, "%d", &port); err != nil {
+			return "", fmt.Errorf("failed to parse interface number %q: %v", number, err)
+		}
 		vport = port % 4
 		port = port / 4
 		return fmt.Sprintf("eth%d-%d", port, vport), nil
@@ -92,7 +94,9 @@ func NativeNameToAbstractName(nativeName string) (string, error) {
 func AbstractNameToNativeName(abstractName string) (string, error) {
 	if strings.HasPrefix(abstractName, "eth") {
 		var port, vport int
-		fmt.Sscanf(abstractName, "eth%d-%d", &port, &vport)
+		if _, err := fmt.Sscanf(abstractName, "eth%d-%d", &port, &vport); err != nil {
+			return "", fmt.Errorf("failed to parse abstract interface name %q: %v", abstractName, err)
+		}
 		return fmt.Sprintf("Ethernet%d", 4*port+vport), nil
 	}
 	return "", fmt.Errorf("unknown abstract interface name: %s", abstractName)

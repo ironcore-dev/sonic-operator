@@ -13,7 +13,6 @@ import (
 
 	"github.com/godbus/dbus/v5"
 	errors "github.com/ironcore-dev/sonic-operator/internal/agent/errors"
-	"github.com/ironcore-dev/sonic-operator/internal/agent/types"
 	agent "github.com/ironcore-dev/sonic-operator/internal/agent/types"
 
 	"github.com/redis/go-redis/v9"
@@ -288,7 +287,7 @@ func (m *SonicAgent) ListInterfaces(ctx context.Context) (*agent.InterfaceList, 
 			return nil, agent.NewErrorStatus(errors.NOT_FOUND, fmt.Sprintf("no MAC address found for interface %s", name))
 		}
 
-		abstractName, err := types.NativeNameToAbstractName(name)
+		abstractName, err := agent.NativeNameToAbstractName(name)
 		if err != nil {
 			return nil, agent.NewErrorStatus(errors.BAD_REQUEST, fmt.Sprintf("failed to convert native name to abstract name: %v", err))
 		}
@@ -327,7 +326,12 @@ func (m *SonicAgent) SaveConfig(ctx context.Context) *agent.Status {
 		log.Printf("Failed to connect to system bus: %v", err)
 		return errors.NewErrorStatus(errors.BAD_REQUEST, fmt.Sprintf("failed to connect to D-Bus: %v", err))
 	}
-	defer conn.Close()
+	defer func() {
+		err = conn.Close()
+		if err != nil {
+			log.Printf("Failed to close D-Bus connection: %v", err)
+		}
+	}()
 
 	obj := conn.Object("org.SONiC.HostService", "/org/SONiC/HostService/config")
 	call := obj.CallWithContext(ctx, "save", 0, "")
@@ -352,7 +356,7 @@ func (m *SonicAgent) SetInterfaceAdminStatus(ctx context.Context, iface *agent.I
 		return nil, errors.NewErrorStatus(errors.BAD_REQUEST, "invalid interface name. Must start with 'Ethernet' or 'eth'")
 	}
 	if strings.HasPrefix(iface.Name, "eth") {
-		ifaceName, err = types.AbstractNameToNativeName(iface.Name)
+		ifaceName, err = agent.AbstractNameToNativeName(iface.Name)
 		if err != nil {
 			return nil, errors.NewErrorStatus(errors.BAD_REQUEST, fmt.Sprintf("failed to convert abstract name to native name: %v", err))
 		}
@@ -444,7 +448,7 @@ func (m *SonicAgent) SetInterfaceAdminStatus(ctx context.Context, iface *agent.I
 	updatedIface.OperationStatus = operStatus
 	updatedIface.AliasName = alias // alias name should not be changed by this function, but we return it anyway for the caller to have the latest info
 
-	abstractName, _ := types.NativeNameToAbstractName(ifaceName)
+	abstractName, _ := agent.NativeNameToAbstractName(ifaceName)
 	resultInterface := &agent.Interface{
 		TypeMeta: agent.TypeMeta{
 			Kind: agent.InterfaceKind,
@@ -454,7 +458,7 @@ func (m *SonicAgent) SetInterfaceAdminStatus(ctx context.Context, iface *agent.I
 		AliasName:       alias, // In SONiC, abstract name is the same as native name for physical interfaces
 		MacAddress:      "",
 		OperationStatus: operStatus,
-		AdminStatus:     agent.DeviceStatus(iface.AdminStatus),
+		AdminStatus:     iface.AdminStatus,
 		Status:          agent.Status{Code: 0, Message: "ok"},
 	}
 	return resultInterface, nil
@@ -472,7 +476,7 @@ func (m *SonicAgent) GetInterface(ctx context.Context, iface *agent.Interface) (
 		return nil, errors.NewErrorStatus(errors.BAD_REQUEST, "invalid interface name. Must start with 'Ethernet' or 'eth'")
 	}
 	if strings.HasPrefix(iface.Name, "eth") {
-		ifaceName, err = types.AbstractNameToNativeName(iface.Name)
+		ifaceName, err = agent.AbstractNameToNativeName(iface.Name)
 		if err != nil {
 			return nil, errors.NewErrorStatus(errors.BAD_REQUEST, fmt.Sprintf("failed to convert abstract name to native name: %v", err))
 		}
@@ -546,7 +550,7 @@ func (m *SonicAgent) GetInterface(ctx context.Context, iface *agent.Interface) (
 		return nil, errors.NewErrorStatus(errors.REDIS_KEY_CHECK_FAIL, fmt.Sprintf("failed to get alias: %v", err))
 	}
 
-	abstractName, err := types.NativeNameToAbstractName(ifaceName)
+	abstractName, err := agent.NativeNameToAbstractName(ifaceName)
 	if err != nil {
 		return nil, errors.NewErrorStatus(errors.BAD_REQUEST, fmt.Sprintf("failed to convert native name to abstract name: %v", err))
 	}
@@ -578,7 +582,7 @@ func (m *SonicAgent) GetInterfaceNeighbor(ctx context.Context, iface *agent.Inte
 		return nil, errors.NewErrorStatus(errors.BAD_REQUEST, "invalid interface name. Must start with 'Ethernet' or 'eth'")
 	}
 	if strings.HasPrefix(iface.Name, "eth") {
-		ifaceName, err = types.AbstractNameToNativeName(iface.Name)
+		ifaceName, err = agent.AbstractNameToNativeName(iface.Name)
 		if err != nil {
 			return nil, errors.NewErrorStatus(errors.BAD_REQUEST, fmt.Sprintf("failed to convert abstract name to native name: %v", err))
 		}
@@ -621,7 +625,7 @@ func (m *SonicAgent) GetInterfaceNeighbor(ctx context.Context, iface *agent.Inte
 		// Fallback to lldp_rem_port_id if port_desc is not available
 		handle = lldpFields["lldp_rem_port_id"]
 	} else {
-		handle, err = types.NativeNameToAbstractName(handle)
+		handle, err = agent.NativeNameToAbstractName(handle)
 		if err != nil {
 			return nil, errors.NewErrorStatus(errors.BAD_REQUEST, fmt.Sprintf("failed to convert native name to abstract name: %v", err))
 		}
@@ -718,7 +722,7 @@ func (m *SonicAgent) SetInterfaceAliasName(ctx context.Context, iface *agent.Int
 		return nil, errors.NewErrorStatus(errors.BAD_REQUEST, "invalid interface name. Must start with 'Ethernet' or 'eth'")
 	}
 	if strings.HasPrefix(iface.Name, "eth") {
-		ifaceName, err = types.AbstractNameToNativeName(iface.Name)
+		ifaceName, err = agent.AbstractNameToNativeName(iface.Name)
 		if err != nil {
 			return nil, errors.NewErrorStatus(errors.BAD_REQUEST, fmt.Sprintf("failed to convert abstract name to native name: %v", err))
 		}

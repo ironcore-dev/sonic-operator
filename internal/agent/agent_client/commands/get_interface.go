@@ -39,7 +39,8 @@ func RunGetInterface(
 	var err error
 	// Determine if the provided name is a native name (e.g., "Ethernet0") or an abstract name (eth0-0")
 	if strings.HasPrefix(interfaceName, "Ethernet") {
-		abstractName, err := agent.NativeNameToAbstractName(interfaceName)
+		var abstractName string
+		abstractName, err = agent.NativeNameToAbstractName(interfaceName)
 		if err != nil {
 			return fmt.Errorf("failed to convert native name to abstract name: %v", err)
 		}
