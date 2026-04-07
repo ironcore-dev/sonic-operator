@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 
 	client "github.com/ironcore-dev/sonic-operator/internal/agent/agent_client/client"
 	agent "github.com/ironcore-dev/sonic-operator/internal/agent/types"
@@ -34,11 +35,26 @@ func RunGetInterfaceNeighbors(
 	printer client.PrintRenderer,
 	interfaceName string,
 ) error {
+	var abstractName string
+
+	if strings.HasPrefix(interfaceName, "Ethernet") {
+		var err error
+		abstractName, err = agent.NativeNameToAbstractName(interfaceName)
+		if err != nil {
+			return fmt.Errorf("failed to convert native name to abstract name: %v", err)
+		}
+
+	} else if strings.HasPrefix(interfaceName, "eth") {
+		abstractName = interfaceName
+	} else {
+		return fmt.Errorf("invalid interface name: %s. Must start with 'Ethernet' or 'eth'", interfaceName)
+	}
+
 	ifaceNeigh, err := c.GetInterfaceNeighbor(ctx, &agent.Interface{
 		TypeMeta: agent.TypeMeta{
 			Kind: agent.InterfaceKind,
 		},
-		Name: interfaceName,
+		Name: abstractName,
 	})
 
 	if err != nil {

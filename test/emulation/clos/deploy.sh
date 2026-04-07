@@ -5,19 +5,42 @@
 
 set -eu
 
-# Setup Kind cluster for e2e tests if it does not exist
-KIND_CLUSTER="clos-lab-kind"
-echo "Setting up Kind cluster for tests..."
-if ! command -v kind &> /dev/null; then
-    echo "Kind is not installed. Please install Kind manually."
-    exit 1
-fi
+# Parse command line arguments
+E2E_CLUSTER=""
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    --e2e)
+      E2E_CLUSTER="$2"
+      shift 2
+      ;;
+    *)
+      echo "Unknown option: $1"
+      echo "Usage: $0 [--e2e CLUSTER_NAME]"
+      exit 1
+      ;;
+  esac
+done
 
-if kind get clusters 2>/dev/null | grep -q "^${KIND_CLUSTER}$"; then
-    echo "Kind cluster '${KIND_CLUSTER}' already exists. Skipping creation."
+# Setup Kind cluster for e2e tests if it does not exist
+if [ -n "$E2E_CLUSTER" ]; then
+  KIND_CLUSTER="$E2E_CLUSTER"
 else
-    echo "Creating Kind cluster '${KIND_CLUSTER}'..."
-    kind create cluster --name "${KIND_CLUSTER}"
+  KIND_CLUSTER="clos-lab-kind"
+fi
+# Setup Kind cluster for e2e tests if it does not exist (skip if in e2e mode)
+if [ -z "$E2E_CLUSTER" ]; then
+  echo "Setting up Kind cluster for tests..."
+  if ! command -v kind &> /dev/null; then
+      echo "Kind is not installed. Please install Kind manually."
+      exit 1
+  fi
+
+  if kind get clusters 2>/dev/null | grep -q "^${KIND_CLUSTER}$"; then
+      echo "Kind cluster '${KIND_CLUSTER}' already exists. Skipping creation."
+  else
+      echo "Creating Kind cluster '${KIND_CLUSTER}'..."
+      kind create cluster --name "${KIND_CLUSTER}"
+  fi
 fi
 
 # Go to git repo root
@@ -34,7 +57,7 @@ HELM="docker run --network host -ti --rm -v $(pwd):/apps -w /apps \
     -v $HOME/.cache/helm:/root/.cache/helm \
     alpine/helm:3.12.3"
 
-CLABVERTER="sudo docker run --user $(id -u) -v $(pwd):/clabernetes/work --rm  ghcr.io/srl-labs/clabernetes/clabverter"
+CLABVERTER="sudo docker run --user $(id -u) -v $(readlink -f $(dirname "$0")):/clabernetes/work --rm  ghcr.io/srl-labs/clabernetes/clabverter"
 
 $HELM upgrade --install --create-namespace --namespace c9s \
     clabernetes oci://ghcr.io/srl-labs/clabernetes/clabernetes
@@ -80,10 +103,10 @@ else
     h=$(kubectl get -n c9s-clos svc "$service" -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null)
     if [ ! -z "$h" ]; then
       echo "Running init_setup.sh on $h"
-      max_attempts=36 # 36 attempts with 10 seconds sleep = 6 minutes total wait time
+      max_attempts=60 # 60 attempts with 10 seconds sleep = 10 minutes total wait time
       attempt=1
       while [ $attempt -le $max_attempts ]; do
-        if sshpass -p 'admin' ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null admin@"$h" 'bash -s' < init_setup.sh; then
+        if sshpass -p 'admin' ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null admin@"$h" 'bash -s' < $(readlink -f $(dirname "$0"))/init_setup.sh; then
           echo "Successfully provisioned $h"
           break
         else

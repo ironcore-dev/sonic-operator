@@ -5,6 +5,7 @@ package controller
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	"github.com/go-logr/logr"
@@ -153,10 +154,12 @@ func (r *SwitchReconciler) EnsureInterface(ctx context.Context, log logr.Logger,
 			Kind:       "SwitchInterface",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name: strings.ToLower(iface.Name),
+			Name: strings.ToLower(fmt.Sprintf("%s-%s", s.Name, iface.Name)),
 		},
 		Spec: networkingv1alpha1.SwitchInterfaceSpec{
-			Handle: iface.Name,
+			Handle:     iface.Name,
+			NativeName: iface.NativeName,
+
 			SwitchRef: &corev1.LocalObjectReference{
 				Name: s.Name,
 			},

@@ -52,6 +52,7 @@ require (
 	github.com/go-openapi/swag/typeutils v0.25.1 // indirect
 	github.com/go-openapi/swag/yamlutils v0.25.1 // indirect
 	github.com/go-task/slim-sprig/v3 v3.0.0 // indirect
+	github.com/godbus/dbus/v5 v5.2.2 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/google/btree v1.1.3 // indirect
 	github.com/google/cel-go v0.26.0 // indirect

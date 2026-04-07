@@ -6,10 +6,12 @@ package sonic
 import (
 	"context"
 	"fmt"
-	"os/exec"
+	"log"
+	"strings"
 	"sync"
 	"time"
 
+	"github.com/godbus/dbus/v5"
 	errors "github.com/ironcore-dev/sonic-operator/internal/agent/errors"
 	agent "github.com/ironcore-dev/sonic-operator/internal/agent/types"
 
@@ -231,6 +233,11 @@ func (m *SonicAgent) ListInterfaces(ctx context.Context) (*agent.InterfaceList, 
 	}
 	// defer stateDB.Close()
 
+	applDB, err := m.Connect("APPL_DB")
+	if err != nil {
+		return nil, errors.NewErrorStatus(errors.BAD_REQUEST, fmt.Sprintf("failed to connect to APPL_DB: %v", err))
+	}
+
 	pattern := "PORT|*"
 	keys, err := configDB.Keys(ctx, pattern).Result()
 
@@ -252,10 +259,15 @@ func (m *SonicAgent) ListInterfaces(ctx context.Context) (*agent.InterfaceList, 
 			// If state info is not available, use default values
 			stateFields = make(map[string]string)
 		}
+		applKey := fmt.Sprintf("PORT_TABLE:%s", name)
+		applFields, err := applDB.HGetAll(ctx, applKey).Result()
+		if err != nil {
+			return nil, errors.NewErrorStatus(errors.BAD_REQUEST, fmt.Sprintf("failed to get state info for interface %s: %v", name, err))
+		}
 
 		// Determine operational status
 		operStatus := agent.StatusDown
-		if stateFields["netdev_oper_status"] == "up" {
+		if applFields["oper_status"] == "up" {
 			operStatus = agent.StatusUp
 		}
 
@@ -275,11 +287,23 @@ func (m *SonicAgent) ListInterfaces(ctx context.Context) (*agent.InterfaceList, 
 			return nil, agent.NewErrorStatus(errors.NOT_FOUND, fmt.Sprintf("no MAC address found for interface %s", name))
 		}
 
+		abstractName, err := agent.NativeNameToAbstractName(name)
+		if err != nil {
+			return nil, agent.NewErrorStatus(errors.BAD_REQUEST, fmt.Sprintf("failed to convert native name to abstract name: %v", err))
+		}
+
+		alias, err := configDB.HGet(ctx, fmt.Sprintf("PORT|%s", name), "alias").Result()
+		if err != nil {
+			return nil, errors.NewErrorStatus(errors.REDIS_KEY_CHECK_FAIL, fmt.Sprintf("failed to get alias: %v", err))
+		}
+
 		iface := agent.Interface{
 			TypeMeta: agent.TypeMeta{
 				Kind: agent.InterfaceKind,
 			},
-			Name:            name,
+			Name:            abstractName,
+			NativeName:      name,
+			AliasName:       alias,
 			MacAddress:      mac.String(),
 			OperationStatus: operStatus,
 			AdminStatus:     adminStatus,
@@ -296,26 +320,56 @@ func (m *SonicAgent) ListInterfaces(ctx context.Context) (*agent.InterfaceList, 
 	}, nil
 }
 
-func (m *SonicAgent) saveConfig() error {
-	cmd := exec.Command("config", "save", "-y")
-	if output, err := cmd.CombinedOutput(); err != nil {
-		return fmt.Errorf("failed to save config: %w, output: %s", err, string(output))
+func (m *SonicAgent) SaveConfig(ctx context.Context) *agent.Status {
+	conn, err := dbus.ConnectSystemBus()
+	if err != nil {
+		log.Printf("Failed to connect to system bus: %v", err)
+		return errors.NewErrorStatus(errors.BAD_REQUEST, fmt.Sprintf("failed to connect to D-Bus: %v", err))
 	}
+	defer func() {
+		err = conn.Close()
+		if err != nil {
+			log.Printf("Failed to close D-Bus connection: %v", err)
+		}
+	}()
+
+	obj := conn.Object("org.SONiC.HostService", "/org/SONiC/HostService/config")
+	call := obj.CallWithContext(ctx, "save", 0, "")
+	if call.Err != nil {
+		log.Printf("D-Bus call failed: %v", call.Err)
+		return errors.NewErrorStatus(errors.BAD_REQUEST, fmt.Sprintf("failed to save config via D-Bus: %v", call.Err))
+	}
+
+	log.Printf("Config saved successfully via D-Bus")
 	return nil
 }
 
 func (m *SonicAgent) SetInterfaceAdminStatus(ctx context.Context, iface *agent.Interface) (*agent.Interface, *agent.Status) {
+	// Validate input
+	var ifaceName string
+	var err error
+
+	if iface == nil || iface.Name == "" {
+		return nil, errors.NewErrorStatus(errors.BAD_REQUEST, "interface name cannot be empty")
+	}
+	if !strings.HasPrefix(iface.Name, "Ethernet") && !strings.HasPrefix(iface.Name, "eth") {
+		return nil, errors.NewErrorStatus(errors.BAD_REQUEST, "invalid interface name. Must start with 'Ethernet' or 'eth'")
+	}
+	if strings.HasPrefix(iface.Name, "eth") {
+		ifaceName, err = agent.AbstractNameToNativeName(iface.Name)
+		if err != nil {
+			return nil, errors.NewErrorStatus(errors.BAD_REQUEST, fmt.Sprintf("failed to convert abstract name to native name: %v", err))
+		}
+	} else {
+		ifaceName = iface.Name
+	}
+
 	configDB, err := m.Connect("CONFIG_DB")
 	if err != nil {
 		return nil, errors.NewErrorStatus(errors.BAD_REQUEST, fmt.Sprintf("failed to connect to CONFIG_DB: %v", err))
 	}
 
-	// Validate interface name
-	if iface.Name == "" {
-		return nil, errors.NewErrorStatus(errors.BAD_REQUEST, "interface name cannot be empty")
-	}
-
-	portKey := fmt.Sprintf("PORT|%s", iface.Name)
+	portKey := fmt.Sprintf("PORT|%s", ifaceName)
 
 	// store the current admin status for rollback
 	fields, err := configDB.HGetAll(ctx, portKey).Result()
@@ -330,12 +384,11 @@ func (m *SonicAgent) SetInterfaceAdminStatus(ctx context.Context, iface *agent.I
 	if err != nil {
 		return nil, errors.NewErrorStatus(errors.REDIS_HSET_FAIL, fmt.Sprintf("failed to set admin status: %v", err))
 	}
-
 	// Persist changes to config_db.json
-	if err := m.saveConfig(); err != nil {
+	if status := m.SaveConfig(ctx); status != nil {
 		// Try to rollback if save fails
 		_ = configDB.HSet(ctx, portKey, "admin_status", currentAdminStatus).Err()
-		return nil, errors.NewErrorStatus(errors.BAD_REQUEST, fmt.Sprintf("failed to persist config: %v", err))
+		return nil, status
 	}
 
 	// Verify the interface exists by checking if we can get its current state
@@ -344,7 +397,7 @@ func (m *SonicAgent) SetInterfaceAdminStatus(ctx context.Context, iface *agent.I
 		return nil, errors.NewErrorStatus(errors.REDIS_KEY_CHECK_FAIL, fmt.Sprintf("failed to verify interface existence: %v", err))
 	}
 	if exists == 0 {
-		return nil, errors.NewErrorStatus(errors.NOT_FOUND, fmt.Sprintf("interface %s not found", iface.Name))
+		return nil, errors.NewErrorStatus(errors.NOT_FOUND, fmt.Sprintf("interface %s not found", ifaceName))
 	}
 
 	time.Sleep(1000 * time.Millisecond)
@@ -355,8 +408,9 @@ func (m *SonicAgent) SetInterfaceAdminStatus(ctx context.Context, iface *agent.I
 		return nil, errors.NewErrorStatus(errors.BAD_REQUEST, fmt.Sprintf("failed to connect to STATE_DB: %v", err))
 	}
 
-	stateKey := fmt.Sprintf("PORT_TABLE|%s", iface.Name)
+	stateKey := fmt.Sprintf("PORT_TABLE|%s", ifaceName)
 	stateFields, err := stateDB.HGetAll(ctx, stateKey).Result()
+	_ = stateFields // currently we don't use any field from stateFields, but we get it anyway to check if the interface is still there after the update. If the key is gone, it means the interface is deleted during the update, we can return not found error in that case.
 	if err != nil {
 		// rollback admin status
 		err = configDB.HSet(ctx, portKey, "admin_status", currentAdminStatus).Err()
@@ -366,23 +420,68 @@ func (m *SonicAgent) SetInterfaceAdminStatus(ctx context.Context, iface *agent.I
 		return nil, errors.NewErrorStatus(errors.REDIS_KEY_CHECK_FAIL, fmt.Sprintf("failed to get state info: %v", err))
 	}
 
+	applDB, err := m.Connect("APPL_DB")
+	if err != nil {
+		return nil, errors.NewErrorStatus(errors.BAD_REQUEST, fmt.Sprintf("failed to connect to APPL_DB: %v", err))
+	}
 	// get the newest operational status
+	applKey := fmt.Sprintf("PORT_TABLE:%s", ifaceName)
+	applFields, err := applDB.HGetAll(ctx, applKey).Result()
+	if err != nil {
+		// If state info is not available, use default values
+		applFields = make(map[string]string)
+	}
+
+	// Determine operational status
 	operStatus := agent.StatusDown
-	if stateFields["netdev_oper_status"] == "up" {
+	if applFields["oper_status"] == "up" {
 		operStatus = agent.StatusUp
+	}
+
+	alias, err := configDB.HGet(ctx, fmt.Sprintf("PORT|%s", ifaceName), "alias").Result()
+	if err != nil {
+		return nil, errors.NewErrorStatus(errors.REDIS_KEY_CHECK_FAIL, fmt.Sprintf("failed to get alias: %v", err))
 	}
 
 	// Return updated interface
 	updatedIface := *iface
 	updatedIface.OperationStatus = operStatus
+	updatedIface.AliasName = alias // alias name should not be changed by this function, but we return it anyway for the caller to have the latest info
 
-	return &updatedIface, nil
+	abstractName, _ := agent.NativeNameToAbstractName(ifaceName)
+	resultInterface := &agent.Interface{
+		TypeMeta: agent.TypeMeta{
+			Kind: agent.InterfaceKind,
+		},
+		Name:            abstractName,
+		NativeName:      ifaceName,
+		AliasName:       alias, // In SONiC, abstract name is the same as native name for physical interfaces
+		MacAddress:      "",
+		OperationStatus: operStatus,
+		AdminStatus:     iface.AdminStatus,
+		Status:          agent.Status{Code: 0, Message: "ok"},
+	}
+	return resultInterface, nil
 }
 
 func (m *SonicAgent) GetInterface(ctx context.Context, iface *agent.Interface) (*agent.Interface, *agent.Status) {
 	// Validate input
+	var ifaceName string
+	var err error
+
 	if iface == nil || iface.Name == "" {
 		return nil, errors.NewErrorStatus(errors.BAD_REQUEST, "interface name cannot be empty")
+	}
+	if !strings.HasPrefix(iface.Name, "Ethernet") && !strings.HasPrefix(iface.Name, "eth") {
+		return nil, errors.NewErrorStatus(errors.BAD_REQUEST, "invalid interface name. Must start with 'Ethernet' or 'eth'")
+	}
+	if strings.HasPrefix(iface.Name, "eth") {
+		ifaceName, err = agent.AbstractNameToNativeName(iface.Name)
+		if err != nil {
+			return nil, errors.NewErrorStatus(errors.BAD_REQUEST, fmt.Sprintf("failed to convert abstract name to native name: %v", err))
+		}
+	} else {
+		ifaceName = iface.Name
 	}
 
 	configDB, err := m.Connect("CONFIG_DB")
@@ -397,26 +496,36 @@ func (m *SonicAgent) GetInterface(ctx context.Context, iface *agent.Interface) (
 	}
 
 	// Check if interface exists in CONFIG_DB
-	portKey := fmt.Sprintf("PORT|%s", iface.Name)
+	portKey := fmt.Sprintf("PORT|%s", ifaceName)
 	exists, err := configDB.Exists(ctx, portKey).Result()
 	if err != nil {
 		return nil, errors.NewErrorStatus(errors.BAD_REQUEST, fmt.Sprintf("failed to check interface existence: %v", err))
 	}
 	if exists == 0 {
-		return nil, errors.NewErrorStatus(errors.NOT_FOUND, fmt.Sprintf("interface %s not found", iface.Name))
+		return nil, errors.NewErrorStatus(errors.NOT_FOUND, fmt.Sprintf("interface %s not found", ifaceName))
 	}
 
 	// Get operational status from STATE_DB
-	stateKey := fmt.Sprintf("PORT_TABLE|%s", iface.Name)
+	stateKey := fmt.Sprintf("PORT_TABLE|%s", ifaceName)
 	stateFields, err := stateDB.HGetAll(ctx, stateKey).Result()
 	if err != nil {
 		// If state info is not available, use default values
 		stateFields = make(map[string]string)
 	}
+	applDB, err := m.Connect("APPL_DB")
+	if err != nil {
+		return nil, errors.NewErrorStatus(errors.BAD_REQUEST, fmt.Sprintf("failed to connect to APPL_DB: %v", err))
+	}
+	applKey := fmt.Sprintf("PORT_TABLE:%s", ifaceName)
+	applFields, err := applDB.HGetAll(ctx, applKey).Result()
+	if err != nil {
+		// If state info is not available, use default values
+		applFields = make(map[string]string)
+	}
 
 	// Determine operational status
 	operStatus := agent.StatusDown
-	if stateFields["netdev_oper_status"] == "up" {
+	if applFields["oper_status"] == "up" {
 		operStatus = agent.StatusUp
 	}
 
@@ -426,21 +535,33 @@ func (m *SonicAgent) GetInterface(ctx context.Context, iface *agent.Interface) (
 	}
 
 	// Get interface MAC address using netlink
-	link, err := netlink.LinkByName(iface.Name)
+	link, err := netlink.LinkByName(ifaceName)
 	if err != nil {
-		return nil, errors.NewErrorStatus(errors.NOT_FOUND, fmt.Sprintf("failed to get interface %s: %v", iface.Name, err))
+		return nil, errors.NewErrorStatus(errors.NOT_FOUND, fmt.Sprintf("failed to get interface %s: %v", ifaceName, err))
 	}
 
 	mac := link.Attrs().HardwareAddr
 	if mac == nil {
-		return nil, errors.NewErrorStatus(errors.NOT_FOUND, fmt.Sprintf("no MAC address found for interface %s", iface.Name))
+		return nil, errors.NewErrorStatus(errors.NOT_FOUND, fmt.Sprintf("no MAC address found for interface %s", ifaceName))
+	}
+
+	alias, err := configDB.HGet(ctx, fmt.Sprintf("PORT|%s", ifaceName), "alias").Result()
+	if err != nil {
+		return nil, errors.NewErrorStatus(errors.REDIS_KEY_CHECK_FAIL, fmt.Sprintf("failed to get alias: %v", err))
+	}
+
+	abstractName, err := agent.NativeNameToAbstractName(ifaceName)
+	if err != nil {
+		return nil, errors.NewErrorStatus(errors.BAD_REQUEST, fmt.Sprintf("failed to convert native name to abstract name: %v", err))
 	}
 
 	resultInterface := &agent.Interface{
 		TypeMeta: agent.TypeMeta{
 			Kind: agent.InterfaceKind,
 		},
-		Name:            iface.Name,
+		Name:            abstractName,
+		NativeName:      ifaceName,
+		AliasName:       alias, // In SONiC, abstract name is the same as native name for physical interfaces
 		MacAddress:      mac.String(),
 		OperationStatus: operStatus,
 		AdminStatus:     adminStatus,
@@ -451,8 +572,22 @@ func (m *SonicAgent) GetInterface(ctx context.Context, iface *agent.Interface) (
 }
 
 func (m *SonicAgent) GetInterfaceNeighbor(ctx context.Context, iface *agent.Interface) (*agent.InterfaceNeighbor, *agent.Status) {
+	var ifaceName string
+	var err error
+
 	if iface == nil || iface.Name == "" {
 		return nil, errors.NewErrorStatus(errors.BAD_REQUEST, "interface name cannot be empty")
+	}
+	if !strings.HasPrefix(iface.Name, "Ethernet") && !strings.HasPrefix(iface.Name, "eth") {
+		return nil, errors.NewErrorStatus(errors.BAD_REQUEST, "invalid interface name. Must start with 'Ethernet' or 'eth'")
+	}
+	if strings.HasPrefix(iface.Name, "eth") {
+		ifaceName, err = agent.AbstractNameToNativeName(iface.Name)
+		if err != nil {
+			return nil, errors.NewErrorStatus(errors.BAD_REQUEST, fmt.Sprintf("failed to convert abstract name to native name: %v", err))
+		}
+	} else {
+		ifaceName = iface.Name
 	}
 
 	applDB, err := m.Connect("APPL_DB")
@@ -460,7 +595,7 @@ func (m *SonicAgent) GetInterfaceNeighbor(ctx context.Context, iface *agent.Inte
 		return nil, errors.NewErrorStatus(errors.BAD_REQUEST, fmt.Sprintf("failed to connect to APPL_DB: %v", err))
 	}
 
-	lldpKey := fmt.Sprintf("LLDP_ENTRY_TABLE:%s", iface.Name)
+	lldpKey := fmt.Sprintf("LLDP_ENTRY_TABLE:%s", ifaceName)
 
 	// Check if LLDP entry exists for this interface
 	exists, err := applDB.Exists(ctx, lldpKey).Result()
@@ -468,7 +603,7 @@ func (m *SonicAgent) GetInterfaceNeighbor(ctx context.Context, iface *agent.Inte
 		return nil, errors.NewErrorStatus(errors.BAD_REQUEST, fmt.Sprintf("failed to check LLDP entry existence: %v", err))
 	}
 	if exists == 0 {
-		return nil, errors.NewErrorStatus(errors.NOT_FOUND, fmt.Sprintf("no LLDP neighbor found for interface %s", iface.Name))
+		return nil, errors.NewErrorStatus(errors.NOT_FOUND, fmt.Sprintf("no LLDP neighbor found for interface %s", ifaceName))
 	}
 
 	// Get all LLDP fields
@@ -489,18 +624,23 @@ func (m *SonicAgent) GetInterfaceNeighbor(ctx context.Context, iface *agent.Inte
 	if handle == "" {
 		// Fallback to lldp_rem_port_id if port_desc is not available
 		handle = lldpFields["lldp_rem_port_id"]
+	} else {
+		handle, err = agent.NativeNameToAbstractName(handle)
+		if err != nil {
+			return nil, errors.NewErrorStatus(errors.BAD_REQUEST, fmt.Sprintf("failed to convert native name to abstract name: %v", err))
+		}
 	}
 
 	// Validate that we have the essential information
 	if macAddress == "" || systemName == "" {
-		return nil, errors.NewErrorStatus(errors.NOT_FOUND, fmt.Sprintf("incomplete LLDP information for interface %s", iface.Name))
+		return nil, errors.NewErrorStatus(errors.NOT_FOUND, fmt.Sprintf("incomplete LLDP information for interface %s", ifaceName))
 	}
 
 	neighbor := &agent.InterfaceNeighbor{
 		TypeMeta: agent.TypeMeta{
 			Kind: agent.InterfaceNeighborKind,
 		},
-		Name:       iface.Name, // Interface name of yourself
+		Name:       ifaceName, // Interface name of yourself
 		MacAddress: macAddress,
 		SystemName: systemName,
 		Handle:     handle, // Remote interface name
@@ -568,4 +708,101 @@ func (m *SonicAgent) ListPorts(ctx context.Context) (*agent.PortList, *agent.Sta
 		Items:  ports,
 		Status: agent.Status{Code: 0, Message: "ok"},
 	}, nil
+}
+
+func (m *SonicAgent) SetInterfaceAliasName(ctx context.Context, iface *agent.Interface) (*agent.Interface, *agent.Status) {
+	// Validate input
+	var ifaceName string
+	var err error
+
+	if iface == nil || iface.Name == "" {
+		return nil, errors.NewErrorStatus(errors.BAD_REQUEST, "interface name cannot be empty")
+	}
+	if !strings.HasPrefix(iface.Name, "Ethernet") && !strings.HasPrefix(iface.Name, "eth") {
+		return nil, errors.NewErrorStatus(errors.BAD_REQUEST, "invalid interface name. Must start with 'Ethernet' or 'eth'")
+	}
+	if strings.HasPrefix(iface.Name, "eth") {
+		ifaceName, err = agent.AbstractNameToNativeName(iface.Name)
+		if err != nil {
+			return nil, errors.NewErrorStatus(errors.BAD_REQUEST, fmt.Sprintf("failed to convert abstract name to native name: %v", err))
+		}
+	} else {
+		ifaceName = iface.Name
+	}
+
+	configDB, err := m.Connect("CONFIG_DB")
+	if err != nil {
+		return nil, errors.NewErrorStatus(errors.BAD_REQUEST, fmt.Sprintf("failed to connect to CONFIG_DB: %v", err))
+	}
+
+	portKey := fmt.Sprintf("PORT|%s", ifaceName)
+	log.Printf("Setting alias for port: %s", portKey)
+
+	// store the current s Alias name for rollback
+	fields, err := configDB.HGetAll(ctx, portKey).Result()
+	if err != nil {
+		return nil, errors.NewErrorStatus(errors.REDIS_KEY_CHECK_FAIL, fmt.Sprintf("failed to get current alias name: %v", err))
+	}
+	currentAlias := fields["alias"]
+	futureAlias := iface.AliasName
+	if futureAlias == "" {
+		futureAlias = iface.Name // If alias is empty, use abstract name as alias
+	}
+
+	aliasStr := futureAlias
+	err = configDB.HSet(ctx, portKey, "alias", aliasStr).Err()
+	if err != nil {
+		return nil, errors.NewErrorStatus(errors.REDIS_HSET_FAIL, fmt.Sprintf("failed to set alias name: %v", err))
+	}
+	// Persist changes to config_db.json
+	if status := m.SaveConfig(ctx); status != nil {
+		log.Printf("Failed to save config after setting alias name: %v", status)
+		// Try to rollback if save fails
+		err = configDB.HSet(ctx, portKey, "alias", currentAlias).Err()
+		if err != nil {
+			return nil, errors.NewErrorStatus(errors.REDIS_HSET_FAIL, fmt.Sprintf("failed to rollback alias name: %v", err))
+		}
+		return nil, status
+	}
+
+	// Verify the interface exists by checking if we can get its current state
+	exists, err := configDB.Exists(ctx, portKey).Result()
+	if err != nil {
+		return nil, errors.NewErrorStatus(errors.REDIS_KEY_CHECK_FAIL, fmt.Sprintf("failed to verify interface existence: %v", err))
+	}
+	if exists == 0 {
+		return nil, errors.NewErrorStatus(errors.NOT_FOUND, fmt.Sprintf("interface %s not found", iface.Name))
+	}
+
+	applDB, err := m.Connect("APPL_DB")
+	if err != nil {
+		return nil, errors.NewErrorStatus(errors.BAD_REQUEST, fmt.Sprintf("failed to connect to APPL_DB: %v", err))
+	}
+	applKey := fmt.Sprintf("PORT_TABLE:%s", ifaceName)
+	applFields, err := applDB.HGetAll(ctx, applKey).Result()
+	if err != nil {
+		// If state info is not available, use default values
+		applFields = make(map[string]string)
+	}
+
+	if err != nil {
+		// rollback alias name
+		err = configDB.HSet(ctx, portKey, "alias", currentAlias).Err()
+		if err != nil {
+			return nil, errors.NewErrorStatus(errors.REDIS_HSET_FAIL, fmt.Sprintf("failed to rollback alias name: %v", err))
+		}
+		return nil, errors.NewErrorStatus(errors.REDIS_KEY_CHECK_FAIL, fmt.Sprintf("failed to get state info: %v", err))
+	}
+
+	// Determine operational status
+	operStatus := agent.StatusDown
+	if applFields["oper_status"] == "up" {
+		operStatus = agent.StatusUp
+	}
+
+	// Return updated interface
+	updatedIface := *iface
+	updatedIface.OperationStatus = operStatus
+
+	return &updatedIface, nil
 }
