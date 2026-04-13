@@ -1,0 +1,9 @@
+{
+  "onieImages": [
+    {
+      "vendor": "accton_as7726_32x",
+      "onieUpdater":   "onie-updater-x86_64-accton_as7726_32x-r0",
+      "onieInstaller": "onie-installer-x86_64-accton_as7726_32x-r0.bin"
+    }
+  ]
+}
