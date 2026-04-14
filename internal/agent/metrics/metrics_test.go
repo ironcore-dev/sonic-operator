@@ -136,18 +136,18 @@ func TestDeviceCollectorNotReady(t *testing.T) {
 // --- Interface Collector Tests ---
 
 func TestInterfaceCollector(t *testing.T) {
-	mc := newMockConnector("CONFIG_DB", "STATE_DB")
+	mc := newMockConnector("CONFIG_DB", "APPL_DB")
 
 	mc.mocks["CONFIG_DB"].ExpectKeys("PORT|*").SetVal([]string{
 		"PORT|Ethernet0", "PORT|Ethernet4",
 	})
-	mc.mocks["STATE_DB"].ExpectHGetAll("PORT_TABLE|Ethernet0").SetVal(map[string]string{
-		"netdev_oper_status": "up",
-		"admin_status":       "up",
+	mc.mocks["APPL_DB"].ExpectHGetAll("PORT_TABLE|Ethernet0").SetVal(map[string]string{
+		"oper_status":  "up",
+		"admin_status": "up",
 	})
-	mc.mocks["STATE_DB"].ExpectHGetAll("PORT_TABLE|Ethernet4").SetVal(map[string]string{
-		"netdev_oper_status": "down",
-		"admin_status":       "up",
+	mc.mocks["APPL_DB"].ExpectHGetAll("PORT_TABLE|Ethernet4").SetVal(map[string]string{
+		"oper_status":  "down",
+		"admin_status": "up",
 	})
 
 	collector := NewInterfaceCollector(mc)
@@ -164,22 +164,22 @@ func TestInterfaceCollector(t *testing.T) {
 }
 
 func TestInterfaceCollectorInterfaceTotals(t *testing.T) {
-	mc := newMockConnector("CONFIG_DB", "STATE_DB")
+	mc := newMockConnector("CONFIG_DB", "APPL_DB")
 
 	mc.mocks["CONFIG_DB"].ExpectKeys("PORT|*").SetVal([]string{
 		"PORT|Ethernet0", "PORT|Ethernet4", "PORT|Ethernet8",
 	})
-	mc.mocks["STATE_DB"].ExpectHGetAll("PORT_TABLE|Ethernet0").SetVal(map[string]string{
-		"netdev_oper_status": "up",
-		"admin_status":       "up",
+	mc.mocks["APPL_DB"].ExpectHGetAll("PORT_TABLE|Ethernet0").SetVal(map[string]string{
+		"oper_status":  "up",
+		"admin_status": "up",
 	})
-	mc.mocks["STATE_DB"].ExpectHGetAll("PORT_TABLE|Ethernet4").SetVal(map[string]string{
-		"netdev_oper_status": "up",
-		"admin_status":       "up",
+	mc.mocks["APPL_DB"].ExpectHGetAll("PORT_TABLE|Ethernet4").SetVal(map[string]string{
+		"oper_status":  "up",
+		"admin_status": "up",
 	})
-	mc.mocks["STATE_DB"].ExpectHGetAll("PORT_TABLE|Ethernet8").SetVal(map[string]string{
-		"netdev_oper_status": "down",
-		"admin_status":       "down",
+	mc.mocks["APPL_DB"].ExpectHGetAll("PORT_TABLE|Ethernet8").SetVal(map[string]string{
+		"oper_status":  "down",
+		"admin_status": "down",
 	})
 
 	collector := NewInterfaceCollector(mc)
@@ -1233,18 +1233,18 @@ func TestConfigValidationRegexInvalidPattern(t *testing.T) {
 // --- Interface Collector Per-Interface State Tests ---
 
 func TestInterfaceCollectorPerInterfaceState(t *testing.T) {
-	mc := newMockConnector("CONFIG_DB", "STATE_DB")
+	mc := newMockConnector("CONFIG_DB", "APPL_DB")
 
 	mc.mocks["CONFIG_DB"].ExpectKeys("PORT|*").SetVal([]string{
 		"PORT|Ethernet0", "PORT|Ethernet4",
 	})
-	mc.mocks["STATE_DB"].ExpectHGetAll("PORT_TABLE|Ethernet0").SetVal(map[string]string{
-		"netdev_oper_status": "up",
-		"admin_status":       "up",
+	mc.mocks["APPL_DB"].ExpectHGetAll("PORT_TABLE|Ethernet0").SetVal(map[string]string{
+		"oper_status":  "up",
+		"admin_status": "up",
 	})
-	mc.mocks["STATE_DB"].ExpectHGetAll("PORT_TABLE|Ethernet4").SetVal(map[string]string{
-		"netdev_oper_status": "down",
-		"admin_status":       "up",
+	mc.mocks["APPL_DB"].ExpectHGetAll("PORT_TABLE|Ethernet4").SetVal(map[string]string{
+		"oper_status":  "down",
+		"admin_status": "up",
 	})
 
 	collector := NewInterfaceCollector(mc)

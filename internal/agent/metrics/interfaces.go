@@ -68,9 +68,9 @@ func (c *InterfaceCollector) Collect(ch chan<- prometheus.Metric) {
 		return
 	}
 
-	stateDB, err := c.connector.Connect("STATE_DB")
+	applDB, err := c.connector.Connect("APPL_DB")
 	if err != nil {
-		log.Printf("InterfaceCollector: failed to connect to STATE_DB: %v", err)
+		log.Printf("InterfaceCollector: failed to connect to APPL_DB: %v", err)
 		return
 	}
 
@@ -94,7 +94,7 @@ func (c *InterfaceCollector) Collect(ch chan<- prometheus.Metric) {
 		stateKeys = append(stateKeys, "PORT_TABLE|"+name)
 	}
 
-	stateData := batchHGetAll(ctx, stateDB, stateKeys)
+	stateData := batchHGetAll(ctx, applDB, stateKeys)
 
 	upCount := 0
 	downCount := 0
@@ -103,7 +103,7 @@ func (c *InterfaceCollector) Collect(ch chan<- prometheus.Metric) {
 		stateKey := stateKeys[i]
 		fields := stateData[stateKey]
 
-		operUp := fields["netdev_oper_status"] == "up"
+		operUp := fields["oper_status"] == "up"
 		adminUp := fields["admin_status"] == "up"
 
 		operVal := 0.0
