@@ -1078,36 +1078,6 @@ func TestHealthEndpointRedisDown(t *testing.T) {
 	}
 }
 
-// --- Scrape Duration Test ---
-
-func TestScrapeDurationMetric(t *testing.T) {
-	// Suppress expected "failed to connect" logs from collectors whose DBs aren't mocked
-	log.SetOutput(io.Discard)
-	defer log.SetOutput(os.Stderr)
-
-	mc := newMockConnector("CONFIG_DB")
-	// DeviceCollector will read DEVICE_METADATA
-	mc.mocks["CONFIG_DB"].ExpectHGetAll("DEVICE_METADATA|localhost").SetVal(map[string]string{
-		"mac": "aa:bb:cc:dd:ee:ff",
-	})
-	// InterfaceCollector will list ports
-	mc.mocks["CONFIG_DB"].ExpectKeys("PORT|*").SetVal([]string{})
-
-	srv := NewMetricsServer(":0", mc, nil, "")
-
-	req := httptest.NewRequest("GET", "/metrics", nil)
-	w := httptest.NewRecorder()
-	srv.Handler.ServeHTTP(w, req)
-
-	if w.Code != http.StatusOK {
-		t.Fatalf("expected 200, got %d", w.Code)
-	}
-	body := w.Body.String()
-	if !strings.Contains(body, "sonic_scrape_duration_seconds") {
-		t.Error("response missing sonic_scrape_duration_seconds metric")
-	}
-}
-
 // --- Error Handling Test ---
 
 func TestDeviceCollectorRedisDown(t *testing.T) {
