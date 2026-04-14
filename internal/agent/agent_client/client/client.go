@@ -28,6 +28,9 @@ type SwitchAgentClient interface {
 	ListPorts(ctx context.Context) (*agent.PortList, error)
 
 	SaveConfig(ctx context.Context) error
+	Reboot(ctx context.Context) error
+	OnieBootModeInstall(ctx context.Context) error
+	RestartSystemdService(ctx context.Context, serviceName string) error
 }
 
 type defaultSwitchAgentClient struct {
@@ -344,6 +347,71 @@ func (c *defaultSwitchAgentClient) SaveConfig(ctx context.Context) error {
 
 	if resp.GetStatus().Code != 0 {
 		return fmt.Errorf("failed to save config: %s", resp.GetStatus().GetMessage())
+	}
+
+	return nil
+}
+
+func (c *defaultSwitchAgentClient) Reboot(ctx context.Context) error {
+	cleanup, err := c.dial()
+	if err != nil {
+		return err
+	}
+	defer func() {
+		_ = cleanup()
+	}()
+
+	resp, err := c.client.Reboot(ctx, &pb.RebootRequest{})
+	if err != nil {
+		return err
+	}
+
+	if resp.GetStatus().Code != 0 {
+		return fmt.Errorf("failed to reboot switch: %s", resp.GetStatus().GetMessage())
+	}
+
+	return nil
+}
+
+func (c *defaultSwitchAgentClient) OnieBootModeInstall(ctx context.Context) error {
+	cleanup, err := c.dial()
+	if err != nil {
+		return err
+	}
+	defer func() {
+		_ = cleanup()
+	}()
+
+	resp, err := c.client.OnieBootModeInstall(ctx, &pb.OnieBootModeInstallRequest{})
+	if err != nil {
+		return err
+	}
+
+	if resp.GetStatus().Code != 0 {
+		return fmt.Errorf("failed to set ONIE boot mode: %s", resp.GetStatus().GetMessage())
+	}
+
+	return nil
+}
+
+func (c *defaultSwitchAgentClient) RestartSystemdService(ctx context.Context, serviceName string) error {
+	cleanup, err := c.dial()
+	if err != nil {
+		return err
+	}
+	defer func() {
+		_ = cleanup()
+	}()
+
+	resp, err := c.client.RestartSystemdService(ctx, &pb.RestartSystemdServiceRequest{
+		ServiceName: serviceName,
+	})
+	if err != nil {
+		return err
+	}
+
+	if resp.GetStatus().Code != 0 {
+		return fmt.Errorf("failed to restart systemd service %s: %s", serviceName, resp.GetStatus().GetMessage())
 	}
 
 	return nil

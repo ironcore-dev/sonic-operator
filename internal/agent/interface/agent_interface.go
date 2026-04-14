@@ -22,4 +22,7 @@ type SwitchAgent interface {
 	ListPorts(ctx context.Context) (*agent.PortList, *agent.Status)
 
 	SaveConfig(ctx context.Context) *agent.Status
+	Reboot(ctx context.Context) *agent.Status
+	OnieBootModeInstall(ctx context.Context) *agent.Status
+	RestartSystemdService(ctx context.Context, serviceName string) *agent.Status
 }

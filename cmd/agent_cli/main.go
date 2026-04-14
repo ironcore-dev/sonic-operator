@@ -4,6 +4,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 
 	commands "github.com/ironcore-dev/sonic-operator/internal/agent/agent_client/commands"
@@ -16,6 +17,7 @@ func main() {
 
 	// Execute the command
 	if err := cmd.Execute(); err != nil {
+		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 }

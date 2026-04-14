@@ -22,6 +22,9 @@ func Gnoi() *cobra.Command {
 
 	subcommands := []*cobra.Command{
 		SaveConfig(),
+		Reboot(),
+		OnieBootModeInstall(),
+		RestartSystemdService(),
 	}
 
 	cmd.AddCommand(subcommands...)
@@ -47,9 +50,89 @@ func RunSaveConfig(
 ) error {
 	err := c.SaveConfig(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to save config: %w", err)
+		return err
 	}
 
 	_, err = fmt.Fprintln(os.Stdout, "Config saved successfully")
+	return err
+}
+
+func Reboot() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:     "reboot",
+		Short:   "Reboot the switch",
+		Example: "agent_cli gnoi reboot",
+		Args:    cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return RunReboot(cmd.Context(), GetSharedSwitchAgentClient())
+		},
+	}
+	return cmd
+}
+
+func RunReboot(
+	ctx context.Context,
+	c client.SwitchAgentClient,
+) error {
+	err := c.Reboot(ctx)
+	if err != nil {
+		return err
+	}
+
+	_, err = fmt.Fprintln(os.Stdout, "Reboot command sent successfully")
+	return err
+}
+
+func OnieBootModeInstall() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:     "onie-boot-mode-install",
+		Short:   "set next entry to ONIE boot mode",
+		Example: "agent_cli gnoi onie-boot-mode-install",
+		Args:    cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return RunOnieBootModeInstall(cmd.Context(), GetSharedSwitchAgentClient())
+		},
+	}
+	return cmd
+}
+
+func RunOnieBootModeInstall(
+	ctx context.Context,
+	c client.SwitchAgentClient,
+) error {
+	err := c.OnieBootModeInstall(ctx)
+	if err != nil {
+		return err
+	}
+
+	_, err = fmt.Fprintln(os.Stdout, "ONIE boot mode set successfully")
+	return err
+}
+
+func RestartSystemdService() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:     "restart-systemd-service [service-name]",
+		Short:   "Restart a systemd service",
+		Example: "agent_cli gnoi restart-systemd-service <service-name>",
+		Args:    cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			serviceName := args[0]
+			return RunRestartSystemdService(cmd.Context(), GetSharedSwitchAgentClient(), serviceName)
+		},
+	}
+	return cmd
+}
+
+func RunRestartSystemdService(
+	ctx context.Context,
+	c client.SwitchAgentClient,
+	serviceName string,
+) error {
+	err := c.RestartSystemdService(ctx, serviceName)
+	if err != nil {
+		return err
+	}
+
+	_, err = fmt.Fprintf(os.Stdout, "Systemd service %q restarted successfully\n", serviceName)
 	return err
 }

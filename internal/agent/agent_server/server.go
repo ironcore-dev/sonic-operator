@@ -266,12 +266,75 @@ func (s *proxyServer) SaveConfig(ctx context.Context, request *pb.SaveConfigRequ
 		return &pb.SaveConfigResponse{
 			Status: &pb.Status{
 				Code:    status.Code,
-				Message: fmt.Sprintf("failed to save config: %v", status.Message),
+				Message: status.Message,
 			},
 		}, nil
 	}
 
 	return &pb.SaveConfigResponse{
+		Status: &pb.Status{
+			Code:    0,
+			Message: "Success",
+		},
+	}, nil
+}
+
+func (s *proxyServer) Reboot(ctx context.Context, request *pb.RebootRequest) (*pb.RebootResponse, error) {
+	log.Printf("Reboot called")
+
+	status := s.SwitchAgent.Reboot(ctx)
+	if status != nil {
+		return &pb.RebootResponse{
+			Status: &pb.Status{
+				Code:    status.Code,
+				Message: status.Message,
+			},
+		}, nil
+	}
+
+	return &pb.RebootResponse{
+		Status: &pb.Status{
+			Code:    0,
+			Message: "Success",
+		},
+	}, nil
+}
+
+func (s *proxyServer) OnieBootModeInstall(ctx context.Context, request *pb.OnieBootModeInstallRequest) (*pb.OnieBootModeInstallResponse, error) {
+	log.Printf("OnieBootModeInstall called")
+
+	status := s.SwitchAgent.OnieBootModeInstall(ctx)
+	if status != nil {
+		return &pb.OnieBootModeInstallResponse{
+			Status: &pb.Status{
+				Code:    status.Code,
+				Message: status.Message,
+			},
+		}, nil
+	}
+
+	return &pb.OnieBootModeInstallResponse{
+		Status: &pb.Status{
+			Code:    0,
+			Message: "Success",
+		},
+	}, nil
+}
+
+func (s *proxyServer) RestartSystemdService(ctx context.Context, request *pb.RestartSystemdServiceRequest) (*pb.RestartSystemdServiceResponse, error) {
+	log.Printf("RestartSystemdService called: service=%s", request.GetServiceName())
+
+	status := s.SwitchAgent.RestartSystemdService(ctx, request.GetServiceName())
+	if status != nil {
+		return &pb.RestartSystemdServiceResponse{
+			Status: &pb.Status{
+				Code:    status.Code,
+				Message: status.Message,
+			},
+		}, nil
+	}
+
+	return &pb.RestartSystemdServiceResponse{
 		Status: &pb.Status{
 			Code:    0,
 			Message: "Success",

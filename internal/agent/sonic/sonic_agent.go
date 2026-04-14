@@ -11,8 +11,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/godbus/dbus/v5"
 	errors "github.com/ironcore-dev/sonic-operator/internal/agent/errors"
+	"github.com/ironcore-dev/sonic-operator/internal/agent/sonic/hostservices"
 	agent "github.com/ironcore-dev/sonic-operator/internal/agent/types"
 
 	"github.com/redis/go-redis/v9"
@@ -29,11 +29,18 @@ const (
 	RedisMaxRetryBackoff = 10 * time.Second
 	RedisDefaultTimeout  = 5 * time.Second
 )
+const (
+	ProfileEdgecore = "edgecore"
+	ProfileDefault  = "default"
+)
 
 type SonicAgent struct {
 	redisAddr  string
 	clientPool map[string]*redis.Client
 	poolMutex  sync.RWMutex
+	OSVersion  string
+	OSProfile  string
+	dbusClient hostservices.DbusClient
 }
 
 func getRedisDBIDByName(name string) int {
@@ -96,11 +103,97 @@ func NewSonicRedisAgent(redisAddr string) (*SonicAgent, error) {
 		return nil, fmt.Errorf("failed to close Redis client: %w", err)
 	}
 
-	return &SonicAgent{
+	var osVersion string
+	var osProfile string
+	if versionInfo, err := GetSonicVersionInfo(); err == nil {
+		if buildVersion, exists := versionInfo["build_version"]; exists {
+			osVersion = buildVersion
+
+			if strings.Contains(osVersion, "Edgecore-SONiC") {
+				osProfile = ProfileEdgecore
+			} else {
+				osProfile = ProfileDefault
+			}
+		}
+	} else {
+		log.Printf("Failed to get SONiC version info: %v", err)
+	}
+
+	if osProfile != "" {
+		log.Printf("Detected SONiC OS version: %s, profile: %s", osVersion, osProfile)
+	}
+
+	sa := &SonicAgent{
 		redisAddr:  redisAddr,
+		OSVersion:  osVersion,
+		OSProfile:  osProfile,
 		clientPool: make(map[string]*redis.Client),
 		poolMutex:  sync.RWMutex{},
-	}, nil
+	}
+
+	if osProfile != "" {
+		dbusClient, err := hostservices.NewSystemDbusClient()
+		if err != nil {
+			log.Printf("Failed to create D-Bus client: %v", err)
+		} else {
+			sa.dbusClient = dbusClient
+
+			go func() {
+				for {
+					// Wait for sonic-hostservice to be running before probing.
+					// After a reboot the agent starts faster than sonic-hostservice,
+					// so without this gate we'd incorrectly install modules and trigger
+					// a reboot/restart while the service is still coming up.
+					if !sa.dbusClient.ServiceAvailable(context.Background(), "org.SONiC.HostService") {
+						log.Printf("Waiting for sonic-hostservice (%s) to become available on D-Bus...", "org.SONiC.HostService")
+						time.Sleep(15 * time.Second)
+						continue
+					}
+
+					compatible, errors := hostservices.HostServicesCompatibilityCheck(context.Background(), sa.dbusClient, osProfile)
+					if len(errors) > 0 {
+						errMsgs := make([]string, len(errors))
+						for i, e := range errors {
+							errMsgs[i] = e.Error()
+						}
+						log.Printf("Error checking HostServices compatibility for profile %s:\n%s", osProfile, strings.Join(errMsgs, "\n"))
+
+						var modulesToInstall []hostservices.Handler
+						for _, h := range hostservices.Modules[osProfile].Handlers {
+							if h.Builtin {
+								continue
+							}
+							modulesToInstall = append(modulesToInstall, h)
+						}
+
+						for _, v := range modulesToInstall {
+							log.Println("Module to install: " + v.Name)
+						}
+						for _, h := range modulesToInstall {
+							if err := hostservices.InstallHostServiceModule(sa.dbusClient, osProfile, h.Name); err != nil {
+								log.Printf("Error installing HostService module %q: %v", h.Name, err)
+							}
+						}
+
+						if osProfile == ProfileEdgecore {
+							RestartSystemdService(context.Background(), sa.dbusClient, osProfile, "sonic-hostservice")
+						} else {
+							// Latest sonic-hostservices repository's systemd module has Allowlist which blocks
+							// restarting of all services. To work around this, we reboot the system.
+							// another possible solution could be ssh to host if we share the same network with host, and just restart the service.
+							sa.Reboot(context.Background())
+						}
+						time.Sleep(15 * time.Second)
+					} else {
+						log.Printf("HostServices compatibility for profile %s: %s", osProfile, compatible)
+						time.Sleep(1 * time.Minute)
+					}
+				}
+			}()
+		}
+	}
+
+	return sa, nil
 }
 
 func (m *SonicAgent) Connect(dbName string) (*redis.Client, error) {
@@ -320,27 +413,76 @@ func (m *SonicAgent) ListInterfaces(ctx context.Context) (*agent.InterfaceList, 
 	}, nil
 }
 
-func (m *SonicAgent) SaveConfig(ctx context.Context) *agent.Status {
-	conn, err := dbus.ConnectSystemBus()
-	if err != nil {
-		log.Printf("Failed to connect to system bus: %v", err)
-		return errors.NewErrorStatus(errors.BAD_REQUEST, fmt.Sprintf("failed to connect to D-Bus: %v", err))
-	}
-	defer func() {
-		err = conn.Close()
-		if err != nil {
-			log.Printf("Failed to close D-Bus connection: %v", err)
+func findHandler(profile, name string) (*hostservices.Handler, *agent.Status) {
+	for _, h := range hostservices.Modules[profile].Handlers {
+		if h.Name == name {
+			return &h, nil
 		}
-	}()
+	}
+	return nil, errors.NewErrorStatus(errors.BAD_REQUEST, fmt.Sprintf("no handler found for %s in profile %s", name, profile))
+}
 
-	obj := conn.Object("org.SONiC.HostService", "/org/SONiC/HostService/config")
-	call := obj.CallWithContext(ctx, "save", 0, "")
-	if call.Err != nil {
-		log.Printf("D-Bus call failed: %v", call.Err)
-		return errors.NewErrorStatus(errors.BAD_REQUEST, fmt.Sprintf("failed to save config via D-Bus: %v", call.Err))
+func (m *SonicAgent) SaveConfig(ctx context.Context) *agent.Status {
+	if m.dbusClient == nil {
+		return errors.NewErrorStatus(errors.BAD_REQUEST, "D-Bus client not available")
+	}
+	handler, status := findHandler(m.OSProfile, "save_config")
+	if status != nil {
+		return status
+	}
+
+	var arg *hostservices.Arg
+	for _, _arg := range handler.Args {
+		if _arg.Name == "default_config" {
+			arg = &_arg
+		}
+	}
+	if arg == nil {
+		return errors.NewErrorStatus(errors.BAD_REQUEST, fmt.Sprintf("argument 'default_config' not found for handler %s", handler.Name))
+	}
+
+	if err := m.dbusClient.CallHandler(ctx, *handler, arg.Value); err != nil {
+		log.Printf("D-Bus call failed: %v", err)
+		return errors.NewErrorStatus(errors.BAD_REQUEST, fmt.Sprintf("failed to save config via D-Bus: %v", err))
 	}
 
 	log.Printf("Config saved successfully via D-Bus")
+	return nil
+}
+
+func (m *SonicAgent) OnieBootModeInstall(ctx context.Context) *agent.Status {
+	if m.dbusClient == nil {
+		return errors.NewErrorStatus(errors.BAD_REQUEST, "D-Bus client not available")
+	}
+	handler, status := findHandler(m.OSProfile, "onie")
+	if status != nil {
+		return status
+	}
+
+	if err := m.dbusClient.CallHandler(ctx, *handler); err != nil {
+		log.Printf("D-Bus call failed: %v", err)
+		return errors.NewErrorStatus(errors.BAD_REQUEST, fmt.Sprintf("failed to set ONIE boot mode to install: %v", err))
+	}
+
+	log.Printf("ONIE boot mode set to install successfully via D-Bus")
+	return nil
+}
+
+func (m *SonicAgent) Reboot(ctx context.Context) *agent.Status {
+	if m.dbusClient == nil {
+		return errors.NewErrorStatus(errors.BAD_REQUEST, "D-Bus client not available")
+	}
+	handler, status := findHandler(m.OSProfile, "reboot")
+	if status != nil {
+		return status
+	}
+
+	if err := m.dbusClient.CallHandler(ctx, *handler, []string{`{"method":"COLD"}`}); err != nil {
+		log.Printf("D-Bus call failed: %v", err)
+		return errors.NewErrorStatus(errors.BAD_REQUEST, fmt.Sprintf("failed to reboot via D-Bus: %v", err))
+	}
+
+	log.Printf("Reboot command sent successfully via D-Bus")
 	return nil
 }
 
@@ -442,11 +584,6 @@ func (m *SonicAgent) SetInterfaceAdminStatus(ctx context.Context, iface *agent.I
 	if err != nil {
 		return nil, errors.NewErrorStatus(errors.REDIS_KEY_CHECK_FAIL, fmt.Sprintf("failed to get alias: %v", err))
 	}
-
-	// Return updated interface
-	updatedIface := *iface
-	updatedIface.OperationStatus = operStatus
-	updatedIface.AliasName = alias // alias name should not be changed by this function, but we return it anyway for the caller to have the latest info
 
 	abstractName, _ := agent.NativeNameToAbstractName(ifaceName)
 	resultInterface := &agent.Interface{
@@ -805,4 +942,25 @@ func (m *SonicAgent) SetInterfaceAliasName(ctx context.Context, iface *agent.Int
 	updatedIface.OperationStatus = operStatus
 
 	return &updatedIface, nil
+}
+
+func RestartSystemdService(ctx context.Context, client hostservices.DbusClient, profile string, systemdServiceName string) *agent.Status {
+	handler, status := findHandler(profile, "systemd_restart")
+	if status != nil {
+		return status
+	}
+
+	if err := client.CallHandler(ctx, *handler, systemdServiceName); err != nil {
+		log.Printf("D-Bus call failed: %v", err)
+		return errors.NewErrorStatus(errors.BAD_REQUEST, fmt.Sprintf("failed to restart systemd service %s via D-Bus: %v", systemdServiceName, err))
+	}
+	log.Printf("Systemd service %s restarted successfully via D-Bus", systemdServiceName)
+	return nil
+}
+
+func (m *SonicAgent) RestartSystemdService(ctx context.Context, Service string) *agent.Status {
+	if m.dbusClient == nil {
+		return errors.NewErrorStatus(errors.BAD_REQUEST, "D-Bus client not available")
+	}
+	return RestartSystemdService(ctx, m.dbusClient, m.OSProfile, Service)
 }

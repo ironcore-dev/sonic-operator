@@ -5,6 +5,7 @@ package controller
 
 import (
 	"context"
+	"time"
 
 	"github.com/go-logr/logr"
 	"github.com/ironcore-dev/controller-utils/clientutils"
@@ -197,7 +198,7 @@ func (r *SwitchInterfaceReconciler) reconcile(ctx context.Context, log logr.Logg
 	}
 
 	log.Info("Reconciled SwitchInterface")
-	return ctrl.Result{}, nil
+	return ctrl.Result{RequeueAfter: time.Second * 15}, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.

@@ -1057,6 +1057,254 @@ func (x *SaveConfigResponse) GetStatus() *Status {
 	return nil
 }
 
+type RebootRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RebootRequest) Reset() {
+	*x = RebootRequest{}
+	mi := &file_internal_agent_proto_switch_agent_proto_msgTypes[20]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RebootRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RebootRequest) ProtoMessage() {}
+
+func (x *RebootRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_agent_proto_switch_agent_proto_msgTypes[20]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RebootRequest.ProtoReflect.Descriptor instead.
+func (*RebootRequest) Descriptor() ([]byte, []int) {
+	return file_internal_agent_proto_switch_agent_proto_rawDescGZIP(), []int{20}
+}
+
+type RebootResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Status        *Status                `protobuf:"bytes,1,opt,name=status,proto3" json:"status,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RebootResponse) Reset() {
+	*x = RebootResponse{}
+	mi := &file_internal_agent_proto_switch_agent_proto_msgTypes[21]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RebootResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RebootResponse) ProtoMessage() {}
+
+func (x *RebootResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_agent_proto_switch_agent_proto_msgTypes[21]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RebootResponse.ProtoReflect.Descriptor instead.
+func (*RebootResponse) Descriptor() ([]byte, []int) {
+	return file_internal_agent_proto_switch_agent_proto_rawDescGZIP(), []int{21}
+}
+
+func (x *RebootResponse) GetStatus() *Status {
+	if x != nil {
+		return x.Status
+	}
+	return nil
+}
+
+type OnieBootModeInstallRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *OnieBootModeInstallRequest) Reset() {
+	*x = OnieBootModeInstallRequest{}
+	mi := &file_internal_agent_proto_switch_agent_proto_msgTypes[22]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *OnieBootModeInstallRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*OnieBootModeInstallRequest) ProtoMessage() {}
+
+func (x *OnieBootModeInstallRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_agent_proto_switch_agent_proto_msgTypes[22]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use OnieBootModeInstallRequest.ProtoReflect.Descriptor instead.
+func (*OnieBootModeInstallRequest) Descriptor() ([]byte, []int) {
+	return file_internal_agent_proto_switch_agent_proto_rawDescGZIP(), []int{22}
+}
+
+type OnieBootModeInstallResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Status        *Status                `protobuf:"bytes,1,opt,name=status,proto3" json:"status,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *OnieBootModeInstallResponse) Reset() {
+	*x = OnieBootModeInstallResponse{}
+	mi := &file_internal_agent_proto_switch_agent_proto_msgTypes[23]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *OnieBootModeInstallResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*OnieBootModeInstallResponse) ProtoMessage() {}
+
+func (x *OnieBootModeInstallResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_agent_proto_switch_agent_proto_msgTypes[23]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use OnieBootModeInstallResponse.ProtoReflect.Descriptor instead.
+func (*OnieBootModeInstallResponse) Descriptor() ([]byte, []int) {
+	return file_internal_agent_proto_switch_agent_proto_rawDescGZIP(), []int{23}
+}
+
+func (x *OnieBootModeInstallResponse) GetStatus() *Status {
+	if x != nil {
+		return x.Status
+	}
+	return nil
+}
+
+type RestartSystemdServiceRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ServiceName   string                 `protobuf:"bytes,1,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RestartSystemdServiceRequest) Reset() {
+	*x = RestartSystemdServiceRequest{}
+	mi := &file_internal_agent_proto_switch_agent_proto_msgTypes[24]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RestartSystemdServiceRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RestartSystemdServiceRequest) ProtoMessage() {}
+
+func (x *RestartSystemdServiceRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_agent_proto_switch_agent_proto_msgTypes[24]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RestartSystemdServiceRequest.ProtoReflect.Descriptor instead.
+func (*RestartSystemdServiceRequest) Descriptor() ([]byte, []int) {
+	return file_internal_agent_proto_switch_agent_proto_rawDescGZIP(), []int{24}
+}
+
+func (x *RestartSystemdServiceRequest) GetServiceName() string {
+	if x != nil {
+		return x.ServiceName
+	}
+	return ""
+}
+
+type RestartSystemdServiceResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Status        *Status                `protobuf:"bytes,1,opt,name=status,proto3" json:"status,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RestartSystemdServiceResponse) Reset() {
+	*x = RestartSystemdServiceResponse{}
+	mi := &file_internal_agent_proto_switch_agent_proto_msgTypes[25]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RestartSystemdServiceResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RestartSystemdServiceResponse) ProtoMessage() {}
+
+func (x *RestartSystemdServiceResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_agent_proto_switch_agent_proto_msgTypes[25]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RestartSystemdServiceResponse.ProtoReflect.Descriptor instead.
+func (*RestartSystemdServiceResponse) Descriptor() ([]byte, []int) {
+	return file_internal_agent_proto_switch_agent_proto_rawDescGZIP(), []int{25}
+}
+
+func (x *RestartSystemdServiceResponse) GetStatus() *Status {
+	if x != nil {
+		return x.Status
+	}
+	return nil
+}
+
 var File_internal_agent_proto_switch_agent_proto protoreflect.FileDescriptor
 
 const file_internal_agent_proto_switch_agent_proto_rawDesc = "" +
@@ -1128,7 +1376,17 @@ const file_internal_agent_proto_switch_agent_proto_rawDesc = "" +
 	"\tinterface\x18\x02 \x01(\v2\x19.switchagent.v1.InterfaceR\tinterface\"\x13\n" +
 	"\x11SaveConfigRequest\"D\n" +
 	"\x12SaveConfigResponse\x12.\n" +
-	"\x06status\x18\x01 \x01(\v2\x16.switchagent.v1.StatusR\x06status2\xba\x06\n" +
+	"\x06status\x18\x01 \x01(\v2\x16.switchagent.v1.StatusR\x06status\"\x0f\n" +
+	"\rRebootRequest\"@\n" +
+	"\x0eRebootResponse\x12.\n" +
+	"\x06status\x18\x01 \x01(\v2\x16.switchagent.v1.StatusR\x06status\"\x1c\n" +
+	"\x1aOnieBootModeInstallRequest\"M\n" +
+	"\x1bOnieBootModeInstallResponse\x12.\n" +
+	"\x06status\x18\x01 \x01(\v2\x16.switchagent.v1.StatusR\x06status\"A\n" +
+	"\x1cRestartSystemdServiceRequest\x12!\n" +
+	"\fservice_name\x18\x01 \x01(\tR\vserviceName\"O\n" +
+	"\x1dRestartSystemdServiceResponse\x12.\n" +
+	"\x06status\x18\x01 \x01(\v2\x16.switchagent.v1.StatusR\x06status2\xe9\b\n" +
 	"\x12SwitchAgentService\x12\\\n" +
 	"\rGetDeviceInfo\x12$.switchagent.v1.GetDeviceInfoRequest\x1a%.switchagent.v1.GetDeviceInfoResponse\x12_\n" +
 	"\x0eListInterfaces\x12%.switchagent.v1.ListInterfacesRequest\x1a&.switchagent.v1.ListInterfacesResponse\x12z\n" +
@@ -1138,7 +1396,10 @@ const file_internal_agent_proto_switch_agent_proto_rawDesc = "" +
 	"\x14GetInterfaceNeighbor\x12+.switchagent.v1.GetInterfaceNeighborRequest\x1a,.switchagent.v1.GetInterfaceNeighborResponse\x12P\n" +
 	"\tListPorts\x12 .switchagent.v1.ListPortsRequest\x1a!.switchagent.v1.ListPortsResponse\x12S\n" +
 	"\n" +
-	"SaveConfig\x12!.switchagent.v1.SaveConfigRequest\x1a\".switchagent.v1.SaveConfigResponseB\x14Z\x12./switchagentprotob\x06proto3"
+	"SaveConfig\x12!.switchagent.v1.SaveConfigRequest\x1a\".switchagent.v1.SaveConfigResponse\x12G\n" +
+	"\x06Reboot\x12\x1d.switchagent.v1.RebootRequest\x1a\x1e.switchagent.v1.RebootResponse\x12n\n" +
+	"\x13OnieBootModeInstall\x12*.switchagent.v1.OnieBootModeInstallRequest\x1a+.switchagent.v1.OnieBootModeInstallResponse\x12t\n" +
+	"\x15RestartSystemdService\x12,.switchagent.v1.RestartSystemdServiceRequest\x1a-.switchagent.v1.RestartSystemdServiceResponseB\x14Z\x12./switchagentprotob\x06proto3"
 
 var (
 	file_internal_agent_proto_switch_agent_proto_rawDescOnce sync.Once
@@ -1152,7 +1413,7 @@ func file_internal_agent_proto_switch_agent_proto_rawDescGZIP() []byte {
 	return file_internal_agent_proto_switch_agent_proto_rawDescData
 }
 
-var file_internal_agent_proto_switch_agent_proto_msgTypes = make([]protoimpl.MessageInfo, 20)
+var file_internal_agent_proto_switch_agent_proto_msgTypes = make([]protoimpl.MessageInfo, 26)
 var file_internal_agent_proto_switch_agent_proto_goTypes = []any{
 	(*Status)(nil),                          // 0: switchagent.v1.Status
 	(*GetDeviceInfoRequest)(nil),            // 1: switchagent.v1.GetDeviceInfoRequest
@@ -1174,6 +1435,12 @@ var file_internal_agent_proto_switch_agent_proto_goTypes = []any{
 	(*SetInterfaceAliasNameResponse)(nil),   // 17: switchagent.v1.SetInterfaceAliasNameResponse
 	(*SaveConfigRequest)(nil),               // 18: switchagent.v1.SaveConfigRequest
 	(*SaveConfigResponse)(nil),              // 19: switchagent.v1.SaveConfigResponse
+	(*RebootRequest)(nil),                   // 20: switchagent.v1.RebootRequest
+	(*RebootResponse)(nil),                  // 21: switchagent.v1.RebootResponse
+	(*OnieBootModeInstallRequest)(nil),      // 22: switchagent.v1.OnieBootModeInstallRequest
+	(*OnieBootModeInstallResponse)(nil),     // 23: switchagent.v1.OnieBootModeInstallResponse
+	(*RestartSystemdServiceRequest)(nil),    // 24: switchagent.v1.RestartSystemdServiceRequest
+	(*RestartSystemdServiceResponse)(nil),   // 25: switchagent.v1.RestartSystemdServiceResponse
 }
 var file_internal_agent_proto_switch_agent_proto_depIdxs = []int32{
 	0,  // 0: switchagent.v1.GetDeviceInfoResponse.status:type_name -> switchagent.v1.Status
@@ -1190,27 +1457,36 @@ var file_internal_agent_proto_switch_agent_proto_depIdxs = []int32{
 	0,  // 11: switchagent.v1.SetInterfaceAliasNameResponse.status:type_name -> switchagent.v1.Status
 	3,  // 12: switchagent.v1.SetInterfaceAliasNameResponse.interface:type_name -> switchagent.v1.Interface
 	0,  // 13: switchagent.v1.SaveConfigResponse.status:type_name -> switchagent.v1.Status
-	1,  // 14: switchagent.v1.SwitchAgentService.GetDeviceInfo:input_type -> switchagent.v1.GetDeviceInfoRequest
-	4,  // 15: switchagent.v1.SwitchAgentService.ListInterfaces:input_type -> switchagent.v1.ListInterfacesRequest
-	6,  // 16: switchagent.v1.SwitchAgentService.SetInterfaceAdminStatus:input_type -> switchagent.v1.SetInterfaceAdminStatusRequest
-	16, // 17: switchagent.v1.SwitchAgentService.SetInterfaceAliasName:input_type -> switchagent.v1.SetInterfaceAliasNameRequest
-	14, // 18: switchagent.v1.SwitchAgentService.GetInterface:input_type -> switchagent.v1.GetInterfaceRequest
-	11, // 19: switchagent.v1.SwitchAgentService.GetInterfaceNeighbor:input_type -> switchagent.v1.GetInterfaceNeighborRequest
-	8,  // 20: switchagent.v1.SwitchAgentService.ListPorts:input_type -> switchagent.v1.ListPortsRequest
-	18, // 21: switchagent.v1.SwitchAgentService.SaveConfig:input_type -> switchagent.v1.SaveConfigRequest
-	2,  // 22: switchagent.v1.SwitchAgentService.GetDeviceInfo:output_type -> switchagent.v1.GetDeviceInfoResponse
-	5,  // 23: switchagent.v1.SwitchAgentService.ListInterfaces:output_type -> switchagent.v1.ListInterfacesResponse
-	7,  // 24: switchagent.v1.SwitchAgentService.SetInterfaceAdminStatus:output_type -> switchagent.v1.SetInterfaceAdminStatusResponse
-	17, // 25: switchagent.v1.SwitchAgentService.SetInterfaceAliasName:output_type -> switchagent.v1.SetInterfaceAliasNameResponse
-	15, // 26: switchagent.v1.SwitchAgentService.GetInterface:output_type -> switchagent.v1.GetInterfaceResponse
-	13, // 27: switchagent.v1.SwitchAgentService.GetInterfaceNeighbor:output_type -> switchagent.v1.GetInterfaceNeighborResponse
-	9,  // 28: switchagent.v1.SwitchAgentService.ListPorts:output_type -> switchagent.v1.ListPortsResponse
-	19, // 29: switchagent.v1.SwitchAgentService.SaveConfig:output_type -> switchagent.v1.SaveConfigResponse
-	22, // [22:30] is the sub-list for method output_type
-	14, // [14:22] is the sub-list for method input_type
-	14, // [14:14] is the sub-list for extension type_name
-	14, // [14:14] is the sub-list for extension extendee
-	0,  // [0:14] is the sub-list for field type_name
+	0,  // 14: switchagent.v1.RebootResponse.status:type_name -> switchagent.v1.Status
+	0,  // 15: switchagent.v1.OnieBootModeInstallResponse.status:type_name -> switchagent.v1.Status
+	0,  // 16: switchagent.v1.RestartSystemdServiceResponse.status:type_name -> switchagent.v1.Status
+	1,  // 17: switchagent.v1.SwitchAgentService.GetDeviceInfo:input_type -> switchagent.v1.GetDeviceInfoRequest
+	4,  // 18: switchagent.v1.SwitchAgentService.ListInterfaces:input_type -> switchagent.v1.ListInterfacesRequest
+	6,  // 19: switchagent.v1.SwitchAgentService.SetInterfaceAdminStatus:input_type -> switchagent.v1.SetInterfaceAdminStatusRequest
+	16, // 20: switchagent.v1.SwitchAgentService.SetInterfaceAliasName:input_type -> switchagent.v1.SetInterfaceAliasNameRequest
+	14, // 21: switchagent.v1.SwitchAgentService.GetInterface:input_type -> switchagent.v1.GetInterfaceRequest
+	11, // 22: switchagent.v1.SwitchAgentService.GetInterfaceNeighbor:input_type -> switchagent.v1.GetInterfaceNeighborRequest
+	8,  // 23: switchagent.v1.SwitchAgentService.ListPorts:input_type -> switchagent.v1.ListPortsRequest
+	18, // 24: switchagent.v1.SwitchAgentService.SaveConfig:input_type -> switchagent.v1.SaveConfigRequest
+	20, // 25: switchagent.v1.SwitchAgentService.Reboot:input_type -> switchagent.v1.RebootRequest
+	22, // 26: switchagent.v1.SwitchAgentService.OnieBootModeInstall:input_type -> switchagent.v1.OnieBootModeInstallRequest
+	24, // 27: switchagent.v1.SwitchAgentService.RestartSystemdService:input_type -> switchagent.v1.RestartSystemdServiceRequest
+	2,  // 28: switchagent.v1.SwitchAgentService.GetDeviceInfo:output_type -> switchagent.v1.GetDeviceInfoResponse
+	5,  // 29: switchagent.v1.SwitchAgentService.ListInterfaces:output_type -> switchagent.v1.ListInterfacesResponse
+	7,  // 30: switchagent.v1.SwitchAgentService.SetInterfaceAdminStatus:output_type -> switchagent.v1.SetInterfaceAdminStatusResponse
+	17, // 31: switchagent.v1.SwitchAgentService.SetInterfaceAliasName:output_type -> switchagent.v1.SetInterfaceAliasNameResponse
+	15, // 32: switchagent.v1.SwitchAgentService.GetInterface:output_type -> switchagent.v1.GetInterfaceResponse
+	13, // 33: switchagent.v1.SwitchAgentService.GetInterfaceNeighbor:output_type -> switchagent.v1.GetInterfaceNeighborResponse
+	9,  // 34: switchagent.v1.SwitchAgentService.ListPorts:output_type -> switchagent.v1.ListPortsResponse
+	19, // 35: switchagent.v1.SwitchAgentService.SaveConfig:output_type -> switchagent.v1.SaveConfigResponse
+	21, // 36: switchagent.v1.SwitchAgentService.Reboot:output_type -> switchagent.v1.RebootResponse
+	23, // 37: switchagent.v1.SwitchAgentService.OnieBootModeInstall:output_type -> switchagent.v1.OnieBootModeInstallResponse
+	25, // 38: switchagent.v1.SwitchAgentService.RestartSystemdService:output_type -> switchagent.v1.RestartSystemdServiceResponse
+	28, // [28:39] is the sub-list for method output_type
+	17, // [17:28] is the sub-list for method input_type
+	17, // [17:17] is the sub-list for extension type_name
+	17, // [17:17] is the sub-list for extension extendee
+	0,  // [0:17] is the sub-list for field type_name
 }
 
 func init() { file_internal_agent_proto_switch_agent_proto_init() }
@@ -1224,7 +1500,7 @@ func file_internal_agent_proto_switch_agent_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_internal_agent_proto_switch_agent_proto_rawDesc), len(file_internal_agent_proto_switch_agent_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   20,
+			NumMessages:   26,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

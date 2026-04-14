@@ -111,6 +111,30 @@ message SaveConfigResponse {
   Status status = 1;
 }
 
+message RebootRequest {
+  // Empty request
+}
+
+message RebootResponse {
+  Status status = 1;
+}
+
+message OnieBootModeInstallRequest {
+  // Empty request
+}
+
+message OnieBootModeInstallResponse {
+  Status status = 1;
+}
+
+message RestartSystemdServiceRequest {
+  string service_name = 1;
+}
+
+message RestartSystemdServiceResponse {
+  Status status = 1;
+}
+
 // The interface service definition.
 service SwitchAgentService {
 
@@ -126,6 +150,9 @@ service SwitchAgentService {
   rpc ListPorts(ListPortsRequest) returns (ListPortsResponse);
   // gNOI alternatives
   rpc SaveConfig (SaveConfigRequest) returns (SaveConfigResponse);
+  rpc Reboot (RebootRequest) returns (RebootResponse);
+  rpc OnieBootModeInstall (OnieBootModeInstallRequest) returns (OnieBootModeInstallResponse);
+  rpc RestartSystemdService (RestartSystemdServiceRequest) returns (RestartSystemdServiceResponse);
 
 }
 

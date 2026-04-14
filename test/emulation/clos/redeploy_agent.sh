@@ -52,12 +52,19 @@ for service in $(kubectl get -n c9s-clos svc -o jsonpath='{.items[*].metadata.na
     docker rm -f "${REMOTE_CONTAINER_NAME}" || true
 
     echo "Starting new container '${REMOTE_CONTAINER_NAME}' with image '${REMOTE_IMAGE_SPEC}'..."
+    # /usr/local/lib and sonic-host-server are mounted rw so the agent can install
+    # and patch host-service modules directly on the host. This grants the container
+    # write access to host system paths — intentional but should be reviewed if
+    # the security posture of the target environment changes.
     docker run -d --user 0 \
       --name "${REMOTE_CONTAINER_NAME}" \
       --entrypoint /switch-agent-server \
       --network host \
       --restart unless-stopped \
       -v /var/run/dbus:/var/run/dbus:rw \
+      -v /etc/sonic/sonic_version.yml:/etc/sonic/sonic_version.yml:ro \
+      -v /usr/local/lib/:/usr/local/lib/:rw \
+      -v /usr/local/bin/sonic-host-server:/usr/local/bin/sonic-host-server:rw \
       "${REMOTE_IMAGE_SPEC}" \
       -port 57400
 EOF

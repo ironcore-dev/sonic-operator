@@ -12,3 +12,7 @@
 
 # Re-include template files for go:embed
 !**/*.gotmpl
+
+# Re-include embedded host-service module files
+!**/*.yaml
+!**/*.py

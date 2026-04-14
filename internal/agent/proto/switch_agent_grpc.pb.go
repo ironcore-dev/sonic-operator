@@ -28,6 +28,9 @@ const (
 	SwitchAgentService_GetInterfaceNeighbor_FullMethodName    = "/switchagent.v1.SwitchAgentService/GetInterfaceNeighbor"
 	SwitchAgentService_ListPorts_FullMethodName               = "/switchagent.v1.SwitchAgentService/ListPorts"
 	SwitchAgentService_SaveConfig_FullMethodName              = "/switchagent.v1.SwitchAgentService/SaveConfig"
+	SwitchAgentService_Reboot_FullMethodName                  = "/switchagent.v1.SwitchAgentService/Reboot"
+	SwitchAgentService_OnieBootModeInstall_FullMethodName     = "/switchagent.v1.SwitchAgentService/OnieBootModeInstall"
+	SwitchAgentService_RestartSystemdService_FullMethodName   = "/switchagent.v1.SwitchAgentService/RestartSystemdService"
 )
 
 // SwitchAgentServiceClient is the client API for SwitchAgentService service.
@@ -45,6 +48,9 @@ type SwitchAgentServiceClient interface {
 	ListPorts(ctx context.Context, in *ListPortsRequest, opts ...grpc.CallOption) (*ListPortsResponse, error)
 	// gNOI alternatives
 	SaveConfig(ctx context.Context, in *SaveConfigRequest, opts ...grpc.CallOption) (*SaveConfigResponse, error)
+	Reboot(ctx context.Context, in *RebootRequest, opts ...grpc.CallOption) (*RebootResponse, error)
+	OnieBootModeInstall(ctx context.Context, in *OnieBootModeInstallRequest, opts ...grpc.CallOption) (*OnieBootModeInstallResponse, error)
+	RestartSystemdService(ctx context.Context, in *RestartSystemdServiceRequest, opts ...grpc.CallOption) (*RestartSystemdServiceResponse, error)
 }
 
 type switchAgentServiceClient struct {
@@ -135,6 +141,36 @@ func (c *switchAgentServiceClient) SaveConfig(ctx context.Context, in *SaveConfi
 	return out, nil
 }
 
+func (c *switchAgentServiceClient) Reboot(ctx context.Context, in *RebootRequest, opts ...grpc.CallOption) (*RebootResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RebootResponse)
+	err := c.cc.Invoke(ctx, SwitchAgentService_Reboot_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *switchAgentServiceClient) OnieBootModeInstall(ctx context.Context, in *OnieBootModeInstallRequest, opts ...grpc.CallOption) (*OnieBootModeInstallResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(OnieBootModeInstallResponse)
+	err := c.cc.Invoke(ctx, SwitchAgentService_OnieBootModeInstall_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *switchAgentServiceClient) RestartSystemdService(ctx context.Context, in *RestartSystemdServiceRequest, opts ...grpc.CallOption) (*RestartSystemdServiceResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RestartSystemdServiceResponse)
+	err := c.cc.Invoke(ctx, SwitchAgentService_RestartSystemdService_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // SwitchAgentServiceServer is the server API for SwitchAgentService service.
 // All implementations must embed UnimplementedSwitchAgentServiceServer
 // for forward compatibility.
@@ -150,6 +186,9 @@ type SwitchAgentServiceServer interface {
 	ListPorts(context.Context, *ListPortsRequest) (*ListPortsResponse, error)
 	// gNOI alternatives
 	SaveConfig(context.Context, *SaveConfigRequest) (*SaveConfigResponse, error)
+	Reboot(context.Context, *RebootRequest) (*RebootResponse, error)
+	OnieBootModeInstall(context.Context, *OnieBootModeInstallRequest) (*OnieBootModeInstallResponse, error)
+	RestartSystemdService(context.Context, *RestartSystemdServiceRequest) (*RestartSystemdServiceResponse, error)
 	mustEmbedUnimplementedSwitchAgentServiceServer()
 }
 
@@ -183,6 +222,15 @@ func (UnimplementedSwitchAgentServiceServer) ListPorts(context.Context, *ListPor
 }
 func (UnimplementedSwitchAgentServiceServer) SaveConfig(context.Context, *SaveConfigRequest) (*SaveConfigResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method SaveConfig not implemented")
+}
+func (UnimplementedSwitchAgentServiceServer) Reboot(context.Context, *RebootRequest) (*RebootResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method Reboot not implemented")
+}
+func (UnimplementedSwitchAgentServiceServer) OnieBootModeInstall(context.Context, *OnieBootModeInstallRequest) (*OnieBootModeInstallResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method OnieBootModeInstall not implemented")
+}
+func (UnimplementedSwitchAgentServiceServer) RestartSystemdService(context.Context, *RestartSystemdServiceRequest) (*RestartSystemdServiceResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method RestartSystemdService not implemented")
 }
 func (UnimplementedSwitchAgentServiceServer) mustEmbedUnimplementedSwitchAgentServiceServer() {}
 func (UnimplementedSwitchAgentServiceServer) testEmbeddedByValue()                            {}
@@ -349,6 +397,60 @@ func _SwitchAgentService_SaveConfig_Handler(srv interface{}, ctx context.Context
 	return interceptor(ctx, in, info, handler)
 }
 
+func _SwitchAgentService_Reboot_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RebootRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(SwitchAgentServiceServer).Reboot(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: SwitchAgentService_Reboot_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(SwitchAgentServiceServer).Reboot(ctx, req.(*RebootRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _SwitchAgentService_OnieBootModeInstall_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(OnieBootModeInstallRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(SwitchAgentServiceServer).OnieBootModeInstall(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: SwitchAgentService_OnieBootModeInstall_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(SwitchAgentServiceServer).OnieBootModeInstall(ctx, req.(*OnieBootModeInstallRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _SwitchAgentService_RestartSystemdService_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RestartSystemdServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(SwitchAgentServiceServer).RestartSystemdService(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: SwitchAgentService_RestartSystemdService_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(SwitchAgentServiceServer).RestartSystemdService(ctx, req.(*RestartSystemdServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // SwitchAgentService_ServiceDesc is the grpc.ServiceDesc for SwitchAgentService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -387,6 +489,18 @@ var SwitchAgentService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "SaveConfig",
 			Handler:    _SwitchAgentService_SaveConfig_Handler,
+		},
+		{
+			MethodName: "Reboot",
+			Handler:    _SwitchAgentService_Reboot_Handler,
+		},
+		{
+			MethodName: "OnieBootModeInstall",
+			Handler:    _SwitchAgentService_OnieBootModeInstall_Handler,
+		},
+		{
+			MethodName: "RestartSystemdService",
+			Handler:    _SwitchAgentService_RestartSystemdService_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
