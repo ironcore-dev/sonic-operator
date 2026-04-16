@@ -76,6 +76,7 @@ export default withMermaid({
           { text: 'Getting started', link: '/usage/getting-started' },
           { text: 'Provisioning', link: '/usage/provisioning' },
           { text: 'Agent', link: '/usage/agent' },
+          { text: 'Agent Metrics', link: '/usage/metrics' },
         ]
       },
       {
