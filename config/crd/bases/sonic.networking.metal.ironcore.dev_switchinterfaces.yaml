@@ -59,6 +59,10 @@ spec:
               handle:
                 description: Handle uniquely identifies this interface on the switch.
                 type: string
+              nativeName:
+                description: NativeName is the native name of the interface on the
+                  switch (e.g., "Ethernet0").
+                type: string
               switchRef:
                 description: SwitchRef is a reference to the Switch this interface
                   is connected to.
@@ -84,6 +88,9 @@ spec:
               adminState:
                 description: AdminState represents the desired administrative state
                   of the interface.
+                type: string
+              aliasName:
+                description: AliasName is the alias name of the interface.
                 type: string
               conditions:
                 description: The status of each condition is one of True, False, or

@@ -46,7 +46,7 @@ echo "Destruction complete!"
 echo "All SONiC lab resources have been removed."
 
 # Cleanup Kind cluster used for e2e tests
-KIND_CLUSTER="sonic-operator-test-e2e"
+KIND_CLUSTER="clos-lab-kind"
 echo "Tearing down Kind cluster '${KIND_CLUSTER}'..."
 if command -v kind &> /dev/null; then
     kind delete cluster --name "${KIND_CLUSTER}" 2>/dev/null || true

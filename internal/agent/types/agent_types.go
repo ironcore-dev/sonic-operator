@@ -100,7 +100,10 @@ func (d *SwitchDevice) GetStatus() Status {
 type Interface struct {
 	TypeMeta `json:",inline"`
 
-	Name            string       `json:"name"`
+	Name       string `json:"name"`
+	NativeName string `json:"native_name"` // The native name of the interface on the switch, e.g., Ethernet0, PortChannel1, etc.
+	AliasName  string `json:"alias_name"`
+
 	MacAddress      string       `json:"mac_address"`
 	OperationStatus DeviceStatus `json:"operation_status"`
 	AdminStatus     DeviceStatus `json:"admin_status"`
@@ -110,6 +113,10 @@ type Interface struct {
 
 func (i *Interface) GetName() string {
 	return i.Name
+}
+
+func (i *Interface) GetNativeName() string {
+	return i.NativeName
 }
 
 func (i *Interface) GetStatus() Status {

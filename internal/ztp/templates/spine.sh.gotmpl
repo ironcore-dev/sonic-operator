@@ -136,8 +136,11 @@ config save -y
 
 # 9. Install Switch Operator Sonic Agent
 docker pull ghcr.io/ironcore-dev/sonic-agent:sha-5dfeeb5
-docker run --name sonic-agent --network=host --restart=always -d ghcr.io/ironcore-dev/sonic-agent:sha-5dfeeb5
-
+docker run -d --name sonic-agent --network=host --restart=always\
+    --user 0 \
+    -v /etc/sonic/sonic_version.yml:/etc/sonic/sonic_version.yml:ro \
+    -v /var/run/dbus:/var/run/dbus:rw \
+    ghcr.io/ironcore-dev/sonic-agent:sha-a0ea09d
 # 10. Stop ZTP daemon
 systemctl stop ztp
 config ztp disable

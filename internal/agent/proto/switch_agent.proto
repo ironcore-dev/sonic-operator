@@ -24,10 +24,14 @@ message GetDeviceInfoResponse {
 
 // The interface message containing details about a single interface.
 message Interface {
+ 
   string name = 1;
-  string operational_status = 2;
-  string admin_status = 3;
-  string mac_address = 4;
+  string native_name = 2;
+  string alias_name = 3;
+
+  string operational_status = 4;
+  string admin_status = 5;
+  string mac_address = 6;
 }
 
 // The request message containing the parameters for the request.
@@ -89,6 +93,24 @@ message GetInterfaceResponse {
   Interface interface = 2;
 }
 
+message SetInterfaceAliasNameRequest {
+  string interface_name = 1;
+  string alias_name = 2;
+}
+
+message SetInterfaceAliasNameResponse {
+  Status status = 1;
+  Interface interface = 2;
+}
+
+message SaveConfigRequest {
+  // Empty request
+}
+
+message SaveConfigResponse {
+  Status status = 1;
+}
+
 // The interface service definition.
 service SwitchAgentService {
 
@@ -96,9 +118,14 @@ service SwitchAgentService {
   
   rpc ListInterfaces(ListInterfacesRequest) returns (ListInterfacesResponse);
   rpc SetInterfaceAdminStatus(SetInterfaceAdminStatusRequest) returns (SetInterfaceAdminStatusResponse);
+  rpc SetInterfaceAliasName(SetInterfaceAliasNameRequest) returns (SetInterfaceAliasNameResponse);
+
   rpc GetInterface(GetInterfaceRequest) returns (GetInterfaceResponse);
   rpc GetInterfaceNeighbor(GetInterfaceNeighborRequest) returns (GetInterfaceNeighborResponse);
 
   rpc ListPorts(ListPortsRequest) returns (ListPortsResponse);
+  // gNOI alternatives
+  rpc SaveConfig (SaveConfigRequest) returns (SaveConfigResponse);
+
 }
 

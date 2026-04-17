@@ -21,6 +21,9 @@ type SwitchInterfaceSpec struct {
 	// Handle uniquely identifies this interface on the switch.
 	// +required
 	Handle string `json:"handle"`
+	// NativeName is the native name of the interface on the switch (e.g., "Ethernet0").
+	// +required +immutable
+	NativeName string `json:"nativeName,omitempty"`
 
 	// SwitchRef is a reference to the Switch this interface is connected to.
 	// +required
@@ -42,9 +45,10 @@ const (
 type SwitchInterfaceState string
 
 const (
-	SwitchInterfaceStatePending SwitchInterfaceState = "Pending"
-	SwitchInterfaceStateReady   SwitchInterfaceState = "Ready"
-	SwitchInterfaceStateFailed  SwitchInterfaceState = "Failed"
+	SwitchInterfaceStatePending      SwitchInterfaceState = "Pending"
+	SwitchInterfaceStateInitializing SwitchInterfaceState = "Initializing"
+	SwitchInterfaceStateReady        SwitchInterfaceState = "Ready"
+	SwitchInterfaceStateFailed       SwitchInterfaceState = "Failed"
 )
 
 // Neighbor represents a connected neighbor device.
@@ -80,6 +84,9 @@ type SwitchInterfaceStatus struct {
 	// MacAddress is the MAC address assigned to this interface.
 	// +optional
 	MacAddress string `json:"macAddress,omitempty"`
+	// AliasName is the alias name of the interface.
+	// +optional
+	AliasName string `json:"aliasName,omitempty"`
 
 	// The status of each condition is one of True, False, or Unknown.
 	// +listType=map

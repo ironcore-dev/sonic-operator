@@ -18,12 +18,16 @@ import (
 type SwitchAgentClient interface {
 	GetDeviceInfo(ctx context.Context) (*agent.SwitchDevice, error)
 	ListInterfaces(ctx context.Context) (*agent.InterfaceList, error)
-	GetInterface(ctx context.Context, iface *agent.Interface) (*agent.Interface, error)
+	GetInterfaceByAbstractName(ctx context.Context, iface *agent.Interface) (*agent.Interface, error)
+
 	GetInterfaceNeighbor(ctx context.Context, iface *agent.Interface) (*agent.InterfaceNeighbor, error)
 
 	SetInterfaceAdminStatus(ctx context.Context, iface *agent.Interface) (*agent.Interface, error)
+	SetInterfaceAliasName(ctx context.Context, iface *agent.Interface) (*agent.Interface, error)
 
 	ListPorts(ctx context.Context) (*agent.PortList, error)
+
+	SaveConfig(ctx context.Context) error
 }
 
 type defaultSwitchAgentClient struct {
@@ -127,6 +131,8 @@ func (c *defaultSwitchAgentClient) ListInterfaces(ctx context.Context) (*agent.I
 				Kind: agent.InterfaceKind,
 			},
 			Name:            iface.GetName(),
+			NativeName:      iface.GetNativeName(),
+			AliasName:       iface.GetAliasName(),
 			MacAddress:      iface.GetMacAddress(),
 			OperationStatus: agent.DeviceStatus(iface.GetOperationalStatus()),
 			AdminStatus:     agent.DeviceStatus(iface.GetAdminStatus()),
@@ -168,7 +174,10 @@ func (c *defaultSwitchAgentClient) SetInterfaceAdminStatus(ctx context.Context, 
 			Status: agent.ProtoStatusToStatus(resp.GetStatus()),
 		}, fmt.Errorf("failed to set interface admin status: %s", resp.GetStatus().GetMessage())
 	}
-
+	iface.Name = resp.GetInterface().GetName()
+	iface.AliasName = resp.GetInterface().GetAliasName()
+	iface.NativeName = resp.GetInterface().GetNativeName()
+	iface.MacAddress = resp.GetInterface().GetMacAddress()
 	iface.AdminStatus = agent.DeviceStatus(resp.GetInterface().GetAdminStatus())
 	iface.OperationStatus = agent.DeviceStatus(resp.GetInterface().GetOperationalStatus())
 	iface.Status = agent.ProtoStatusToStatus(resp.GetStatus())
@@ -176,7 +185,7 @@ func (c *defaultSwitchAgentClient) SetInterfaceAdminStatus(ctx context.Context, 
 	return iface, nil
 }
 
-func (c *defaultSwitchAgentClient) GetInterface(ctx context.Context, iface *agent.Interface) (*agent.Interface, error) {
+func (c *defaultSwitchAgentClient) GetInterfaceByAbstractName(ctx context.Context, iface *agent.Interface) (*agent.Interface, error) {
 	cleanup, err := c.dial()
 	if err != nil {
 		return nil, err
@@ -185,8 +194,13 @@ func (c *defaultSwitchAgentClient) GetInterface(ctx context.Context, iface *agen
 		_ = cleanup()
 	}()
 
+	nativeName, err := agent.AbstractNameToNativeName(iface.GetName())
+	if err != nil {
+		return nil, err
+	}
+
 	resp, err := c.client.GetInterface(ctx, &pb.GetInterfaceRequest{
-		InterfaceName: iface.GetName(),
+		InterfaceName: nativeName,
 	})
 	if err != nil {
 		return nil, err
@@ -202,7 +216,9 @@ func (c *defaultSwitchAgentClient) GetInterface(ctx context.Context, iface *agen
 		TypeMeta: agent.TypeMeta{
 			Kind: agent.InterfaceKind,
 		},
-		Name:            resp.GetInterface().GetName(),
+		Name:            resp.GetInterface().Name,
+		AliasName:       resp.GetInterface().AliasName,
+		NativeName:      resp.GetInterface().NativeName,
 		MacAddress:      resp.GetInterface().GetMacAddress(),
 		OperationStatus: agent.DeviceStatus(resp.GetInterface().GetOperationalStatus()),
 		AdminStatus:     agent.DeviceStatus(resp.GetInterface().GetAdminStatus()),
@@ -278,4 +294,57 @@ func (c *defaultSwitchAgentClient) ListPorts(ctx context.Context) (*agent.PortLi
 	}
 
 	return portList, nil
+}
+
+func (c *defaultSwitchAgentClient) SetInterfaceAliasName(ctx context.Context, iface *agent.Interface) (*agent.Interface, error) {
+	cleanup, err := c.dial()
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		_ = cleanup()
+	}()
+
+	resp, err := c.client.SetInterfaceAliasName(ctx, &pb.SetInterfaceAliasNameRequest{
+		InterfaceName: iface.GetName(),
+		AliasName:     iface.AliasName,
+	})
+	if err != nil {
+		fmt.Println("Error occurred while setting interface alias name:", err)
+		return nil, err
+	}
+
+	if resp.GetStatus().Code != 0 {
+		fmt.Println("Error occurred while setting interface alias name:", resp.GetStatus().GetMessage())
+		return &agent.Interface{
+			Status: agent.ProtoStatusToStatus(resp.GetStatus()),
+		}, fmt.Errorf("failed to set interface alias name: %s", resp.GetStatus().GetMessage())
+	}
+
+	iface.AdminStatus = agent.DeviceStatus(resp.GetInterface().GetAdminStatus())
+	iface.OperationStatus = agent.DeviceStatus(resp.GetInterface().GetOperationalStatus())
+	iface.Status = agent.ProtoStatusToStatus(resp.GetStatus())
+
+	return iface, nil
+}
+
+func (c *defaultSwitchAgentClient) SaveConfig(ctx context.Context) error {
+	cleanup, err := c.dial()
+	if err != nil {
+		return err
+	}
+	defer func() {
+		_ = cleanup()
+	}()
+
+	resp, err := c.client.SaveConfig(ctx, &pb.SaveConfigRequest{})
+	if err != nil {
+		return err
+	}
+
+	if resp.GetStatus().Code != 0 {
+		return fmt.Errorf("failed to save config: %s", resp.GetStatus().GetMessage())
+	}
+
+	return nil
 }
