@@ -22,13 +22,14 @@ func main() {
 }
 
 func Main() error {
-	if len(os.Args) != 4 {
-		return fmt.Errorf("usage: provisioning-server <listen-addr> <onie-dir> <ztp-conf>")
+	if len(os.Args) != 5 {
+		return fmt.Errorf("usage: provisioning-server <listen-addr> <onie-images-dir> <onie-config> <ztp-conf>")
 	}
 
 	listenAddr := os.Args[1]
-	onieInstallerDir := os.Args[2]
-	ztpConfigPath := os.Args[3]
+	onieImagesDir := os.Args[2]
+	onieConfigPath := os.Args[3]
+	ztpConfigPath := os.Args[4]
 
 	f, err := os.Open(ztpConfigPath)
 	if err != nil {
@@ -41,10 +42,20 @@ func Main() error {
 		return err
 	}
 
+	of, err := os.Open(onieConfigPath)
+	if err != nil {
+		return fmt.Errorf("unable to open onie config file: %w", err)
+	}
+
+	var onieConf onie.Config
+	if err := json.NewDecoder(of).Decode(&onieConf); err != nil {
+		return err
+	}
+
 	mux := http.NewServeMux()
 
 	ztp.Register(mux, ztpConf)
-	onie.Register(mux, onieInstallerDir)
+	onie.Register(mux, onieImagesDir, onieConf)
 
 	return http.ListenAndServe(listenAddr, mux)
 }

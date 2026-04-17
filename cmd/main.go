@@ -53,7 +53,7 @@ func main() {
 	var probeAddr string
 	var secureMetrics bool
 	var enableHTTP2 bool
-	var httpServerAddr, onieInstallerDir, ztpConfigFile string
+	var httpServerAddr, onieImagesDir, onieConfigFile, ztpConfigFile string
 	var tlsOpts []func(*tls.Config)
 	flag.StringVar(&metricsAddr, "metrics-bind-address", "0", "The address the metrics endpoint binds to. "+
 		"Use :8443 for HTTPS or :8080 for HTTP, or leave as 0 to disable the metrics service.")
@@ -74,7 +74,8 @@ func main() {
 		"If set, HTTP/2 will be enabled for the metrics and webhook servers")
 	flag.StringVar(&httpServerAddr, "http-server-address", "0", "The address the HTTP server for ZTP and ONIE binds to.")
 	flag.StringVar(&ztpConfigFile, "ztp-config-file", "/etc/ztp.json", "Config file containing the parameters to render ZTP scripts.")
-	flag.StringVar(&onieInstallerDir, "onie-installer-dir", "/var/lib/sonic-operator/onie", "The directory which contains the onie installer files.")
+	flag.StringVar(&onieImagesDir, "onie-images-dir", "/var/lib/sonic-operator/onie", "The directory which contains the ONIE and SONiC installer image files.")
+	flag.StringVar(&onieConfigFile, "onie-config-file", "/etc/onie.json", "Config file containing machine-to-image mappings for ONIE provisioning.")
 	opts := zap.Options{
 		Development: true,
 	}
@@ -207,7 +208,7 @@ func main() {
 	}
 
 	setupLog.Info("starting HTTP server")
-	provServer, err := setupProvisioningServer(httpServerAddr, onieInstallerDir, ztpConfigFile)
+	provServer, err := setupProvisioningServer(httpServerAddr, onieImagesDir, onieConfigFile, ztpConfigFile)
 	if err != nil {
 		setupLog.Error(err, "unable to setup HTTP server")
 		os.Exit(1)
@@ -227,7 +228,7 @@ func main() {
 	}
 }
 
-func setupProvisioningServer(addr string, onieInstallerDir string, ztpConfigPath string) (*http.Server, error) {
+func setupProvisioningServer(addr string, onieImagesDir string, onieConfigPath string, ztpConfigPath string) (*http.Server, error) {
 	f, err := os.Open(ztpConfigPath)
 	if err != nil {
 		return nil, fmt.Errorf("unable to open ztp config file: %w", err)
@@ -239,10 +240,20 @@ func setupProvisioningServer(addr string, onieInstallerDir string, ztpConfigPath
 		return nil, err
 	}
 
+	of, err := os.Open(onieConfigPath)
+	if err != nil {
+		return nil, fmt.Errorf("unable to open onie config file: %w", err)
+	}
+
+	var onieConf onie.Config
+	if err := json.NewDecoder(of).Decode(&onieConf); err != nil {
+		return nil, err
+	}
+
 	mux := http.NewServeMux()
 
 	ztp.Register(mux, ztpConf)
-	onie.Register(mux, onieInstallerDir)
+	onie.Register(mux, onieImagesDir, onieConf)
 
 	return &http.Server{
 		Addr:    addr,
