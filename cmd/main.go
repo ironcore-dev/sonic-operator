@@ -53,6 +53,7 @@ func main() {
 	var probeAddr string
 	var secureMetrics bool
 	var enableHTTP2 bool
+	var disableProvisionsingServer bool
 	var httpServerAddr, onieImagesDir, onieConfigFile, ztpConfigFile string
 	var tlsOpts []func(*tls.Config)
 	flag.StringVar(&metricsAddr, "metrics-bind-address", "0", "The address the metrics endpoint binds to. "+
@@ -76,6 +77,7 @@ func main() {
 	flag.StringVar(&ztpConfigFile, "ztp-config-file", "/etc/ztp.json", "Config file containing the parameters to render ZTP scripts.")
 	flag.StringVar(&onieImagesDir, "onie-images-dir", "/var/lib/sonic-operator/onie", "The directory which contains the ONIE and SONiC installer image files.")
 	flag.StringVar(&onieConfigFile, "onie-config-file", "/etc/onie.json", "Config file containing machine-to-image mappings for ONIE provisioning.")
+	flag.BoolVar(&disableProvisionsingServer, "disable-provisioning-server", false, "If set, the HTTP server for ZTP and ONIE will not be started.")
 	opts := zap.Options{
 		Development: true,
 	}
@@ -206,21 +208,21 @@ func main() {
 		setupLog.Error(err, "unable to set up ready check")
 		os.Exit(1)
 	}
-
-	setupLog.Info("starting HTTP server")
-	provServer, err := setupProvisioningServer(httpServerAddr, onieImagesDir, onieConfigFile, ztpConfigFile)
-	if err != nil {
-		setupLog.Error(err, "unable to setup HTTP server")
-		os.Exit(1)
-	}
-
-	go func() {
-		if err := provServer.ListenAndServe(); err != nil {
-			setupLog.Error(err, "http server failed")
+	if !disableProvisionsingServer {
+		setupLog.Info("starting HTTP server")
+		provServer, err := setupProvisioningServer(httpServerAddr, onieImagesDir, onieConfigFile, ztpConfigFile)
+		if err != nil {
+			setupLog.Error(err, "unable to setup HTTP server")
 			os.Exit(1)
 		}
-	}()
 
+		go func() {
+			if err := provServer.ListenAndServe(); err != nil {
+				setupLog.Error(err, "http server failed")
+				os.Exit(1)
+			}
+		}()
+	}
 	setupLog.Info("starting manager")
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
 		setupLog.Error(err, "problem running manager")
