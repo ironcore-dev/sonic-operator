@@ -51,7 +51,7 @@ COPY --from=agent-builder /workspace/switch-agent-server .
 COPY --from=agent-builder /workspace/switch-agent-client .
 
 # Expose the service ports
-EXPOSE 50051 50051
+EXPOSE 50051 9100
 
 ENTRYPOINT ["/switch-agent-server"]
 
