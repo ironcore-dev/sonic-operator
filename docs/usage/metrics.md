@@ -272,3 +272,46 @@ metrics:
           vendor: "$manufacturer"
           serial: "$serial"
 ```
+
+## HTTP service discovery
+
+The operator exposes a `GET /switch-sd` endpoint on the provisioning HTTP server (flag `--http-server-address`). Prometheus can use this as an [HTTP SD](https://prometheus.io/docs/prometheus/latest/configuration/configuration/#http_sd_config) source to dynamically discover all ready switches.
+
+Only switches with status `Ready` and a non-empty management host are included. Each switch is listed as a target on port 9100 (the agent metrics port).
+
+### Response format
+
+```json
+[
+  {
+    "targets": ["10.0.0.1:9100"],
+    "labels": {
+      "__meta_sonic_switch_name": "leaf-1",
+      "__meta_sonic_switch_mac": "aa:bb:cc:dd:ee:ff",
+      "__meta_sonic_switch_sku": "Accton-AS7726-32X",
+      "__meta_sonic_switch_firmware": "4.2.0"
+    }
+  }
+]
+```
+
+### Labels
+
+| Label | Source | Description |
+|-------|--------|-------------|
+| `__meta_sonic_switch_name` | `metadata.name` | Switch resource name |
+| `__meta_sonic_switch_mac` | `status.macAddress` | MAC address (omitted if empty) |
+| `__meta_sonic_switch_sku` | `status.sku` | Hardware SKU (omitted if empty) |
+| `__meta_sonic_switch_firmware` | `status.firmwareVersion` | SONiC firmware version (omitted if empty) |
+
+### Prometheus configuration example
+
+```yaml
+scrape_configs:
+  - job_name: sonic-switches
+    http_sd_configs:
+      - url: http://sonic-operator.sonic-operator-system:8080/switch-sd
+    relabel_configs:
+      - source_labels: [__meta_sonic_switch_name]
+        target_label: switch
+```
