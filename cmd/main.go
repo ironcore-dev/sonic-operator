@@ -19,6 +19,7 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/metrics/filters"
@@ -28,6 +29,7 @@ import (
 	networkingv1alpha1 "github.com/ironcore-dev/sonic-operator/api/v1alpha1"
 	"github.com/ironcore-dev/sonic-operator/internal/controller"
 	"github.com/ironcore-dev/sonic-operator/internal/onie"
+	"github.com/ironcore-dev/sonic-operator/internal/sd"
 	"github.com/ironcore-dev/sonic-operator/internal/ztp"
 	// +kubebuilder:scaffold:imports
 )
@@ -208,7 +210,7 @@ func main() {
 	}
 
 	setupLog.Info("starting HTTP server")
-	provServer, err := setupProvisioningServer(httpServerAddr, onieImagesDir, onieConfigFile, ztpConfigFile)
+	provServer, err := setupProvisioningServer(httpServerAddr, onieImagesDir, onieConfigFile, ztpConfigFile, mgr.GetClient())
 	if err != nil {
 		setupLog.Error(err, "unable to setup HTTP server")
 		os.Exit(1)
@@ -228,7 +230,7 @@ func main() {
 	}
 }
 
-func setupProvisioningServer(addr string, onieImagesDir string, onieConfigPath string, ztpConfigPath string) (*http.Server, error) {
+func setupProvisioningServer(addr string, onieImagesDir string, onieConfigPath string, ztpConfigPath string, k8sClient client.Reader) (*http.Server, error) {
 	f, err := os.Open(ztpConfigPath)
 	if err != nil {
 		return nil, fmt.Errorf("unable to open ztp config file: %w", err)
@@ -254,6 +256,7 @@ func setupProvisioningServer(addr string, onieImagesDir string, onieConfigPath s
 
 	ztp.Register(mux, ztpConf)
 	onie.Register(mux, onieImagesDir, onieConf)
+	sd.Register(mux, k8sClient)
 
 	return &http.Server{
 		Addr:    addr,
