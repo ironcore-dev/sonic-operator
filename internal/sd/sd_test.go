@@ -179,3 +179,28 @@ func TestEmptyHostSkipped(t *testing.T) {
 		t.Errorf("expected 0 target groups for empty host, got %d", len(groups))
 	}
 }
+
+func TestIPv6Host(t *testing.T) {
+	sw := &networkingv1alpha1.Switch{
+		ObjectMeta: metav1.ObjectMeta{Name: "ipv6-switch"},
+		Spec: networkingv1alpha1.SwitchSpec{
+			MacAddress: "aa:bb:cc:dd:ee:ff",
+			Management: networkingv1alpha1.Management{
+				Host: "2001:db8::1",
+				Port: "50051",
+			},
+		},
+		Status: networkingv1alpha1.SwitchStatus{State: networkingv1alpha1.SwitchStateReady},
+	}
+	c := fake.NewClientBuilder().WithScheme(newScheme()).WithObjects(sw).WithStatusSubresource(sw).Build()
+	mux := http.NewServeMux()
+	Register(mux, c)
+
+	groups := get(t, mux)
+	if len(groups) != 1 {
+		t.Fatalf("expected 1 target group, got %d", len(groups))
+	}
+	if groups[0].Targets[0] != "[2001:db8::1]:9100" {
+		t.Errorf("unexpected IPv6 target: %s", groups[0].Targets[0])
+	}
+}

@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
 
 	networkingv1alpha1 "github.com/ironcore-dev/sonic-operator/api/v1alpha1"
@@ -70,7 +71,7 @@ func buildTargetGroups(switches []networkingv1alpha1.Switch) []TargetGroup {
 		}
 
 		groups = append(groups, TargetGroup{
-			Targets: []string{fmt.Sprintf("%s:%d", sw.Spec.Management.Host, metricsPort)},
+			Targets: []string{net.JoinHostPort(sw.Spec.Management.Host, fmt.Sprintf("%d", metricsPort))},
 			Labels:  labels,
 		})
 	}
