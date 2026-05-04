@@ -63,7 +63,7 @@ func NewDefaultSwitchAgentClient(address string, connectTimeout time.Duration) (
 func (c *defaultSwitchAgentClient) dial() (func() error, error) {
 	println("connect to ", c.Address)
 
-	conn, err := grpc.NewClient(c.Address, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.NewClient("passthrough:///"+c.Address, grpc.WithTransportCredentials(insecure.NewCredentials()))
 
 	// conn, err := grpc.DialContext(dialCtx, c.Address,
 	// 	grpc.WithTransportCredentials(insecure.NewCredentials()),
