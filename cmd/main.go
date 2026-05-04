@@ -28,6 +28,7 @@ import (
 	networkingv1alpha1 "github.com/ironcore-dev/sonic-operator/api/v1alpha1"
 	"github.com/ironcore-dev/sonic-operator/internal/controller"
 	"github.com/ironcore-dev/sonic-operator/internal/onie"
+	"github.com/ironcore-dev/sonic-operator/internal/sd"
 	"github.com/ironcore-dev/sonic-operator/internal/ztp"
 	// +kubebuilder:scaffold:imports
 )
@@ -206,6 +207,10 @@ func main() {
 	}
 	if err := mgr.AddReadyzCheck("readyz", healthz.Ping); err != nil {
 		setupLog.Error(err, "unable to set up ready check")
+		os.Exit(1)
+	}
+	if err := mgr.AddMetricsServerExtraHandler("/switch-sd", sd.NewHandler(mgr.GetClient())); err != nil {
+		setupLog.Error(err, "unable to register switch-sd handler")
 		os.Exit(1)
 	}
 	if !disableProvisionsingServer {
