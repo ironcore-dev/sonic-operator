@@ -15,3 +15,6 @@ The switch agent runs on the switch and exposes device and interface operations 
 
 ## Notes
 The current implementation uses SONiC Redis as the data source for switch state.
+
+## Metrics
+The agent exposes Prometheus metrics on port 9100. See [Agent metrics](./metrics.md) for the full metric reference and configuration schema.
