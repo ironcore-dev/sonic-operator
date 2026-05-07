@@ -4,17 +4,24 @@
 package sd
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net"
 	"net/http"
+	"sync"
+	"time"
 
 	networkingv1alpha1 "github.com/ironcore-dev/sonic-operator/api/v1alpha1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-const metricsPort = 9100
+const (
+	metricsPort = 9100
+	listTimeout = 10 * time.Second
+	cacheTTL    = 10 * time.Second
+)
 
 // TargetGroup is a Prometheus HTTP SD target group.
 type TargetGroup struct {
@@ -23,18 +30,36 @@ type TargetGroup struct {
 }
 
 // NewHandler returns an http.Handler that serves Prometheus HTTP SD target
-// groups for all Ready switches.
+// groups for all Ready switches. Responses are cached for 10s to bound
+// Kubernetes API load when many Prometheus instances scrape concurrently.
 func NewHandler(c client.Reader) http.Handler {
 	return &handler{client: c}
 }
 
 type handler struct {
 	client client.Reader
+
+	mu       sync.Mutex
+	cached   []byte
+	cachedAt time.Time
 }
 
 func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	h.mu.Lock()
+	if time.Since(h.cachedAt) < cacheTTL && h.cached != nil {
+		data := h.cached
+		h.mu.Unlock()
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write(data)
+		return
+	}
+	h.mu.Unlock()
+
+	ctx, cancel := context.WithTimeout(r.Context(), listTimeout)
+	defer cancel()
+
 	var switches networkingv1alpha1.SwitchList
-	if err := h.client.List(r.Context(), &switches); err != nil {
+	if err := h.client.List(ctx, &switches); err != nil {
 		log.Printf("switch-sd: failed to list switches: %v", err)
 		http.Error(w, "failed to list switches", http.StatusInternalServerError)
 		return
@@ -42,10 +67,20 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	groups := buildTargetGroups(switches.Items)
 
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(groups); err != nil {
+	data, err := json.Marshal(groups)
+	if err != nil {
 		log.Printf("switch-sd: failed to encode response: %v", err)
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
 	}
+
+	h.mu.Lock()
+	h.cached = data
+	h.cachedAt = time.Now()
+	h.mu.Unlock()
+
+	w.Header().Set("Content-Type", "application/json")
+	_, _ = w.Write(data)
 }
 
 func buildTargetGroups(switches []networkingv1alpha1.Switch) []TargetGroup {
