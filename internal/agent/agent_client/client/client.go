@@ -61,14 +61,7 @@ func NewDefaultSwitchAgentClient(address string, connectTimeout time.Duration) (
 }
 
 func (c *defaultSwitchAgentClient) dial() (func() error, error) {
-	println("connect to ", c.Address)
-
 	conn, err := grpc.NewClient("passthrough:///"+c.Address, grpc.WithTransportCredentials(insecure.NewCredentials()))
-
-	// conn, err := grpc.DialContext(dialCtx, c.Address,
-	// 	grpc.WithTransportCredentials(insecure.NewCredentials()),
-	// 	grpc.WithBlock(), // Wait for connection to be ready
-	// )
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to switch proxy: %w", err)
 	}
