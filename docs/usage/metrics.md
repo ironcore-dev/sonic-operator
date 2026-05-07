@@ -1,4 +1,4 @@
-# Agent metrics
+# Per-Switch Metrics
 
 The switch agent exposes a Prometheus-compatible `/metrics` endpoint for monitoring switch health, interface state, and transceiver optics. Metrics are collected just-in-time from SONiC Redis on every Prometheus scrape — there is no background polling or caching.
 
@@ -34,7 +34,6 @@ These require custom logic (cross-database joins, aggregate counting, error fall
 | `sonic_switch_interface_admin_state` | gauge | `interface` | Admin state (1=up, 0=down) |
 | `sonic_switch_interfaces_total` | gauge | `operational_status` | Number of interfaces by status |
 | `sonic_switch_ports_total` | gauge | — | Total physical ports |
-| `sonic_scrape_duration_seconds` | gauge | — | Duration of the last metrics scrape |
 
 ### Config-driven collectors
 
