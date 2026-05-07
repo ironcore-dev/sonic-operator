@@ -44,9 +44,10 @@ func NewConfigCollector(connector RedisConnector, mapping MetricMapping) *Config
 		if f.Transform != nil && f.Transform.RegexCapture != nil {
 			re := regexp.MustCompile(f.Transform.RegexCapture.Pattern)
 			compiledRegex[i] = re
-			// Extract label names from named capture groups
 			for _, name := range re.SubexpNames()[1:] {
-				labels = appendUnique(labels, name)
+				if name != "" {
+					labels = appendUnique(labels, name)
+				}
 			}
 		}
 		descs[f.Metric] = prometheus.NewDesc(f.Metric, f.Help, labels, nil)
@@ -216,7 +217,11 @@ func (c *ConfigCollector) collectFieldEntry(
 		if m == nil {
 			return // field doesn't match, skip
 		}
-		captureLabels = append(captureLabels, m[1:]...)
+		for i, name := range re.SubexpNames()[1:] {
+			if name != "" {
+				captureLabels = append(captureLabels, m[i+1])
+			}
+		}
 	}
 
 	// Handle parse_threshold_field transform
