@@ -7,7 +7,7 @@ require (
 	github.com/godbus/dbus/v5 v5.2.2
 	github.com/ironcore-dev/controller-utils v0.11.0
 	github.com/jedib0t/go-pretty/v6 v6.7.10
-	github.com/onsi/ginkgo/v2 v2.28.3
+	github.com/onsi/ginkgo/v2 v2.29.0
 	github.com/onsi/gomega v1.40.0
 	github.com/redis/go-redis/v9 v9.19.0
 	github.com/spf13/cobra v1.10.2
