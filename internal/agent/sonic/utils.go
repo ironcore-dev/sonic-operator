@@ -6,35 +6,19 @@ package sonic
 import (
 	"fmt"
 	"os"
-	"strings"
+
+	"sigs.k8s.io/yaml"
 )
 
 func GetSonicVersionInfo() (map[string]string, error) {
-	info := make(map[string]string)
-
 	content, err := os.ReadFile("/etc/sonic/sonic_version.yml")
 	if err != nil {
 		return nil, fmt.Errorf("failed to read sonic_version.yml: %w", err)
 	}
 
-	lines := strings.Split(string(content), "\n")
-	for _, line := range lines {
-		line = strings.TrimSpace(line)
-		if strings.HasPrefix(line, "#") || strings.HasPrefix(line, "---") || line == "" {
-			continue
-		}
-
-		if strings.Contains(line, ":") {
-			parts := strings.SplitN(line, ":", 2)
-			if len(parts) == 2 {
-				key := strings.TrimSpace(parts[0])
-				value := strings.TrimSpace(parts[1])
-				// Remove quotes if present
-				value = strings.Trim(value, `'"`)
-				info[key] = value
-			}
-		}
+	info := make(map[string]string)
+	if err := yaml.Unmarshal(content, &info); err != nil {
+		return nil, fmt.Errorf("failed to parse sonic_version.yml: %w", err)
 	}
-
 	return info, nil
 }
