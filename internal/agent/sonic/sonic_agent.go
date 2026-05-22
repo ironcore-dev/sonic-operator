@@ -56,6 +56,31 @@ func resolveNativeName(iface *agent.Interface) (string, *agent.Status) {
 	return iface.Name, nil
 }
 
+// batchHGetAll fetches all hash fields for the given keys using a Redis
+// pipeline. Returns a map from key to field-value map. Keys that fail or
+// are missing are silently skipped.
+func batchHGetAll(ctx context.Context, client *redis.Client, keys []string) map[string]map[string]string {
+	if len(keys) == 0 {
+		return nil
+	}
+	pipe := client.Pipeline()
+	cmds := make(map[string]*redis.MapStringStringCmd, len(keys))
+	for _, key := range keys {
+		cmds[key] = pipe.HGetAll(ctx, key)
+	}
+	_, _ = pipe.Exec(ctx)
+
+	result := make(map[string]map[string]string, len(keys))
+	for key, cmd := range cmds {
+		fields, err := cmd.Result()
+		if err != nil || len(fields) == 0 {
+			continue
+		}
+		result[key] = fields
+	}
+	return result
+}
+
 func getRedisDBIDByName(name string) int {
 	switch name {
 	case "APPL_DB":
@@ -232,63 +257,54 @@ func (m *SonicAgent) ListInterfaces(ctx context.Context) (*agent.InterfaceList, 
 	if err != nil {
 		return nil, errors.NewErrorStatus(errors.BAD_REQUEST, fmt.Sprintf("failed to connect to CONFIG_DB: %v", err))
 	}
-
-	// Connect to STATE_DB for operational status
 	stateDB, err := m.Connect("STATE_DB")
 	if err != nil {
 		return nil, errors.NewErrorStatus(errors.BAD_REQUEST, fmt.Sprintf("failed to connect to STATE_DB: %v", err))
 	}
-	// defer stateDB.Close()
-
 	applDB, err := m.Connect("APPL_DB")
 	if err != nil {
 		return nil, errors.NewErrorStatus(errors.BAD_REQUEST, fmt.Sprintf("failed to connect to APPL_DB: %v", err))
 	}
 
-	pattern := "PORT|*"
-	keys, err := configDB.Keys(ctx, pattern).Result()
-
+	portKeys, err := configDB.Keys(ctx, "PORT|*").Result()
 	if err != nil {
 		return nil, errors.NewErrorStatus(errors.BAD_REQUEST, fmt.Sprintf("failed to obtain iface keys: %v", err))
 	}
 
-	interfaces := make([]agent.Interface, 0, len(keys))
-	for _, key := range keys {
-		var name string
-		if _, err := fmt.Sscanf(key, "PORT|%s", &name); err != nil {
-			return nil, errors.NewErrorStatus(errors.BAD_REQUEST, fmt.Sprintf("failed to parse interface name from key %s: %v", key, err))
-		}
+	// Build lookup keys for the batch reads.
+	names := make([]string, 0, len(portKeys))
+	stateKeys := make([]string, 0, len(portKeys))
+	applKeys := make([]string, 0, len(portKeys))
+	for _, key := range portKeys {
+		name := strings.TrimPrefix(key, "PORT|")
+		names = append(names, name)
+		stateKeys = append(stateKeys, "PORT_TABLE|"+name)
+		applKeys = append(applKeys, "PORT_TABLE:"+name)
+	}
 
-		// Get operational status from STATE_DB
-		stateKey := fmt.Sprintf("PORT_TABLE|%s", name)
-		stateFields, err := stateDB.HGetAll(ctx, stateKey).Result()
-		if err != nil {
-			// If state info is not available, use default values
-			stateFields = make(map[string]string)
-		}
-		applKey := fmt.Sprintf("PORT_TABLE:%s", name)
-		applFields, err := applDB.HGetAll(ctx, applKey).Result()
-		if err != nil {
-			return nil, errors.NewErrorStatus(errors.BAD_REQUEST, fmt.Sprintf("failed to get state info for interface %s: %v", name, err))
-		}
+	configData := batchHGetAll(ctx, configDB, portKeys)
+	stateData := batchHGetAll(ctx, stateDB, stateKeys)
+	applData := batchHGetAll(ctx, applDB, applKeys)
 
-		// Determine operational status
+	interfaces := make([]agent.Interface, 0, len(names))
+	for i, name := range names {
+		configFields := configData[portKeys[i]]
+		stateFields := stateData[stateKeys[i]]
+		applFields := applData[applKeys[i]]
+
 		operStatus := agent.StatusDown
 		if applFields["oper_status"] == "up" {
 			operStatus = agent.StatusUp
 		}
-
 		adminStatus := agent.StatusDown
 		if stateFields["admin_status"] == "up" {
 			adminStatus = agent.StatusUp
 		}
 
-		// Use device MAC as interface MAC (common in SONiC)
 		link, err := netlink.LinkByName(name)
 		if err != nil {
 			return nil, agent.NewErrorStatus(errors.NOT_FOUND, fmt.Sprintf("failed to get interface %s: %v", name, err))
 		}
-
 		mac := link.Attrs().HardwareAddr
 		if mac == nil {
 			return nil, agent.NewErrorStatus(errors.NOT_FOUND, fmt.Sprintf("no MAC address found for interface %s", name))
@@ -299,23 +315,17 @@ func (m *SonicAgent) ListInterfaces(ctx context.Context) (*agent.InterfaceList, 
 			return nil, agent.NewErrorStatus(errors.BAD_REQUEST, fmt.Sprintf("failed to convert native name to abstract name: %v", err))
 		}
 
-		alias, err := configDB.HGet(ctx, fmt.Sprintf("PORT|%s", name), "alias").Result()
-		if err != nil {
-			return nil, errors.NewErrorStatus(errors.REDIS_KEY_CHECK_FAIL, fmt.Sprintf("failed to get alias: %v", err))
-		}
-
-		iface := agent.Interface{
+		interfaces = append(interfaces, agent.Interface{
 			TypeMeta: agent.TypeMeta{
 				Kind: agent.InterfaceKind,
 			},
 			Name:            abstractName,
 			NativeName:      name,
-			AliasName:       alias,
+			AliasName:       configFields["alias"],
 			MacAddress:      mac.String(),
 			OperationStatus: operStatus,
 			AdminStatus:     adminStatus,
-		}
-		interfaces = append(interfaces, iface)
+		})
 	}
 
 	return &agent.InterfaceList{
@@ -617,54 +627,45 @@ func (m *SonicAgent) GetInterfaceNeighbor(ctx context.Context, iface *agent.Inte
 }
 
 func (m *SonicAgent) ListPorts(ctx context.Context) (*agent.PortList, *agent.Status) {
-	// Connect to APPL_DB (table 0)
 	applDB, err := m.Connect("APPL_DB")
 	if err != nil {
 		return nil, errors.NewErrorStatus(errors.BAD_REQUEST, fmt.Sprintf("failed to connect to APPL_DB: %v", err))
 	}
 
-	// List keys starting with PORT_TABLE
-	pattern := "PORT_TABLE:*"
-	keys, err := applDB.Keys(ctx, pattern).Result()
+	keys, err := applDB.Keys(ctx, "PORT_TABLE:*").Result()
 	if err != nil {
 		return nil, errors.NewErrorStatus(errors.BAD_REQUEST, fmt.Sprintf("failed to obtain PORT_TABLE keys: %v", err))
 	}
 
-	ports := make([]agent.Port, 0)
+	data := batchHGetAll(ctx, applDB, keys)
+
+	ports := make([]agent.Port, 0, len(keys))
 	for _, key := range keys {
-		var portName string
-		if _, err := fmt.Sscanf(key, "PORT_TABLE:%s", &portName); err != nil {
-			continue // Skip malformed keys
+		fields, ok := data[key]
+		if !ok {
+			continue
+		}
+		portName := strings.TrimPrefix(key, "PORT_TABLE:")
+
+		// A physical port has parent_port equal to its own name; sub-interfaces,
+		// VLANs, etc. are skipped.
+		if fields["parent_port"] != portName {
+			continue
 		}
 
-		// Get the port configuration
-		fields, err := applDB.HGetAll(ctx, key).Result()
-		if err != nil {
-			continue // Skip if we can't get the fields
-		}
-
-		// Check if this represents a physical port by examining the "parent_port" field
-		// If parent_port equals the port name itself, it's a physical port
-		parentPort, exists := fields["parent_port"]
-		if !exists || parentPort != portName {
-			continue // Skip non-physical ports (sub-interfaces, VLANs, etc.)
-		}
-
-		// Get alias if available
 		alias := fields["alias"]
 		if alias == "" {
-			alias = portName // Use port name as alias if not specified
+			alias = portName
 		}
 
-		port := agent.Port{
+		ports = append(ports, agent.Port{
 			TypeMeta: agent.TypeMeta{
 				Kind: agent.PortKind,
 			},
 			Name:   portName,
 			Alias:  alias,
 			Status: agent.Status{Code: 0, Message: "ok"},
-		}
-		ports = append(ports, port)
+		})
 	}
 
 	return &agent.PortList{
