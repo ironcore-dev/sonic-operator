@@ -36,6 +36,26 @@ type SonicAgent struct {
 	poolMutex  sync.RWMutex
 }
 
+// resolveNativeName validates an interface argument and returns its native
+// (Ethernet*) name. Abstract names (eth*) are converted; native names are
+// returned as-is.
+func resolveNativeName(iface *agent.Interface) (string, *agent.Status) {
+	if iface == nil || iface.Name == "" {
+		return "", errors.NewErrorStatus(errors.BAD_REQUEST, "interface name cannot be empty")
+	}
+	if !strings.HasPrefix(iface.Name, "Ethernet") && !strings.HasPrefix(iface.Name, "eth") {
+		return "", errors.NewErrorStatus(errors.BAD_REQUEST, "invalid interface name. Must start with 'Ethernet' or 'eth'")
+	}
+	if strings.HasPrefix(iface.Name, "eth") {
+		name, err := agent.AbstractNameToNativeName(iface.Name)
+		if err != nil {
+			return "", errors.NewErrorStatus(errors.BAD_REQUEST, fmt.Sprintf("failed to convert abstract name to native name: %v", err))
+		}
+		return name, nil
+	}
+	return iface.Name, nil
+}
+
 func getRedisDBIDByName(name string) int {
 	switch name {
 	case "APPL_DB":
@@ -345,23 +365,9 @@ func (m *SonicAgent) SaveConfig(ctx context.Context) *agent.Status {
 }
 
 func (m *SonicAgent) SetInterfaceAdminStatus(ctx context.Context, iface *agent.Interface) (*agent.Interface, *agent.Status) {
-	// Validate input
-	var ifaceName string
-	var err error
-
-	if iface == nil || iface.Name == "" {
-		return nil, errors.NewErrorStatus(errors.BAD_REQUEST, "interface name cannot be empty")
-	}
-	if !strings.HasPrefix(iface.Name, "Ethernet") && !strings.HasPrefix(iface.Name, "eth") {
-		return nil, errors.NewErrorStatus(errors.BAD_REQUEST, "invalid interface name. Must start with 'Ethernet' or 'eth'")
-	}
-	if strings.HasPrefix(iface.Name, "eth") {
-		ifaceName, err = agent.AbstractNameToNativeName(iface.Name)
-		if err != nil {
-			return nil, errors.NewErrorStatus(errors.BAD_REQUEST, fmt.Sprintf("failed to convert abstract name to native name: %v", err))
-		}
-	} else {
-		ifaceName = iface.Name
+	ifaceName, status := resolveNativeName(iface)
+	if status != nil {
+		return nil, status
 	}
 
 	configDB, err := m.Connect("CONFIG_DB")
@@ -465,23 +471,9 @@ func (m *SonicAgent) SetInterfaceAdminStatus(ctx context.Context, iface *agent.I
 }
 
 func (m *SonicAgent) GetInterface(ctx context.Context, iface *agent.Interface) (*agent.Interface, *agent.Status) {
-	// Validate input
-	var ifaceName string
-	var err error
-
-	if iface == nil || iface.Name == "" {
-		return nil, errors.NewErrorStatus(errors.BAD_REQUEST, "interface name cannot be empty")
-	}
-	if !strings.HasPrefix(iface.Name, "Ethernet") && !strings.HasPrefix(iface.Name, "eth") {
-		return nil, errors.NewErrorStatus(errors.BAD_REQUEST, "invalid interface name. Must start with 'Ethernet' or 'eth'")
-	}
-	if strings.HasPrefix(iface.Name, "eth") {
-		ifaceName, err = agent.AbstractNameToNativeName(iface.Name)
-		if err != nil {
-			return nil, errors.NewErrorStatus(errors.BAD_REQUEST, fmt.Sprintf("failed to convert abstract name to native name: %v", err))
-		}
-	} else {
-		ifaceName = iface.Name
+	ifaceName, status := resolveNativeName(iface)
+	if status != nil {
+		return nil, status
 	}
 
 	configDB, err := m.Connect("CONFIG_DB")
@@ -572,22 +564,9 @@ func (m *SonicAgent) GetInterface(ctx context.Context, iface *agent.Interface) (
 }
 
 func (m *SonicAgent) GetInterfaceNeighbor(ctx context.Context, iface *agent.Interface) (*agent.InterfaceNeighbor, *agent.Status) {
-	var ifaceName string
-	var err error
-
-	if iface == nil || iface.Name == "" {
-		return nil, errors.NewErrorStatus(errors.BAD_REQUEST, "interface name cannot be empty")
-	}
-	if !strings.HasPrefix(iface.Name, "Ethernet") && !strings.HasPrefix(iface.Name, "eth") {
-		return nil, errors.NewErrorStatus(errors.BAD_REQUEST, "invalid interface name. Must start with 'Ethernet' or 'eth'")
-	}
-	if strings.HasPrefix(iface.Name, "eth") {
-		ifaceName, err = agent.AbstractNameToNativeName(iface.Name)
-		if err != nil {
-			return nil, errors.NewErrorStatus(errors.BAD_REQUEST, fmt.Sprintf("failed to convert abstract name to native name: %v", err))
-		}
-	} else {
-		ifaceName = iface.Name
+	ifaceName, status := resolveNativeName(iface)
+	if status != nil {
+		return nil, status
 	}
 
 	applDB, err := m.Connect("APPL_DB")
@@ -711,23 +690,9 @@ func (m *SonicAgent) ListPorts(ctx context.Context) (*agent.PortList, *agent.Sta
 }
 
 func (m *SonicAgent) SetInterfaceAliasName(ctx context.Context, iface *agent.Interface) (*agent.Interface, *agent.Status) {
-	// Validate input
-	var ifaceName string
-	var err error
-
-	if iface == nil || iface.Name == "" {
-		return nil, errors.NewErrorStatus(errors.BAD_REQUEST, "interface name cannot be empty")
-	}
-	if !strings.HasPrefix(iface.Name, "Ethernet") && !strings.HasPrefix(iface.Name, "eth") {
-		return nil, errors.NewErrorStatus(errors.BAD_REQUEST, "invalid interface name. Must start with 'Ethernet' or 'eth'")
-	}
-	if strings.HasPrefix(iface.Name, "eth") {
-		ifaceName, err = agent.AbstractNameToNativeName(iface.Name)
-		if err != nil {
-			return nil, errors.NewErrorStatus(errors.BAD_REQUEST, fmt.Sprintf("failed to convert abstract name to native name: %v", err))
-		}
-	} else {
-		ifaceName = iface.Name
+	ifaceName, status := resolveNativeName(iface)
+	if status != nil {
+		return nil, status
 	}
 
 	configDB, err := m.Connect("CONFIG_DB")
