@@ -92,10 +92,12 @@ func getRedisDBIDByName(name string) int {
 }
 
 func NewSonicRedisAgent(redisAddr string) (*SonicAgent, error) {
-	// Test connection first
-	testClient := redis.NewClient(&redis.Options{
+	// Probe Redis with the original tolerant retry settings: SONiC services
+	// may still be coming up while the agent starts, so we want to wait this
+	// out rather than fail fast.
+	probe := redis.NewClient(&redis.Options{
 		Addr:             redisAddr,
-		DB:               4, // Test with CONFIG_DB
+		DB:               4, // CONFIG_DB
 		DialTimeout:      RedisDialTimeout,
 		ReadTimeout:      RedisReadTimeout,
 		WriteTimeout:     RedisWriteTimeout,
@@ -103,62 +105,46 @@ func NewSonicRedisAgent(redisAddr string) (*SonicAgent, error) {
 		MaxRetries:       RedisMaxRetries,
 		MinRetryBackoff:  RedisMinRetryBackoff,
 		MaxRetryBackoff:  RedisMaxRetryBackoff,
-		DisableIndentity: true, // Disable identity/protocol checks to avoid warnings
+		DisableIndentity: true,
 	})
-
-	if err := testClient.Ping(context.Background()).Err(); err != nil {
-		if err := testClient.Close(); err != nil {
-			return nil, fmt.Errorf("failed to close Redis client: %w", err)
+	defer func() {
+		if err := probe.Close(); err != nil {
+			log.Printf("failed to close Redis probe client: %v", err)
 		}
+	}()
+
+	if err := probe.Ping(context.Background()).Err(); err != nil {
 		return nil, fmt.Errorf("failed to connect to Redis: %w", err)
-	}
-	if err := testClient.Close(); err != nil {
-		return nil, fmt.Errorf("failed to close Redis client: %w", err)
 	}
 
 	return &SonicAgent{
 		redisAddr:  redisAddr,
 		clientPool: make(map[string]*redis.Client),
-		poolMutex:  sync.RWMutex{},
 	}, nil
 }
 
 func (m *SonicAgent) Connect(dbName string) (*redis.Client, error) {
 	m.poolMutex.RLock()
-	if client, exists := m.clientPool[dbName]; exists {
-		m.poolMutex.RUnlock()
-
-		// Test if connection is still alive
-		if err := client.Ping(context.Background()).Err(); err == nil {
-			return client, nil
-		}
-	} else {
-		m.poolMutex.RUnlock()
+	client, exists := m.clientPool[dbName]
+	m.poolMutex.RUnlock()
+	if exists {
+		return client, nil
 	}
 
-	// Need to create new client (write lock)
 	m.poolMutex.Lock()
 	defer m.poolMutex.Unlock()
 
-	// Double-check in case another goroutine created it
+	// Double-check in case another goroutine created it.
 	if client, exists := m.clientPool[dbName]; exists {
-		if err := client.Ping(context.Background()).Err(); err == nil {
-			return client, nil
-		}
-		// Close the dead connection
-		if err := client.Close(); err != nil {
-			return nil, fmt.Errorf("failed to close Redis client: %w", err)
-		}
-		delete(m.clientPool, dbName)
+		return client, nil
 	}
 
-	// Create new client
 	dbID := getRedisDBIDByName(dbName)
 	if dbID == -1 {
 		return nil, fmt.Errorf("unknown database name: %s", dbName)
 	}
 
-	client := redis.NewClient(&redis.Options{
+	client = redis.NewClient(&redis.Options{
 		Addr:         m.redisAddr,
 		DB:           dbID,
 		DialTimeout:  RedisDialTimeout,
@@ -179,10 +165,11 @@ func (m *SonicAgent) Connect(dbName string) (*redis.Client, error) {
 		DisableIndentity: true, // Disable identity/protocol checks to avoid warnings
 	})
 
-	// Test the new connection
+	// Sanity-check the new client on first creation. The pool itself
+	// transparently reconnects on later command failures.
 	if err := client.Ping(context.Background()).Err(); err != nil {
-		if err := client.Close(); err != nil {
-			return nil, fmt.Errorf("failed to close Redis client: %w", err)
+		if cerr := client.Close(); cerr != nil {
+			return nil, fmt.Errorf("failed to close Redis client after ping error %v: %w", err, cerr)
 		}
 		return nil, fmt.Errorf("failed to connect to Redis database %s: %w", dbName, err)
 	}
