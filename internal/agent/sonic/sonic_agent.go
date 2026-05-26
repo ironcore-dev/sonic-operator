@@ -58,7 +58,8 @@ func resolveNativeName(iface *agent.Interface) (string, *agent.Status) {
 
 // batchHGetAll fetches all hash fields for the given keys using a Redis
 // pipeline. Returns a map from key to field-value map. Keys that fail or
-// are missing are silently skipped.
+// are missing are silently skipped; pipeline-level errors are logged so
+// transient outages remain observable.
 func batchHGetAll(ctx context.Context, client *redis.Client, keys []string) map[string]map[string]string {
 	if len(keys) == 0 {
 		return nil
@@ -68,7 +69,9 @@ func batchHGetAll(ctx context.Context, client *redis.Client, keys []string) map[
 	for _, key := range keys {
 		cmds[key] = pipe.HGetAll(ctx, key)
 	}
-	_, _ = pipe.Exec(ctx)
+	if _, err := pipe.Exec(ctx); err != nil {
+		log.Printf("batchHGetAll: pipeline returned error (per-key results may be partial): %v", err)
+	}
 
 	result := make(map[string]map[string]string, len(keys))
 	for key, cmd := range cmds {
