@@ -76,7 +76,14 @@ export default withMermaid({
           { text: 'Getting started', link: '/usage/getting-started' },
           { text: 'Provisioning', link: '/usage/provisioning' },
           { text: 'Agent', link: '/usage/agent' },
-          { text: 'Agent Metrics', link: '/usage/metrics' },
+          { text: 'Metrics',
+            collapsed: false,
+            items: [
+              { text: 'Operator Metrics', link: '/usage/operator-metrics' },
+              { text: 'Per-Switch Metrics', link: '/usage/metrics' },
+              { text: 'Switch Metrics Discovery', link: '/usage/service-discovery' },
+            ]
+          },
         ]
       },
       {

@@ -296,7 +296,7 @@ func NewProxyServer(switchAgentImpl switchAgent.SwitchAgent) pb.SwitchAgentServi
 func StartServer() {
 	flag.Parse()
 
-	lis, err := net.Listen("tcp4", fmt.Sprintf("0.0.0.0:%d", *port))
+	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", *port))
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
@@ -310,9 +310,9 @@ func StartServer() {
 	}
 
 	// Start Prometheus metrics HTTP server
-	metricsSrv := metrics.NewMetricsServer(fmt.Sprintf("0.0.0.0:%d", *metricsPort), swAgent, sonic.GetSonicVersionInfo, *metricsConfig)
+	metricsSrv := metrics.NewMetricsServer(fmt.Sprintf(":%d", *metricsPort), swAgent, sonic.GetSonicVersionInfo, *metricsConfig)
 	go func() {
-		log.Printf("metrics server listening at 0.0.0.0:%d", *metricsPort)
+		log.Printf("metrics server listening at :%d", *metricsPort)
 		if err := metricsSrv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			log.Fatalf("metrics server failed: %v", err)
 		}

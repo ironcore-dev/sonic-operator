@@ -5,6 +5,7 @@ package switchutil
 
 import (
 	"context"
+	"net"
 
 	networkingv1alpha1 "github.com/ironcore-dev/sonic-operator/api/v1alpha1"
 	v1 "k8s.io/api/core/v1"
@@ -22,7 +23,7 @@ func NewAgentClientForSwitch(ctx context.Context, s *networkingv1alpha1.Switch) 
 		return agentcli, err
 	}
 
-	address := s.Spec.Management.Host + ":" + s.Spec.Management.Port
+	address := net.JoinHostPort(s.Spec.Management.Host, s.Spec.Management.Port)
 
 	agentcli, err := agentCli.NewDefaultSwitchAgentClient(address, 0)
 	if err != nil {
