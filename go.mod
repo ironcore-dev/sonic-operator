@@ -6,7 +6,7 @@ require (
 	github.com/go-logr/logr v1.4.3
 	github.com/godbus/dbus/v5 v5.2.2
 	github.com/ironcore-dev/controller-utils v0.11.0
-	github.com/jedib0t/go-pretty/v6 v6.8.2
+	github.com/jedib0t/go-pretty/v6 v6.8.3
 	github.com/onsi/ginkgo/v2 v2.32.0
 	github.com/onsi/gomega v1.42.1
 	github.com/redis/go-redis/v9 v9.21.0
