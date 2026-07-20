@@ -3,7 +3,7 @@ module github.com/ironcore-dev/sonic-operator
 go 1.25.0
 
 require (
-	github.com/go-logr/logr v1.4.3
+	github.com/go-logr/logr v1.4.4
 	github.com/godbus/dbus/v5 v5.2.2
 	github.com/ironcore-dev/controller-utils v0.11.0
 	github.com/jedib0t/go-pretty/v6 v6.8.2
