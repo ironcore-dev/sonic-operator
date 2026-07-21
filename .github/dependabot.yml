@@ -6,7 +6,7 @@ updates:
     schedule:
       interval: "weekly"
     groups:
-      all:
+      gomod:
         patterns:
           - "*"
     # Ignore K8 packages as these are done manually
@@ -25,7 +25,7 @@ updates:
     schedule:
       interval: "weekly"
     groups:
-      all:
+      github-actions:
         patterns:
           - "*"
   - package-ecosystem: "docker"
@@ -33,7 +33,7 @@ updates:
     schedule:
       interval: "weekly"
     groups:
-      all:
+      docker:
         patterns:
           - "*"
   - package-ecosystem: "npm"
@@ -41,6 +41,6 @@ updates:
     schedule:
       interval: "weekly"
     groups:
-      all:
+      npm:
         patterns:
           - "*"
