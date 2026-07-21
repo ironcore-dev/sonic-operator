@@ -151,7 +151,7 @@ func (t defaultTableConverter) deviceToTable(device agent.SwitchDevice) (*TableD
 
 func (t defaultTableConverter) interfaceToTable(ifaces []agent.Interface) (*TableData, error) {
 	headers := []any{"Name", "Native Name", "Alias Name", "MAC Address", "Operation Status", "Admin Status"}
-	rows := make([][]any, len(ifaces))
+	rows := make([][]any, 0, len(ifaces))
 
 	sort.Slice(ifaces, func(i, j int) bool {
 		// Extract numeric part
@@ -176,7 +176,7 @@ func (t defaultTableConverter) interfaceToTable(ifaces []agent.Interface) (*Tabl
 
 func (t defaultTableConverter) portToTable(ports []agent.Port) (*TableData, error) {
 	headers := []any{"Name", "Alias"}
-	rows := make([][]any, len(ports))
+	rows := make([][]any, 0, len(ports))
 
 	for _, port := range ports {
 		rows = append(rows, []any{
