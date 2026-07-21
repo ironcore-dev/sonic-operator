@@ -16,14 +16,14 @@ import (
 	switchUtil "github.com/ironcore-dev/sonic-operator/internal/switch_util"
 
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
 	networkingv1alpha1 "github.com/ironcore-dev/sonic-operator/api/v1alpha1"
+	v1alpha1ac "github.com/ironcore-dev/sonic-operator/api/v1alpha1/applyconfiguration/api/v1alpha1"
+	metav1ac "k8s.io/client-go/applyconfigurations/meta/v1"
 )
 
 var (
@@ -148,30 +148,27 @@ func (r *SwitchReconciler) EnsureInterface(ctx context.Context, log logr.Logger,
 	if err != nil {
 		return err
 	}
-	i := &networkingv1alpha1.SwitchInterface{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: networkingv1alpha1.GroupVersion.String(),
-			Kind:       "SwitchInterface",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name: strings.ToLower(fmt.Sprintf("%s-%s", s.Name, iface.Name)),
-		},
-		Spec: networkingv1alpha1.SwitchInterfaceSpec{
-			Handle:     iface.Name,
-			NativeName: iface.NativeName,
 
-			SwitchRef: &corev1.LocalObjectReference{
-				Name: s.Name,
-			},
-			AdminState: adminState,
-		},
-	}
+	isController := true
+	blockOwnerDeletion := true
+	ac := v1alpha1ac.SwitchInterface(strings.ToLower(fmt.Sprintf("%s-%s", s.Name, iface.Name))).
+		WithOwnerReferences(
+			metav1ac.OwnerReference().
+				WithAPIVersion(networkingv1alpha1.GroupVersion.String()).
+				WithKind("Switch").
+				WithName(s.Name).
+				WithUID(s.UID).
+				WithController(isController).
+				WithBlockOwnerDeletion(blockOwnerDeletion),
+		).
+		WithSpec(v1alpha1ac.SwitchInterfaceSpec().
+			WithHandle(iface.Name).
+			WithNativeName(iface.NativeName).
+			WithSwitchRef(corev1.LocalObjectReference{Name: s.Name}).
+			WithAdminState(adminState),
+		)
 
-	if err := controllerutil.SetOwnerReference(s, i, r.Scheme); err != nil {
-		return err
-	}
-
-	if err := r.Patch(ctx, i, client.Apply, client.ForceOwnership, fieldOwner); err != nil {
+	if err := r.Apply(ctx, ac, client.ForceOwnership, fieldOwner); err != nil {
 		return err
 	}
 

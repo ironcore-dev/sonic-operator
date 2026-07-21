@@ -82,6 +82,7 @@ type SwitchStatus struct {
 // +kubebuilder:printcolumn:name="MACAddress",type=string,JSONPath=`.status.macAddress`
 // +kubebuilder:printcolumn:name="Status",type=string,JSONPath=`.status.state`
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
+// +kubebuilder:ac:generate=false
 
 // Switch is the Schema for the switch API
 type Switch struct {
