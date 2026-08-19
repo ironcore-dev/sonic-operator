@@ -6,6 +6,7 @@ package v1alpha1
 import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 type AdminState string
@@ -130,5 +131,8 @@ type SwitchInterfaceList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&SwitchInterface{}, &SwitchInterfaceList{})
+	SchemeBuilder.Register(func(s *runtime.Scheme) error {
+		s.AddKnownTypes(GroupVersion, &SwitchInterface{}, &SwitchInterfaceList{})
+		return nil
+	})
 }

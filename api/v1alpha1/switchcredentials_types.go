@@ -6,6 +6,7 @@ package v1alpha1
 import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 // +kubebuilder:object:root=true
@@ -59,5 +60,8 @@ type SwitchCredentialsList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&SwitchCredentials{}, &SwitchCredentialsList{})
+	SchemeBuilder.Register(func(s *runtime.Scheme) error {
+		s.AddKnownTypes(GroupVersion, &SwitchCredentials{}, &SwitchCredentialsList{})
+		return nil
+	})
 }
