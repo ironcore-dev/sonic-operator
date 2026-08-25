@@ -19,6 +19,7 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/metrics/filters"
@@ -54,7 +55,7 @@ func main() {
 	var secureMetrics bool
 	var enableHTTP2 bool
 	var disableProvisionsingServer bool
-	var httpServerAddr, onieImagesDir, onieConfigFile, ztpConfigFile string
+	var httpServerAddr, onieImagesDir, onieConfigFile, ztpConfigFile, ztpMode string
 	var tlsOpts []func(*tls.Config)
 	flag.StringVar(&metricsAddr, "metrics-bind-address", "0", "The address the metrics endpoint binds to. "+
 		"Use :8443 for HTTPS or :8080 for HTTP, or leave as 0 to disable the metrics service.")
@@ -75,6 +76,7 @@ func main() {
 		"If set, HTTP/2 will be enabled for the metrics and webhook servers")
 	flag.StringVar(&httpServerAddr, "http-server-address", "0", "The address the HTTP server for ZTP and ONIE binds to.")
 	flag.StringVar(&ztpConfigFile, "ztp-config-file", "/etc/ztp.json", "Config file containing the parameters to render ZTP scripts.")
+	flag.StringVar(&ztpMode, "ztp-mode", "templates", "ZTP source: templates or configmap. Configmap mode never falls back to templates.")
 	flag.StringVar(&onieImagesDir, "onie-images-dir", "/var/lib/sonic-operator/onie", "The directory which contains the ONIE and SONiC installer image files.")
 	flag.StringVar(&onieConfigFile, "onie-config-file", "/etc/onie.json", "Config file containing machine-to-image mappings for ONIE provisioning.")
 	flag.BoolVar(&disableProvisionsingServer, "disable-static-config", false, "If set, the HTTP server for ZTP and ONIE will not be started.")
@@ -210,7 +212,7 @@ func main() {
 	}
 	if !disableProvisionsingServer {
 		setupLog.Info("starting HTTP server")
-		provServer, err := setupProvisioningServer(httpServerAddr, onieImagesDir, onieConfigFile, ztpConfigFile)
+		provServer, err := setupProvisioningServer(httpServerAddr, onieImagesDir, onieConfigFile, ztpConfigFile, ztpMode, mgr.GetAPIReader())
 		if err != nil {
 			setupLog.Error(err, "unable to setup HTTP server")
 			os.Exit(1)
@@ -230,22 +232,16 @@ func main() {
 	}
 }
 
-func setupProvisioningServer(addr string, onieImagesDir string, onieConfigPath string, ztpConfigPath string) (*http.Server, error) {
-	f, err := os.Open(ztpConfigPath)
-	if err != nil {
-		return nil, fmt.Errorf("unable to open ztp config file: %w", err)
-	}
-
-	var ztpConf ztp.Config
-	err = json.NewDecoder(f).Decode(&ztpConf)
-	if err != nil {
-		return nil, err
-	}
-
+func setupProvisioningServer(addr string, onieImagesDir string, onieConfigPath string, ztpConfigPath string, ztpMode string, reader client.Reader) (*http.Server, error) {
 	of, err := os.Open(onieConfigPath)
 	if err != nil {
 		return nil, fmt.Errorf("unable to open onie config file: %w", err)
 	}
+	defer func() {
+		if err := of.Close(); err != nil {
+			setupLog.Error(err, "unable to close ONIE config file", "path", onieConfigPath)
+		}
+	}()
 
 	var onieConf onie.Config
 	if err := json.NewDecoder(of).Decode(&onieConf); err != nil {
@@ -254,7 +250,27 @@ func setupProvisioningServer(addr string, onieImagesDir string, onieConfigPath s
 
 	mux := http.NewServeMux()
 
-	ztp.Register(mux, ztpConf)
+	switch ztpMode {
+	case "templates":
+		f, err := os.Open(ztpConfigPath)
+		if err != nil {
+			return nil, fmt.Errorf("unable to open ztp config file: %w", err)
+		}
+		defer func() {
+			if err := f.Close(); err != nil {
+				setupLog.Error(err, "unable to close ZTP config file", "path", ztpConfigPath)
+			}
+		}()
+		var ztpConf ztp.Config
+		if err := json.NewDecoder(f).Decode(&ztpConf); err != nil {
+			return nil, err
+		}
+		ztp.Register(mux, ztpConf)
+	case "configmap":
+		ztp.RegisterConfigMap(mux, reader)
+	default:
+		return nil, fmt.Errorf("unsupported ztp mode %q (supported: templates, configmap)", ztpMode)
+	}
 	onie.Register(mux, onieImagesDir, onieConf)
 
 	return &http.Server{

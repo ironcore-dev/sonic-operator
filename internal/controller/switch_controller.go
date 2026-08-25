@@ -40,6 +40,7 @@ type SwitchReconciler struct {
 // +kubebuilder:rbac:groups=sonic.networking.metal.ironcore.dev,resources=switches/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=sonic.networking.metal.ironcore.dev,resources=switches/finalizers,verbs=update
 // +kubebuilder:rbac:groups=sonic.networking.metal.ironcore.dev,resources=interfaces,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.

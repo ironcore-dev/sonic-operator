@@ -10,6 +10,12 @@ import (
 	"net/http"
 	"net/netip"
 	"text/template"
+
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	networkingv1alpha1 "github.com/ironcore-dev/sonic-operator/api/v1alpha1"
 )
 
 //go:embed templates
@@ -69,6 +75,10 @@ type handler struct {
 	m map[netip.Addr]SwitchParameters
 }
 
+type configMapHandler struct {
+	reader client.Reader
+}
+
 func Register(mux *http.ServeMux, c Config) {
 	t := template.New("ztp-scripts")
 	t = t.Funcs(template.FuncMap{
@@ -80,6 +90,13 @@ func Register(mux *http.ServeMux, c Config) {
 	t = template.Must(t.ParseFS(templateFS, "templates/*.gotmpl"))
 
 	mux.Handle("GET /ztp", &handler{t: t, m: c.SwitchParams})
+}
+
+// RegisterConfigMap serves the script referenced by the Switch whose ZTP
+// source address matches the requesting client. It deliberately has no
+// template fallback: configmap mode must fail closed.
+func RegisterConfigMap(mux *http.ServeMux, reader client.Reader) {
+	mux.Handle("GET /ztp", &configMapHandler{reader: reader})
 }
 
 // interfacePrefix takes the interface ID and the /64 prefix of the switch and
@@ -120,6 +137,62 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		handleErr(w, err)
 		return
+	}
+}
+
+func (h *configMapHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	ap, err := netip.ParseAddrPort(r.RemoteAddr)
+	if err != nil {
+		handleErr(w, err)
+		return
+	}
+
+	switches := &networkingv1alpha1.SwitchList{}
+	if err := h.reader.List(r.Context(), switches); err != nil {
+		handleErr(w, fmt.Errorf("listing switches for ZTP: %w", err))
+		return
+	}
+
+	var matched *networkingv1alpha1.Switch
+	for i := range switches.Items {
+		switchConfig := switches.Items[i].Spec.ZTP
+		if switchConfig == nil {
+			continue
+		}
+		configuredAddr, err := netip.ParseAddr(switchConfig.SourceAddress)
+		if err != nil {
+			handleErr(w, fmt.Errorf("switch %q has invalid ZTP source address %q: %w", switches.Items[i].Name, switchConfig.SourceAddress, err))
+			return
+		}
+		if configuredAddr != ap.Addr() {
+			continue
+		}
+		if matched != nil {
+			handleErr(w, fmt.Errorf("multiple switches use ZTP source address %q", ap.Addr()))
+			return
+		}
+		matched = &switches.Items[i]
+	}
+	if matched == nil {
+		handleErr(w, fmt.Errorf("no switch configured for ZTP source address %q", ap.Addr()))
+		return
+	}
+
+	ref := matched.Spec.ZTP.ScriptRef
+	configMap := &corev1.ConfigMap{}
+	if err := h.reader.Get(r.Context(), types.NamespacedName{Namespace: ref.Namespace, Name: ref.Name}, configMap); err != nil {
+		handleErr(w, fmt.Errorf("getting ZTP ConfigMap %s/%s: %w", ref.Namespace, ref.Name, err))
+		return
+	}
+	script, ok := configMap.Data[ref.Key]
+	if !ok {
+		handleErr(w, fmt.Errorf("ZTP ConfigMap %s/%s has no key %q", ref.Namespace, ref.Name, ref.Key))
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/x-shellscript; charset=utf-8")
+	if _, err := fmt.Fprint(w, script); err != nil {
+		slog.Error("failed to write ZTP ConfigMap script", "switch", matched.Name, "err", err)
 	}
 }
 
