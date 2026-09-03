@@ -256,6 +256,7 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `management` _[Management](#management)_ |  |  |  |
+| `ztp` _[ZTP](#ztp)_ | ZTP selects a custom script when the operator runs with --ztp-mode=configmap. |  |  |
 | `macAddress` _string_ | MacAddress is the MAC address assigned to this interface. |  |  |
 | `ports` _[PortSpec](#portspec) array_ | Ports the physical ports available on the Switch. |  |  |
 
@@ -297,5 +298,44 @@ _Appears in:_
 | `firmwareVersion` _string_ | FirmwareVersion is the firmware version running on this switch. |  |  |
 | `sku` _string_ | SKU is the stock keeping unit of this switch. |  |  |
 | `conditions` _[Condition](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#condition-v1-meta) array_ | The status of each condition is one of True, False, or Unknown. |  |  |
+
+
+#### ZTP
+
+
+
+ZTP defines how a switch is identified while it is requesting its initial
+ZTP script. SourceAddress is the address observed by the provisioning server,
+which can differ from the management address used after provisioning.
+
+
+
+_Appears in:_
+- [SwitchSpec](#switchspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `sourceAddress` _string_ |  |  |  |
+| `scriptRef` _[ZTPConfigMapReference](#ztpconfigmapreference)_ |  |  |  |
+
+
+#### ZTPConfigMapReference
+
+
+
+ZTPConfigMapReference identifies the ConfigMap entry containing a switch's
+complete ZTP script. The referenced ConfigMap may be in a provisioning
+namespace chosen by the cluster administrator.
+
+
+
+_Appears in:_
+- [ZTP](#ztp)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `namespace` _string_ |  |  |  |
+| `name` _string_ |  |  |  |
+| `key` _string_ |  |  |  |
 
 

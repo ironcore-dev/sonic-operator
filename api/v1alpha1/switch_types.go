@@ -23,9 +23,30 @@ type Management struct {
 	Credentials v1.ObjectReference `json:"credentials"`
 }
 
+// ZTPConfigMapReference identifies the ConfigMap entry containing a switch's
+// complete ZTP script. The referenced ConfigMap may be in a provisioning
+// namespace chosen by the cluster administrator.
+type ZTPConfigMapReference struct {
+	Namespace string `json:"namespace"`
+	Name      string `json:"name"`
+	Key       string `json:"key"`
+}
+
+// ZTP defines how a switch is identified while it is requesting its initial
+// ZTP script. SourceAddress is the address observed by the provisioning server,
+// which can differ from the management address used after provisioning.
+type ZTP struct {
+	SourceAddress string                `json:"sourceAddress"`
+	ScriptRef     ZTPConfigMapReference `json:"scriptRef"`
+}
+
 // SwitchSpec defines the desired state of Switch
 type SwitchSpec struct {
 	Management Management `json:"management,omitempty"`
+
+	// ZTP selects a custom script when the operator runs with --ztp-mode=configmap.
+	// +optional
+	ZTP *ZTP `json:"ztp,omitempty"`
 
 	// MacAddress is the MAC address assigned to this interface.
 	MacAddress string `json:"macAddress"`

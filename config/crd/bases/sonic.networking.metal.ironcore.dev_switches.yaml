@@ -117,6 +117,33 @@ spec:
                   - name
                   type: object
                 type: array
+              ztp:
+                description: ZTP selects a custom script when the operator runs with
+                  --ztp-mode=configmap.
+                properties:
+                  scriptRef:
+                    description: |-
+                      ZTPConfigMapReference identifies the ConfigMap entry containing a switch's
+                      complete ZTP script. The referenced ConfigMap may be in a provisioning
+                      namespace chosen by the cluster administrator.
+                    properties:
+                      key:
+                        type: string
+                      name:
+                        type: string
+                      namespace:
+                        type: string
+                    required:
+                    - key
+                    - name
+                    - namespace
+                    type: object
+                  sourceAddress:
+                    type: string
+                required:
+                - scriptRef
+                - sourceAddress
+                type: object
             required:
             - macAddress
             type: object
