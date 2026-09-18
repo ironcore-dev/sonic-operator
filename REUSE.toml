@@ -19,6 +19,7 @@ SPDX-PackageDownloadLocation = "https://github.com/ironcore-dev/sonic-operator"
 	    "package-lock.json",
 	    "package.json",
 	    "internal/ztp/templates/**",
+	    "internal/ztp/testdata/**",
 	    "REUSE.toml",
 	    "hack/**",
 	    ".devcontainer/**",

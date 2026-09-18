@@ -79,6 +79,19 @@ type configMapHandler struct {
 	reader client.Reader
 }
 
+type generatedHandler struct {
+	reader                    client.Reader
+	controlKubeconfigFilePath string
+}
+
+// GeneratedOptions configures declarative, Switch-backed ZTP rendering.
+type GeneratedOptions struct {
+	// ControlKubeconfigFile is an optional kubeconfig mounted into the operator
+	// pod. It is injected only into generated containers that
+	// explicitly opt in.
+	ControlKubeconfigFile string
+}
+
 func Register(mux *http.ServeMux, c Config) {
 	t := template.New("ztp-scripts")
 	t = t.Funcs(template.FuncMap{
@@ -87,7 +100,11 @@ func Register(mux *http.ServeMux, c Config) {
 		"searchDomain":    func() string { return c.SearchDomain },
 		"interfacePrefix": interfacePrefix,
 	})
-	t = template.Must(t.ParseFS(templateFS, "templates/*.gotmpl"))
+	t = template.Must(t.ParseFS(
+		templateFS,
+		"templates/leaf.sh.gotmpl",
+		"templates/spine.sh.gotmpl",
+	))
 
 	mux.Handle("GET /ztp", &handler{t: t, m: c.SwitchParams})
 }
@@ -97,6 +114,16 @@ func Register(mux *http.ServeMux, c Config) {
 // template fallback: configmap mode must fail closed.
 func RegisterConfigMap(mux *http.ServeMux, reader client.Reader) {
 	mux.Handle("GET /ztp", &configMapHandler{reader: reader})
+}
+
+// RegisterGenerated renders a complete ZTP script from the matching Switch
+// object. Unlike configmap mode, no user-provided ZTP script is read or
+// modified.
+func RegisterGenerated(mux *http.ServeMux, reader client.Reader, options GeneratedOptions) {
+	mux.Handle("GET /ztp", &generatedHandler{
+		reader:                    reader,
+		controlKubeconfigFilePath: options.ControlKubeconfigFile,
+	})
 }
 
 // interfacePrefix takes the interface ID and the /64 prefix of the switch and
@@ -141,40 +168,13 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *configMapHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	ap, err := netip.ParseAddrPort(r.RemoteAddr)
+	matched, err := matchingSwitch(r, h.reader)
 	if err != nil {
 		handleErr(w, err)
 		return
 	}
-
-	switches := &networkingv1alpha1.SwitchList{}
-	if err := h.reader.List(r.Context(), switches); err != nil {
-		handleErr(w, fmt.Errorf("listing switches for ZTP: %w", err))
-		return
-	}
-
-	var matched *networkingv1alpha1.Switch
-	for i := range switches.Items {
-		switchConfig := switches.Items[i].Spec.ZTP
-		if switchConfig == nil {
-			continue
-		}
-		configuredAddr, err := netip.ParseAddr(switchConfig.SourceAddress)
-		if err != nil {
-			handleErr(w, fmt.Errorf("switch %q has invalid ZTP source address %q: %w", switches.Items[i].Name, switchConfig.SourceAddress, err))
-			return
-		}
-		if configuredAddr != ap.Addr() {
-			continue
-		}
-		if matched != nil {
-			handleErr(w, fmt.Errorf("multiple switches use ZTP source address %q", ap.Addr()))
-			return
-		}
-		matched = &switches.Items[i]
-	}
-	if matched == nil {
-		handleErr(w, fmt.Errorf("no switch configured for ZTP source address %q", ap.Addr()))
+	if matched.Spec.ZTP.ScriptRef == nil {
+		handleErr(w, fmt.Errorf("switch %q has no ztp.scriptRef for configmap mode", matched.Name))
 		return
 	}
 
@@ -194,6 +194,60 @@ func (h *configMapHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if _, err := fmt.Fprint(w, script); err != nil {
 		slog.Error("failed to write ZTP ConfigMap script", "switch", matched.Name, "err", err)
 	}
+}
+
+func (h *generatedHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	matched, err := matchingSwitch(r, h.reader)
+	if err != nil {
+		handleErr(w, err)
+		return
+	}
+
+	script, err := renderGeneratedScript(matched, h.controlKubeconfigFilePath)
+	if err != nil {
+		handleErr(w, fmt.Errorf("rendering generated ZTP for switch %q: %w", matched.Name, err))
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/x-shellscript; charset=utf-8")
+	if _, err := fmt.Fprint(w, script); err != nil {
+		slog.Error("failed to write generated ZTP script", "switch", matched.Name, "err", err)
+	}
+}
+
+func matchingSwitch(r *http.Request, reader client.Reader) (*networkingv1alpha1.Switch, error) {
+	ap, err := netip.ParseAddrPort(r.RemoteAddr)
+	if err != nil {
+		return nil, err
+	}
+
+	switches := &networkingv1alpha1.SwitchList{}
+	if err := reader.List(r.Context(), switches); err != nil {
+		return nil, fmt.Errorf("listing switches for ZTP: %w", err)
+	}
+
+	var matched *networkingv1alpha1.Switch
+	for i := range switches.Items {
+		switchConfig := switches.Items[i].Spec.ZTP
+		if switchConfig == nil {
+			continue
+		}
+		configuredAddr, err := netip.ParseAddr(switchConfig.SourceAddress)
+		if err != nil {
+			return nil, fmt.Errorf("switch %q has invalid ZTP source address %q: %w", switches.Items[i].Name, switchConfig.SourceAddress, err)
+		}
+		if configuredAddr != ap.Addr() {
+			continue
+		}
+		if matched != nil {
+			return nil, fmt.Errorf("multiple switches use ZTP source address %q", ap.Addr())
+		}
+		matched = &switches.Items[i]
+	}
+	if matched == nil {
+		return nil, fmt.Errorf("no switch configured for ZTP source address %q", ap.Addr())
+	}
+	return matched, nil
 }
 
 func handleErr(w http.ResponseWriter, e error) {

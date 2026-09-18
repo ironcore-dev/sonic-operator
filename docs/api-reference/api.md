@@ -36,6 +36,65 @@ _Appears in:_
 | `Down` |  |
 
 
+#### Container
+
+
+
+Container declares a Docker container that the provisioning server starts on
+the switch during generated ZTP provisioning.
+
+
+
+_Appears in:_
+- [SwitchSpec](#switchspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `name` _string_ | Name is both the Docker container name and its stable identity on the switch. |  | MaxLength: 63 <br />Pattern: `^[a-z0-9]([-a-z0-9]*[a-z0-9])?$` <br /> |
+| `image` _string_ | Image is the container image pulled by Docker on the switch. |  | MinLength: 1 <br /> |
+| `command` _string array_ | Command overrides the image entrypoint. |  |  |
+| `args` _string array_ | Args are appended after Command, or after the image entrypoint when Command is empty. |  |  |
+| `volumeMounts` _[VolumeMount](#volumemount) array_ | VolumeMounts describes the volumes mounted into the container. Each mount<br />name must refer to an entry in SwitchSpec.Volumes. |  |  |
+| `securityContext` _[ContainerSecurityContext](#containersecuritycontext)_ | SecurityContext configures the Unix identity used to run the container. |  |  |
+| `injectControlKubeconfig` _boolean_ | InjectControlKubeconfig mounts the operator's configured control kubeconfig<br />into this container and sets KUBECONFIG to its in-container path. A<br />securityContext with runAsUser is required so the generated script can<br />grant access to a private, per-container credential file. |  |  |
+
+
+#### ContainerSecurityContext
+
+
+
+ContainerSecurityContext is the supported subset of Kubernetes
+container securityContext for generated Docker containers.
+
+
+
+_Appears in:_
+- [Container](#container)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `runAsUser` _integer_ | RunAsUser is the numeric Unix user ID used by the container. |  | Minimum: 0 <br /> |
+| `runAsGroup` _integer_ | RunAsGroup is the numeric Unix group ID used by the container. It requires<br />runAsUser to be set as well. |  | Minimum: 0 <br /> |
+
+
+#### HostPathVolumeSource
+
+
+
+HostPathVolumeSource represents a host directory or file mounted into a
+Switch container.
+
+
+
+_Appears in:_
+- [Volume](#volume)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `path` _string_ | Path is the absolute path on the SONiC host. |  |  |
+| `type` _[HostPathType](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#hostpathtype-v1-core)_ | Type describes the expected host-path type, following the Kubernetes Pod<br />hostPath API. Generated ZTP does not create missing paths. |  |  |
+
+
 #### Management
 
 
@@ -70,6 +129,25 @@ _Appears in:_
 | `macAddress` _string_ | MacAddress is the MAC address of the neighbor device. |  |  |
 | `systemName` _string_ | SystemName is the name of the neighbor device. |  |  |
 | `interfaceHandle` _string_ | InterfaceHandle is the name of the remote switch interface. |  |  |
+
+
+#### NextBootMode
+
+_Underlying type:_ _string_
+
+NextBootMode describes the desired behavior of the switch's next boot.
+Providers translate this high-level intent to their platform-specific boot
+mechanism. For SONiC, InstallOS enters ONIE install discovery.
+
+
+
+_Appears in:_
+- [SwitchSpec](#switchspec)
+
+| Field | Description |
+| --- | --- |
+| `None` | NextBootModeNone leaves the normal installed network OS boot path intact.<br /> |
+| `InstallOS` | NextBootModeInstallOS enters the platform's OS installation/discovery flow.<br /> |
 
 
 #### OperationState
@@ -255,8 +333,12 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
+| `hostname` _string_ | Hostname is configured on the switch by --ztp-mode=generated. If omitted,<br />the generated script uses the Switch object name. |  |  |
 | `management` _[Management](#management)_ |  |  |  |
-| `ztp` _[ZTP](#ztp)_ | ZTP selects a custom script when the operator runs with --ztp-mode=configmap. |  |  |
+| `ztp` _[ZTP](#ztp)_ | ZTP identifies the switch while it requests its initial provisioning script. |  |  |
+| `containers` _[Container](#container) array_ | Containers are started with host networking and Docker's unless-stopped<br />restart policy by --ztp-mode=generated. |  |  |
+| `volumes` _[Volume](#volume) array_ | Volumes are named storage sources available to containers. Generated ZTP<br />currently supports hostPath volumes only. |  |  |
+| `nextBootMode` _[NextBootMode](#nextbootmode)_ | NextBootMode declares the desired behavior of the next boot. The default<br />is None. It is configured by --ztp-mode=generated. |  | Enum: [None InstallOS] <br /> |
 | `macAddress` _string_ | MacAddress is the MAC address assigned to this interface. |  |  |
 | `ports` _[PortSpec](#portspec) array_ | Ports the physical ports available on the Switch. |  |  |
 
@@ -300,6 +382,44 @@ _Appears in:_
 | `conditions` _[Condition](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#condition-v1-meta) array_ | The status of each condition is one of True, False, or Unknown. |  |  |
 
 
+#### Volume
+
+
+
+Volume represents a named storage volume made available to Switch containers.
+It follows the Kubernetes Pod volume model. Generated ZTP currently supports
+hostPath volumes only.
+
+
+
+_Appears in:_
+- [SwitchSpec](#switchspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `name` _string_ | Name is the stable volume identity referenced by Container.VolumeMounts. |  | MaxLength: 63 <br />Pattern: `^[a-z0-9]([-a-z0-9]*[a-z0-9])?$` <br /> |
+| `hostPath` _[HostPathVolumeSource](#hostpathvolumesource)_ | HostPath represents a pre-existing file or directory on the SONiC host. |  |  |
+
+
+#### VolumeMount
+
+
+
+VolumeMount describes a volume mounted into a Switch container. It follows
+the Kubernetes Pod volumeMount API.
+
+
+
+_Appears in:_
+- [Container](#container)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `name` _string_ |  |  |  |
+| `mountPath` _string_ |  |  |  |
+| `readOnly` _boolean_ |  |  |  |
+
+
 #### ZTP
 
 
@@ -316,7 +436,7 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `sourceAddress` _string_ |  |  |  |
-| `scriptRef` _[ZTPConfigMapReference](#ztpconfigmapreference)_ |  |  |  |
+| `scriptRef` _[ZTPConfigMapReference](#ztpconfigmapreference)_ | ScriptRef identifies the complete script served when --ztp-mode=configmap.<br />It is not used by --ztp-mode=generated. |  |  |
 
 
 #### ZTPConfigMapReference

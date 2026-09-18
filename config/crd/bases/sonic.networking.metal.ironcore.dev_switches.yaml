@@ -49,6 +49,95 @@ spec:
           spec:
             description: spec defines the desired state of Switch
             properties:
+              containers:
+                description: |-
+                  Containers are started with host networking and Docker's unless-stopped
+                  restart policy by --ztp-mode=generated.
+                items:
+                  description: |-
+                    Container declares a Docker container that the provisioning server starts on
+                    the switch during generated ZTP provisioning.
+                  properties:
+                    args:
+                      description: Args are appended after Command, or after the image
+                        entrypoint when Command is empty.
+                      items:
+                        type: string
+                      type: array
+                    command:
+                      description: Command overrides the image entrypoint.
+                      items:
+                        type: string
+                      type: array
+                    image:
+                      description: Image is the container image pulled by Docker on
+                        the switch.
+                      minLength: 1
+                      type: string
+                    injectControlKubeconfig:
+                      description: |-
+                        InjectControlKubeconfig mounts the operator's configured control kubeconfig
+                        into this container and sets KUBECONFIG to its in-container path. A
+                        securityContext with runAsUser is required so the generated script can
+                        grant access to a private, per-container credential file.
+                      type: boolean
+                    name:
+                      description: Name is both the Docker container name and its
+                        stable identity on the switch.
+                      maxLength: 63
+                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                      type: string
+                    securityContext:
+                      description: SecurityContext configures the Unix identity used
+                        to run the container.
+                      properties:
+                        runAsGroup:
+                          description: |-
+                            RunAsGroup is the numeric Unix group ID used by the container. It requires
+                            runAsUser to be set as well.
+                          format: int64
+                          minimum: 0
+                          type: integer
+                        runAsUser:
+                          description: RunAsUser is the numeric Unix user ID used
+                            by the container.
+                          format: int64
+                          minimum: 0
+                          type: integer
+                      type: object
+                    volumeMounts:
+                      description: |-
+                        VolumeMounts describes the volumes mounted into the container. Each mount
+                        name must refer to an entry in SwitchSpec.Volumes.
+                      items:
+                        description: |-
+                          VolumeMount describes a volume mounted into a Switch container. It follows
+                          the Kubernetes Pod volumeMount API.
+                        properties:
+                          mountPath:
+                            type: string
+                          name:
+                            type: string
+                          readOnly:
+                            type: boolean
+                        required:
+                        - mountPath
+                        - name
+                        type: object
+                      type: array
+                  required:
+                  - image
+                  - name
+                  type: object
+                type: array
+                x-kubernetes-list-map-keys:
+                - name
+                x-kubernetes-list-type: map
+              hostname:
+                description: |-
+                  Hostname is configured on the switch by --ztp-mode=generated. If omitted,
+                  the generated script uses the Switch object name.
+                type: string
               macAddress:
                 description: MacAddress is the MAC address assigned to this interface.
                 type: string
@@ -107,6 +196,14 @@ spec:
                 - host
                 - port
                 type: object
+              nextBootMode:
+                description: |-
+                  NextBootMode declares the desired behavior of the next boot. The default
+                  is None. It is configured by --ztp-mode=generated.
+                enum:
+                - None
+                - InstallOS
+                type: string
               ports:
                 description: Ports the physical ports available on the Switch.
                 items:
@@ -117,15 +214,52 @@ spec:
                   - name
                   type: object
                 type: array
+              volumes:
+                description: |-
+                  Volumes are named storage sources available to containers. Generated ZTP
+                  currently supports hostPath volumes only.
+                items:
+                  description: |-
+                    Volume represents a named storage volume made available to Switch containers.
+                    It follows the Kubernetes Pod volume model. Generated ZTP currently supports
+                    hostPath volumes only.
+                  properties:
+                    hostPath:
+                      description: HostPath represents a pre-existing file or directory
+                        on the SONiC host.
+                      properties:
+                        path:
+                          description: Path is the absolute path on the SONiC host.
+                          type: string
+                        type:
+                          description: |-
+                            Type describes the expected host-path type, following the Kubernetes Pod
+                            hostPath API. Generated ZTP does not create missing paths.
+                          type: string
+                      required:
+                      - path
+                      type: object
+                    name:
+                      description: Name is the stable volume identity referenced by
+                        Container.VolumeMounts.
+                      maxLength: 63
+                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                      type: string
+                  required:
+                  - name
+                  type: object
+                type: array
+                x-kubernetes-list-map-keys:
+                - name
+                x-kubernetes-list-type: map
               ztp:
-                description: ZTP selects a custom script when the operator runs with
-                  --ztp-mode=configmap.
+                description: ZTP identifies the switch while it requests its initial
+                  provisioning script.
                 properties:
                   scriptRef:
                     description: |-
-                      ZTPConfigMapReference identifies the ConfigMap entry containing a switch's
-                      complete ZTP script. The referenced ConfigMap may be in a provisioning
-                      namespace chosen by the cluster administrator.
+                      ScriptRef identifies the complete script served when --ztp-mode=configmap.
+                      It is not used by --ztp-mode=generated.
                     properties:
                       key:
                         type: string
@@ -141,7 +275,6 @@ spec:
                   sourceAddress:
                     type: string
                 required:
-                - scriptRef
                 - sourceAddress
                 type: object
             required:

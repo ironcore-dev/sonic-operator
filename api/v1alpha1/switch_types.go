@@ -36,17 +36,144 @@ type ZTPConfigMapReference struct {
 // ZTP script. SourceAddress is the address observed by the provisioning server,
 // which can differ from the management address used after provisioning.
 type ZTP struct {
-	SourceAddress string                `json:"sourceAddress"`
-	ScriptRef     ZTPConfigMapReference `json:"scriptRef"`
+	SourceAddress string `json:"sourceAddress"`
+
+	// ScriptRef identifies the complete script served when --ztp-mode=configmap.
+	// It is not used by --ztp-mode=generated.
+	// +optional
+	ScriptRef *ZTPConfigMapReference `json:"scriptRef,omitempty"`
 }
+
+// Container declares a Docker container that the provisioning server starts on
+// the switch during generated ZTP provisioning.
+type Container struct {
+	// Name is both the Docker container name and its stable identity on the switch.
+	// +kubebuilder:validation:Pattern=`^[a-z0-9]([-a-z0-9]*[a-z0-9])?$`
+	// +kubebuilder:validation:MaxLength=63
+	Name string `json:"name"`
+
+	// Image is the container image pulled by Docker on the switch.
+	// +kubebuilder:validation:MinLength=1
+	Image string `json:"image"`
+
+	// Command overrides the image entrypoint.
+	// +optional
+	Command []string `json:"command,omitempty"`
+
+	// Args are appended after Command, or after the image entrypoint when Command is empty.
+	// +optional
+	Args []string `json:"args,omitempty"`
+
+	// VolumeMounts describes the volumes mounted into the container. Each mount
+	// name must refer to an entry in SwitchSpec.Volumes.
+	// +optional
+	VolumeMounts []VolumeMount `json:"volumeMounts,omitempty"`
+
+	// SecurityContext configures the Unix identity used to run the container.
+	// +optional
+	SecurityContext *ContainerSecurityContext `json:"securityContext,omitempty"`
+
+	// InjectControlKubeconfig mounts the operator's configured control kubeconfig
+	// into this container and sets KUBECONFIG to its in-container path. A
+	// securityContext with runAsUser is required so the generated script can
+	// grant access to a private, per-container credential file.
+	// +optional
+	InjectControlKubeconfig bool `json:"injectControlKubeconfig,omitempty"`
+}
+
+// ContainerSecurityContext is the supported subset of Kubernetes
+// container securityContext for generated Docker containers.
+type ContainerSecurityContext struct {
+	// RunAsUser is the numeric Unix user ID used by the container.
+	// +optional
+	// +kubebuilder:validation:Minimum=0
+	RunAsUser *int64 `json:"runAsUser,omitempty"`
+
+	// RunAsGroup is the numeric Unix group ID used by the container. It requires
+	// runAsUser to be set as well.
+	// +optional
+	// +kubebuilder:validation:Minimum=0
+	RunAsGroup *int64 `json:"runAsGroup,omitempty"`
+}
+
+// Volume represents a named storage volume made available to Switch containers.
+// It follows the Kubernetes Pod volume model. Generated ZTP currently supports
+// hostPath volumes only.
+type Volume struct {
+	// Name is the stable volume identity referenced by Container.VolumeMounts.
+	// +kubebuilder:validation:Pattern=`^[a-z0-9]([-a-z0-9]*[a-z0-9])?$`
+	// +kubebuilder:validation:MaxLength=63
+	Name string `json:"name"`
+
+	// HostPath represents a pre-existing file or directory on the SONiC host.
+	// +optional
+	HostPath *HostPathVolumeSource `json:"hostPath,omitempty"`
+}
+
+// HostPathVolumeSource represents a host directory or file mounted into a
+// Switch container.
+type HostPathVolumeSource struct {
+	// Path is the absolute path on the SONiC host.
+	Path string `json:"path"`
+
+	// Type describes the expected host-path type, following the Kubernetes Pod
+	// hostPath API. Generated ZTP does not create missing paths.
+	// +optional
+	Type *v1.HostPathType `json:"type,omitempty"`
+}
+
+// VolumeMount describes a volume mounted into a Switch container. It follows
+// the Kubernetes Pod volumeMount API.
+type VolumeMount struct {
+	Name      string `json:"name"`
+	MountPath string `json:"mountPath"`
+	ReadOnly  bool   `json:"readOnly,omitempty"`
+}
+
+// NextBootMode describes the desired behavior of the switch's next boot.
+// Providers translate this high-level intent to their platform-specific boot
+// mechanism. For SONiC, InstallOS enters ONIE install discovery.
+type NextBootMode string
+
+const (
+	// NextBootModeNone leaves the normal installed network OS boot path intact.
+	NextBootModeNone NextBootMode = "None"
+	// NextBootModeInstallOS enters the platform's OS installation/discovery flow.
+	NextBootModeInstallOS NextBootMode = "InstallOS"
+)
 
 // SwitchSpec defines the desired state of Switch
 type SwitchSpec struct {
+	// Hostname is configured on the switch by --ztp-mode=generated. If omitted,
+	// the generated script uses the Switch object name.
+	// +optional
+	Hostname string `json:"hostname,omitempty"`
+
 	Management Management `json:"management,omitempty"`
 
-	// ZTP selects a custom script when the operator runs with --ztp-mode=configmap.
+	// ZTP identifies the switch while it requests its initial provisioning script.
 	// +optional
 	ZTP *ZTP `json:"ztp,omitempty"`
+
+	// Containers are started with host networking and Docker's unless-stopped
+	// restart policy by --ztp-mode=generated.
+	// +optional
+	// +listType=map
+	// +listMapKey=name
+	Containers []Container `json:"containers,omitempty"`
+
+	// Volumes are named storage sources available to containers. Generated ZTP
+	// currently supports hostPath volumes only.
+	// +optional
+	// +listType=map
+	// +listMapKey=name
+	Volumes []Volume `json:"volumes,omitempty"`
+
+	// NextBootMode declares the desired behavior of the next boot. The default
+	// is None. It is configured by --ztp-mode=generated.
+	// +optional
+	// +kubebuilder:validation:Enum=None;InstallOS
+	NextBootMode NextBootMode `json:"nextBootMode,omitempty"`
 
 	// MacAddress is the MAC address assigned to this interface.
 	MacAddress string `json:"macAddress"`
@@ -105,7 +232,6 @@ type SwitchStatus struct {
 // +kubebuilder:printcolumn:name="Status",type=string,JSONPath=`.status.state`
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
 // +kubebuilder:ac:generate=false
-
 // Switch is the Schema for the switch API
 type Switch struct {
 	metav1.TypeMeta `json:",inline"`

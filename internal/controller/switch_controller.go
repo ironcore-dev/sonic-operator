@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/go-logr/logr"
 	"github.com/ironcore-dev/controller-utils/clientutils"
@@ -27,7 +28,8 @@ import (
 )
 
 var (
-	fieldOwner = client.FieldOwner("switch-controller")
+	fieldOwner      = client.FieldOwner("switch-controller")
+	agentRetryAfter = time.Minute
 )
 
 // SwitchReconciler reconciles a Switch object
@@ -88,20 +90,24 @@ func (r *SwitchReconciler) reconcile(ctx context.Context, log logr.Logger, s *ne
 		}
 	}()
 
-	if s.Status.State == "" {
-		s.Status.State = networkingv1alpha1.SwitchStatePending
+	// A Switch is declaratively ready as soon as it is accepted by the
+	// controller. The SONiC agent enriches status when reachable, but agent
+	// availability must not prevent ZTP/bootstrap workflows.
+	if s.Status.State != networkingv1alpha1.SwitchStateReady {
+		s.Status.State = networkingv1alpha1.SwitchStateReady
 		return ctrl.Result{}, nil
 	}
 
 	switchAgentClient, err := switchUtil.NewAgentClientForSwitch(ctx, s)
 	if err != nil {
-		return ctrl.Result{}, err
+		log.Info("Switch agent is unavailable; keeping Switch ready", "err", err)
+		return ctrl.Result{RequeueAfter: agentRetryAfter}, nil
 	}
 
 	switchDevice, err := switchAgentClient.GetDeviceInfo(ctx)
 	if err != nil {
-		s.Status.State = networkingv1alpha1.SwitchStateFailed
-		return ctrl.Result{}, err
+		log.Info("Switch agent is unavailable; keeping Switch ready", "err", err)
+		return ctrl.Result{RequeueAfter: agentRetryAfter}, nil
 	}
 
 	s.Status.MACAddress = switchDevice.LocalMacAddress
@@ -110,8 +116,8 @@ func (r *SwitchReconciler) reconcile(ctx context.Context, log logr.Logger, s *ne
 
 	interfaceList, err := switchAgentClient.ListInterfaces(ctx)
 	if err != nil {
-		s.Status.State = networkingv1alpha1.SwitchStateFailed
-		return ctrl.Result{}, err
+		log.Info("Switch agent is unavailable; keeping Switch ready", "err", err)
+		return ctrl.Result{RequeueAfter: agentRetryAfter}, nil
 	}
 
 	for _, iface := range interfaceList.Items {
@@ -122,8 +128,8 @@ func (r *SwitchReconciler) reconcile(ctx context.Context, log logr.Logger, s *ne
 
 	portList, err := switchAgentClient.ListPorts(ctx)
 	if err != nil {
-		s.Status.State = networkingv1alpha1.SwitchStateFailed
-		return ctrl.Result{}, err
+		log.Info("Switch agent is unavailable; keeping Switch ready", "err", err)
+		return ctrl.Result{RequeueAfter: agentRetryAfter}, nil
 	}
 
 	if len(portList.Items) > 0 {

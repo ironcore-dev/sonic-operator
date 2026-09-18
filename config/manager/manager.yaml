@@ -63,6 +63,8 @@ spec:
         args:
           - --leader-elect
           - --health-probe-bind-address=:8081
+          - --ztp-mode=generated
+          - --bootstrap-control-kubeconfig-file=/etc/sonic-operator/control-kubeconfig/kubeconfig
         image: controller:latest
         name: manager
         ports: []
@@ -93,7 +95,17 @@ spec:
           requests:
             cpu: 10m
             memory: 64Mi
-        volumeMounts: []
-      volumes: []
+        volumeMounts:
+        - name: control-kubeconfig
+          mountPath: /etc/sonic-operator/control-kubeconfig
+          readOnly: true
+      volumes:
+      - name: control-kubeconfig
+        secret:
+          secretName: control-kubeconfig
+          optional: true
+          items:
+          - key: kubeconfig
+            path: kubeconfig
       serviceAccountName: controller-manager
       terminationGracePeriodSeconds: 10

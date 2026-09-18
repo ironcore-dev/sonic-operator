@@ -6,6 +6,27 @@ metadata:
     app.kubernetes.io/managed-by: kustomize
   name: switch-sample
 spec:
+  hostname: switch-sample
+
+  ztp:
+    sourceAddress: "192.0.2.11"
+
+  nextBootMode: InstallOS
+
+  # Containers are rendered by --ztp-mode=generated.
+  # The control kubeconfig is provided globally by the operator, not by this
+  # Switch object.
+  containers:
+  - name: wirelet
+    image: ghcr.io/hardikdr/wirelet:fixed-1
+    securityContext:
+      runAsUser: 65532
+      runAsGroup: 65532
+    args:
+    - --name=switch-sample
+    - --interface=Ethernet0
+    injectControlKubeconfig: true
+
   management:
     host: 192.0.2.10
     port: "50051"
