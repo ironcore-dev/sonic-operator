@@ -10,8 +10,8 @@ import (
 	"log"
 	"net"
 
-	pb "github.com/ironcore-dev/sonic-operator/internal/agent/proto"
 	agent "github.com/ironcore-dev/sonic-operator/internal/agent/types"
+	pb "github.com/ironcore-dev/sonic-operator/pkg/agent/proto"
 
 	switchAgent "github.com/ironcore-dev/sonic-operator/internal/agent/interface"
 	"github.com/ironcore-dev/sonic-operator/internal/agent/sonic"

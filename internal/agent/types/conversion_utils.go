@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"strings"
 
-	pb "github.com/ironcore-dev/sonic-operator/internal/agent/proto"
+	pb "github.com/ironcore-dev/sonic-operator/pkg/agent/proto"
 
 	api "github.com/ironcore-dev/sonic-operator/api/v1alpha1"
 )
