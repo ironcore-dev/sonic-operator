@@ -1,0 +1,42 @@
+{
+  "hostname": "swi1-test-1",
+  "loopbackIps": ["2a10:afc0:e015:201::1/128"],
+  "prefixes": ["2a10:afc0:e015:201::/64"],
+  "vlans": [
+    { "id": 1001, "dhcpRelay": "2a10:afc0:e015:201::fd", "members": [{"interfaceId": "Ethernet0"}] },
+    { "id": 1002, "dhcpRelay": "2a10:afc0:e015:201::fd", "members": [{"interfaceId": "Ethernet4"}] },
+    { "id": 1003, "dhcpRelay": "2a10:afc0:e015:201::fd", "members": [{"interfaceId": "Ethernet8"}] },
+    { "id": 1004, "dhcpRelay": "2a10:afc0:e015:201::fd", "members": [{"interfaceId": "Ethernet12"}] },
+    { "id": 1005, "dhcpRelay": "2a10:afc0:e015:201::fd", "members": [{"interfaceId": "Ethernet16"}] },
+    { "id": 1006, "dhcpRelay": "2a10:afc0:e015:201::fd", "members": [{"interfaceId": "Ethernet20"}] },
+    { "id": 1007, "dhcpRelay": "2a10:afc0:e015:201::fd", "members": [{"interfaceId": "Ethernet24"}] },
+    { "id": 1008, "dhcpRelay": "2a10:afc0:e015:201::fd", "members": [{"interfaceId": "Ethernet28"}] },
+    { "id": 1009, "dhcpRelay": "2a10:afc0:e015:201::fd", "members": [{"interfaceId": "Ethernet32"}] },
+    { "id": 1010, "dhcpRelay": "2a10:afc0:e015:201::fd", "members": [{"interfaceId": "Ethernet36"}] },
+    { "id": 1011, "dhcpRelay": "2a10:afc0:e015:201::fd", "members": [{"interfaceId": "Ethernet40"}] },
+    { "id": 1012, "dhcpRelay": "2a10:afc0:e015:201::fd", "members": [{"interfaceId": "Ethernet44"}] },
+    { "id": 1013, "dhcpRelay": "2a10:afc0:e015:201::fd", "members": [{"interfaceId": "Ethernet48"}] },
+    { "id": 1014, "dhcpRelay": "2a10:afc0:e015:201::fd", "members": [{"interfaceId": "Ethernet52"}] },
+    { "id": 1015, "dhcpRelay": "2a10:afc0:e015:201::fd", "members": [{"interfaceId": "Ethernet56"}] },
+    { "id": 1016, "dhcpRelay": "2a10:afc0:e015:201::fd", "members": [{"interfaceId": "Ethernet60"}] },
+    { "id": 1017, "dhcpRelay": "2a10:afc0:e015:201::fd", "members": [{"interfaceId": "Ethernet64"}] },
+    { "id": 1018, "dhcpRelay": "2a10:afc0:e015:201::fd", "members": [{"interfaceId": "Ethernet68"}] },
+    { "id": 1019, "dhcpRelay": "2a10:afc0:e015:201::fd", "members": [{"interfaceId": "Ethernet72"}] },
+    { "id": 1020, "dhcpRelay": "2a10:afc0:e015:201::fd", "members": [{"interfaceId": "Ethernet76"}] },
+    { "id": 1021, "dhcpRelay": "2a10:afc0:e015:201::fd", "members": [{"interfaceId": "Ethernet80"}] },
+    { "id": 1022, "dhcpRelay": "2a10:afc0:e015:201::fd", "members": [{"interfaceId": "Ethernet84"}] },
+    { "id": 1023, "dhcpRelay": "2a10:afc0:e015:201::fd", "members": [{"interfaceId": "Ethernet88"}] },
+    { "id": 1024, "dhcpRelay": "2a10:afc0:e015:201::fd", "members": [{"interfaceId": "Ethernet92"}] },
+    { "id": 1025, "dhcpRelay": "2a10:afc0:e015:201::fd", "members": [{"interfaceId": "Ethernet96"}] },
+    { "id": 1026, "dhcpRelay": "2a10:afc0:e015:201::fd", "members": [{"interfaceId": "Ethernet100"}] },
+    { "id": 1027, "dhcpRelay": "2a10:afc0:e015:201::fd", "members": [{"interfaceId": "Ethernet104"}] },
+    { "id": 0, "members": [
+      {"interfaceId": "Ethernet108"},
+      {"interfaceId": "Ethernet112"},
+      {"interfaceId": "Ethernet116"},
+      {"interfaceId": "Ethernet120"},
+      {"interfaceId": "Ethernet124"}
+    ]}
+  ],
+  "bgp": { "asn": 4211000001, "routerId": "1.0.0.1" }
+}

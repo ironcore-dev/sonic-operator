@@ -100,7 +100,6 @@ func (d *SwitchDevice) GetStatus() Status {
 type Interface struct {
 	TypeMeta `json:",inline"`
 
-	Name       string `json:"name"`
 	NativeName string `json:"native_name"` // The native name of the interface on the switch, e.g., Ethernet0, PortChannel1, etc.
 	AliasName  string `json:"alias_name"`
 
@@ -112,10 +111,6 @@ type Interface struct {
 }
 
 func (i *Interface) GetName() string {
-	return i.Name
-}
-
-func (i *Interface) GetNativeName() string {
 	return i.NativeName
 }
 
@@ -192,6 +187,77 @@ func (l *PortList) GetItems() []Object {
 
 func (l *PortList) GetStatus() Status {
 	return l.Status
+}
+
+type PortDetails struct {
+	TypeMeta            `json:",inline"`
+	ID                  string  `json:"id"`
+	Type                string  `json:"type"`
+	SupportedSpeedsGbps []int32 `json:"supported_speeds_gbps,omitempty"`
+	Transceiver         string  `json:"transceiver,omitempty"`
+	Status              Status  `json:"status"`
+}
+
+type PortDetailsList struct {
+	TypeMeta `json:",inline"`
+	Items    []PortDetails `json:"items"`
+	Status   Status        `json:"status"`
+}
+
+type InterfaceStatus struct {
+	AdminStatus bool
+	OperStatus  bool
+	OperMessage string
+}
+
+type SwitchConfigMetadata struct {
+	Namespace string
+	Name      string
+	UID       string
+}
+
+type FabricVLANMember struct {
+	InterfaceID string
+	MTU         int32  // 0 = unset
+	FEC         string // "", "rs", "fc", or "none"
+	Speed       int32  // Mbps; 0 = unset
+}
+
+type FabricVLAN struct {
+	ID        int32
+	Prefix    string
+	DHCPRelay string
+	Members   []FabricVLANMember
+}
+
+type FabricBGPNeighbor struct {
+	VlanID      int32
+	InterfaceID string
+}
+
+type FabricBGPPeerGroup struct {
+	Name      string
+	Neighbors []FabricBGPNeighbor
+}
+
+type FabricBGPConfig struct {
+	ASN        uint32
+	RouterID   string
+	PeerGroups []FabricBGPPeerGroup
+}
+
+type FabricSwitchConfig struct {
+	Metadata    SwitchConfigMetadata
+	Hostname    string
+	LoopbackIPs []string
+	Prefixes    []string
+	VLANs       []FabricVLAN
+	BGP         *FabricBGPConfig
+}
+
+type ApplySwitchRequest struct {
+	Device string
+	Config FabricSwitchConfig
 }
 
 var (

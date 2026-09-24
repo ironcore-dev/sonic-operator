@@ -1,0 +1,342 @@
+syntax = "proto3";
+
+package switchagent.v1;
+option go_package = "./switchagentproto";
+
+message Status {
+  uint32 code = 1;
+  string message = 2;
+}
+
+message GetDeviceInfoRequest {
+}
+
+message GetDeviceInfoResponse {
+  Status status = 1;
+  string hwsku = 2;
+  string local_mac_address = 3;
+  string sonic_os_version = 4;
+  string asic_type = 5;
+  uint32 readiness = 6;
+}
+
+
+// The interface message containing details about a single interface.
+message Interface {
+
+  string name = 1;
+  string alias_name = 2;
+
+  string operational_status = 3;
+  string admin_status = 4;
+  string mac_address = 5;
+}
+
+// The request message containing the parameters for the request.
+message ListInterfacesRequest {
+}
+
+// The response message containing the list of interfaces.
+message ListInterfacesResponse {
+  Status status = 1;
+  repeated Interface interfaces = 2;
+}
+
+message SetInterfaceAdminStatusRequest {
+  string interface_name = 1;
+  string admin_status = 2;
+}
+
+message SetInterfaceAdminStatusResponse {
+  Status status = 1;
+  Interface interface = 2;
+}
+
+message ListPortsRequest {
+
+}
+
+message ListPortsResponse {
+  Status status = 1;
+  repeated Port ports = 2;
+}
+
+message Port {
+  string name = 1;
+  string alias = 2;
+}
+
+message GetInterfaceNeighborRequest {
+  string interface_name = 1;
+}
+
+message InterfaceNeighbor {
+  string neighbor_interface_name = 1;
+  string mac_address = 2;
+  string system_name = 3;
+}
+
+message GetInterfaceNeighborResponse {
+  Status status = 1;
+  string interface = 2;
+  InterfaceNeighbor neighbor = 3;
+}
+
+message GetInterfaceRequest {
+  string interface_name = 1;
+}
+
+message GetInterfaceResponse {
+  Status status = 1;
+  Interface interface = 2;
+}
+
+message SetInterfaceAliasNameRequest {
+  string interface_name = 1;
+  string alias_name = 2;
+}
+
+message SetInterfaceAliasNameResponse {
+  Status status = 1;
+  Interface interface = 2;
+}
+
+message SaveConfigRequest {
+  // Empty request
+}
+
+message SaveConfigResponse {
+  Status status = 1;
+}
+
+message RebootRequest {
+  // Empty request
+}
+
+message RebootResponse {
+  Status status = 1;
+}
+
+message OnieBootModeInstallRequest {
+  // Empty request
+}
+
+message OnieBootModeInstallResponse {
+  Status status = 1;
+}
+
+message RestartSystemdServiceRequest {
+  string service_name = 1;
+}
+
+message RestartSystemdServiceResponse {
+  Status status = 1;
+}
+
+message RebootCauseRequest {
+}
+
+message RebootCauseResponse {
+  Status status = 1;
+  string cause = 2;
+}
+
+message FactoryResetRequest {
+}
+
+message FactoryResetResponse {
+  Status status = 1;
+}
+
+message ReprovisionRequest {
+}
+
+message ReprovisionResponse {
+  Status status = 1;
+}
+
+message GetReadinessRequest {
+}
+
+// ready is true when org.SONiC.HostService is on D-Bus and all required
+// host-service modules are installed and responding.
+message GetReadinessResponse {
+  Status status = 1;
+  bool   ready  = 2;
+}
+
+// The interface service definition.
+service SwitchAgentService {
+
+  rpc GetDeviceInfo(GetDeviceInfoRequest) returns (GetDeviceInfoResponse);
+  
+  rpc ListInterfaces(ListInterfacesRequest) returns (ListInterfacesResponse);
+  rpc SetInterfaceAdminStatus(SetInterfaceAdminStatusRequest) returns (SetInterfaceAdminStatusResponse);
+  rpc SetInterfaceAliasName(SetInterfaceAliasNameRequest) returns (SetInterfaceAliasNameResponse);
+
+  rpc GetInterface(GetInterfaceRequest) returns (GetInterfaceResponse);
+  rpc GetInterfaceNeighbor(GetInterfaceNeighborRequest) returns (GetInterfaceNeighborResponse);
+
+  rpc ListPorts(ListPortsRequest) returns (ListPortsResponse);
+  // gNOI alternatives
+  rpc SaveConfig (SaveConfigRequest) returns (SaveConfigResponse);
+  rpc Reboot (RebootRequest) returns (RebootResponse);
+  rpc OnieBootModeInstall (OnieBootModeInstallRequest) returns (OnieBootModeInstallResponse);
+  rpc RestartSystemdService (RestartSystemdServiceRequest) returns (RestartSystemdServiceResponse);
+  rpc RebootCause (RebootCauseRequest) returns (RebootCauseResponse);
+  rpc FactoryReset (FactoryResetRequest) returns (FactoryResetResponse);
+  rpc GetReadiness (GetReadinessRequest) returns (GetReadinessResponse);
+  rpc Reprovision (ReprovisionRequest) returns (ReprovisionResponse);
+
+}
+
+// ── FabricSonicService ───────────────────────────────────────────────────────
+
+// FabricSonicService manages SONiC switch configuration and interface state via gRPC.
+service FabricSonicService {
+  // Switch configuration and interface management
+  rpc GetDevice(FabricGetDeviceRequest) returns (FabricGetDeviceResponse);
+  rpc ApplySwitch(ApplySwitchRequest) returns (ApplySwitchResponse);
+  rpc DeleteSwitch(DeleteSwitchRequest) returns (DeleteSwitchResponse);
+  rpc GetCellStatus(GetCellStatusRequest) returns (GetCellStatusResponse);
+  rpc GetInterface(FabricGetInterfaceRequest) returns (FabricGetInterfaceResponse);
+  rpc GetInterfaceState(FabricGetInterfaceStateRequest) returns (FabricGetInterfaceStateResponse);
+  rpc SetInterfaceAdminState(FabricSetInterfaceAdminStateRequest) returns (FabricSetInterfaceAdminStateResponse);
+  rpc ListInterfacesV2(ListInterfacesRequestV2) returns (ListInterfacesResponseV2);
+}
+// ── Device ───────────────────────────────────────────────────────────────────
+
+message FabricGetDeviceRequest {
+  // device is the Kubernetes object name of the Device (e.g. "spine-2").
+  string device = 1;
+}
+
+message FabricGetDeviceResponse {
+  // device_id is the SONiC-internal identifier for the device.
+  string device_id = 1;
+}
+
+// ── Switch configuration ─────────────────────────────────────────────────────
+
+message ApplySwitchRequest {
+  // device is the Kubernetes object name of the Device.
+  string device = 1;
+  SwitchConfig config = 2;
+}
+
+message ApplySwitchResponse {}
+
+message DeleteSwitchRequest {
+  // device is the Kubernetes object name of the Device.
+  string device = 1;
+}
+
+message DeleteSwitchResponse {
+  // state is "" when reprovision is complete, "Reprovisioning" while in progress.
+  string state = 1;
+}
+
+message GetCellStatusRequest {
+  string device = 1;
+}
+
+// GetCellStatusResponse reports the provisioning state last written by ApplySwitch.
+// state is "Creating", "Active", "Error", or "" (key absent — cell not yet provisioned).
+message GetCellStatusResponse {
+  string state   = 1;
+  string message = 2;
+}
+
+message SwitchConfig {
+  SwitchMetadata metadata = 1;
+  string hostname = 2;
+  // loopback_ips are CIDR prefixes for the loopback interface (e.g. "192.168.1.2/32").
+  repeated string loopback_ips = 3;
+  // prefixes are advertised IP prefixes (e.g. "10.0.0.0/16").
+  repeated string prefixes = 4;
+  repeated VLAN vlans = 5;
+  // bgp is optional; omit when BGP is not configured.
+  BGPConfig bgp = 6;
+}
+
+message SwitchMetadata {
+  string namespace = 1;
+  string name = 2;
+  string uid = 3;
+}
+
+// ── VLAN ──────────────────────────────────────────────────────────────────────
+
+message VLAN {
+  int32 id = 1;
+  // prefix is the CIDR subnet for this VLAN (e.g. "192.168.100.0/24").
+  string prefix = 2;
+  // dhcp_relay is the DHCP relay IP; empty string means no relay.
+  string dhcp_relay = 3;
+  repeated VLANMember members = 4;
+}
+
+message VLANMember {
+  // interface_id is the SONiC-internal port identifier (e.g. "Ethernet0").
+  string interface_id = 1;
+}
+
+// ── BGP ───────────────────────────────────────────────────────────────────────
+
+message BGPConfig {
+  uint32 asn = 1;
+  string router_id = 2;
+  repeated BGPPeerGroup peer_groups = 3;
+}
+
+message BGPPeerGroup {
+  string name = 1;
+  repeated BGPNeighbor neighbors = 2;
+}
+
+// BGPNeighbor represents one BGP peer. Exactly one of vlan_id or interface_id
+// is set; vlan_id > 0 means a VLAN-based unnumbered peer.
+message BGPNeighbor {
+  // vlan_id is set when the neighbor is VLAN-based.
+  int32 vlan_id = 1;
+  // interface_id is set when the neighbor is interface-based.
+  string interface_id = 2;
+}
+
+// ── Interface ─────────────────────────────────────────────────────────────────
+
+message FabricGetInterfaceRequest {
+  // iface is the Kubernetes DeviceInterface object name.
+  string iface = 1;
+}
+
+message FabricGetInterfaceResponse {
+  // interface_id is the SONiC-internal port identifier (e.g. "Ethernet0").
+  string interface_id = 1;
+}
+
+message FabricGetInterfaceStateRequest {
+  // iface is the Kubernetes DeviceInterface object name.
+  string iface = 1;
+}
+
+message FabricGetInterfaceStateResponse {
+  bool admin_up = 1;
+  bool oper_up  = 2;
+}
+
+message FabricSetInterfaceAdminStateRequest {
+  // iface is the Kubernetes DeviceInterface object name.
+  string iface = 1;
+  bool admin_state = 2;
+}
+
+message FabricSetInterfaceAdminStateResponse {}
+
+message ListInterfacesRequestV2 {}
+
+message ListInterfacesResponseV2 {
+  // interfaces is the list of interface names (e.g. "Ethernet0", "Ethernet4").
+  repeated string interfaces = 1;
+}
+

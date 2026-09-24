@@ -1,0 +1,42 @@
+{
+  "hostname": "swi2-wdf4e-1",
+  "loopbackIps": ["2a10:afc0:e015:101::1/128"],
+  "prefixes": ["2a10:afc0:e015:101::/64"],
+  "vlans": [
+    { "id": 0, "members": [
+      {"interfaceId": "Ethernet0"},
+      {"interfaceId": "Ethernet4"},
+      {"interfaceId": "Ethernet8"},
+      {"interfaceId": "Ethernet12"},
+      {"interfaceId": "Ethernet16"},
+      {"interfaceId": "Ethernet20"},
+      {"interfaceId": "Ethernet24"},
+      {"interfaceId": "Ethernet28"},
+      {"interfaceId": "Ethernet32"},
+      {"interfaceId": "Ethernet36"},
+      {"interfaceId": "Ethernet40"},
+      {"interfaceId": "Ethernet44"},
+      {"interfaceId": "Ethernet48"},
+      {"interfaceId": "Ethernet52"},
+      {"interfaceId": "Ethernet56"},
+      {"interfaceId": "Ethernet60"},
+      {"interfaceId": "Ethernet64"},
+      {"interfaceId": "Ethernet68"},
+      {"interfaceId": "Ethernet72"},
+      {"interfaceId": "Ethernet76"},
+      {"interfaceId": "Ethernet80"},
+      {"interfaceId": "Ethernet84"},
+      {"interfaceId": "Ethernet88"},
+      {"interfaceId": "Ethernet92"},
+      {"interfaceId": "Ethernet96"},
+      {"interfaceId": "Ethernet100"},
+      {"interfaceId": "Ethernet104"},
+      {"interfaceId": "Ethernet108"},
+      {"interfaceId": "Ethernet112"},
+      {"interfaceId": "Ethernet116"},
+      {"interfaceId": "Ethernet120"},
+      {"interfaceId": "Ethernet124"}
+    ]}
+  ],
+  "bgp": { "asn": 4212000001, "routerId": "2.0.0.1" }
+}

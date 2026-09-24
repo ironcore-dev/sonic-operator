@@ -162,7 +162,7 @@ func (t defaultTableConverter) interfaceToTable(ifaces []agent.Interface) (*Tabl
 	})
 	for _, iface := range ifaces {
 		rows = append(rows, []any{
-			iface.Name,
+			iface.NativeName,
 			iface.NativeName,
 			iface.AliasName,
 			iface.MacAddress,

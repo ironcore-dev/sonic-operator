@@ -23,6 +23,7 @@ func SubcommandRequired(cmd *cobra.Command, args []string) error {
 var switchAgentClient client.SwitchAgentClient
 var address string
 var connectTimeout time.Duration
+var plainMode bool
 
 func GetSharedSwitchAgentClient() client.SwitchAgentClient {
 	return switchAgentClient
@@ -52,10 +53,11 @@ func Command() *cobra.Command {
 	}
 	cmd.PersistentFlags().StringVar(&address, "address", "localhost:"+grpcPort, "switch proxy address (overrides SWITCH_PROXY_GRPC_PORT).")
 	cmd.PersistentFlags().DurationVar(&connectTimeout, "connect-timeout", 4*time.Second, "Timeout to connect to the switch proxy.")
+	cmd.PersistentFlags().BoolVar(&plainMode, "plain-mode", false, "Disable TLS and connect in plaintext mode.")
 
 	cmd.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
 		var err error
-		switchAgentClient, err = client.NewDefaultSwitchAgentClient(address, connectTimeout)
+		switchAgentClient, err = client.NewDefaultSwitchAgentClient(address, connectTimeout, plainMode)
 		if err != nil {
 			return err
 		}

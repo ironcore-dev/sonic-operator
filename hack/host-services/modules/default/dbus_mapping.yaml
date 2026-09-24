@@ -1,0 +1,25 @@
+---
+handlers:
+  - name: reboot
+    interface: org.SONiC.HostService.system_service
+    method: restart
+    args:
+      - name: delay_secs
+        type: i
+        value: 0
+  - name: save_config
+    interface: org.SONiC.HostService.config
+    method: save
+    args:
+      - name: delay_secs
+        type: i
+        value: 0
+  - name: onie
+    interface: org.SONiC.HostService.onie
+    method: reboot
+    args:
+      - name: delay_secs
+        type: i
+        value: 0
+
+        

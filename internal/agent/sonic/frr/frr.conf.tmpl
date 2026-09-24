@@ -1,0 +1,60 @@
+frr version 8.1
+frr defaults traditional
+hostname {{ .Hostname }}
+log syslog informational
+service integrated-vtysh-config
+{{- range .VLANIDs }}
+interface Vlan{{ . }}
+  no ipv6 nd suppress-ra
+  ipv6 nd managed-config-flag
+  ipv6 nd other-config-flag
+!
+{{- end }}
+router bgp {{ .ASN }}
+  bgp router-id {{ .RouterID }}
+  no bgp ebgp-requires-policy
+  no bgp default ipv4-unicast
+  bgp bestpath as-path multipath-relax
+  no bgp network import-check
+{{- range .PeerGroups }}
+{{- $pg := . }}
+  neighbor {{ $pg.Name }} peer-group
+  neighbor {{ $pg.Name }} remote-as external
+  neighbor {{ $pg.Name }} timers 3 9
+  neighbor {{ $pg.Name }} timers connect 20
+{{- range $pg.Neighbors }}
+  neighbor {{ . }} interface peer-group {{ $pg.Name }}
+{{- end }}
+{{- end }}
+
+  address-family ipv6 unicast
+{{- range .Prefixes }}
+    network {{ . }}
+{{- end }}
+{{- range .PeerGroups }}
+
+    neighbor {{ .Name }} activate
+    neighbor {{ .Name }} route-map RM_{{ .Name }}_IN in
+    neighbor {{ .Name }} route-map RM_{{ .Name }}_OUT out
+{{- end }}
+  exit-address-family
+exit
+{{- range .PeerGroups }}
+
+route-map RM_{{ .Name }}_IN permit 10
+{{- if .CommunityIn }}
+  set community {{ .CommunityIn }}
+!
+bgp community-list 10 permit {{ .CommunityIn }}
+
+route-map RM_{{ .Name }}_OUT deny 10
+  match community 10
+route-map RM_{{ .Name }}_OUT permit 20
+{{- else }}
+route-map RM_{{ .Name }}_OUT permit 10
+{{- end }}
+!
+{{- end }}
+{{- range .Prefixes }}
+ipv6 route {{ . }} reject
+{{- end }}

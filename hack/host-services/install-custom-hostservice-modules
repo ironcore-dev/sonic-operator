@@ -1,0 +1,62 @@
+#!/usr/bin/env bash
+# Registers the onie host module into sonic-host-server if not already present.
+
+set -euo pipefail
+
+
+SERVER_SCRIPT="/usr/local/bin/sonic-host-server"
+
+# --- Select modules directory based on SONiC build version ---
+SONIC_VERSION_FILE="/etc/sonic/sonic_version.yml"
+MODULES_DIR="modules/default"
+
+if [ -f "$SONIC_VERSION_FILE" ]; then
+    if grep -q 'build_version' "$SONIC_VERSION_FILE" && grep 'build_version' "$SONIC_VERSION_FILE" | grep -q 'Edgecore-SONiC'; then
+        MODULES_DIR="modules/edge"
+    else
+        MODULES_DIR="modules/default"
+    fi
+    echo "Detected SONiC build version from $SONIC_VERSION_FILE, using modules directory: $MODULES_DIR"
+fi
+
+# Determine Python site-packages directory
+PYTHON_SITE_PACKAGES=$(python3 -c "import site; print(site.getsitepackages()[0])" 2>/dev/null)
+if [ -z "$PYTHON_SITE_PACKAGES" ]; then
+    echo "ERROR: Could not determine Python site-packages directory" >&2
+    exit 1
+fi
+
+TARGET_DIR="$PYTHON_SITE_PACKAGES/host_modules"
+sudo mkdir -p "$TARGET_DIR"
+
+# Install onie.py if not already present
+ONIE_SCRIPT="$TARGET_DIR/onie.py"
+if [ ! -f "$ONIE_SCRIPT" ]; then
+    sudo cp "$MODULES_DIR/onie.py" "$ONIE_SCRIPT"
+    echo "Copied onie.py from $MODULES_DIR/ to $TARGET_DIR/"
+fi
+    # --- 1. Add import to the import block ---
+        if grep -q ', onie' "$SERVER_SCRIPT"; then
+            echo "Import already present in $SERVER_SCRIPT, skipping."
+        else
+            sudo sed -i '/from host_modules import/ s/$/ , onie/' "$SERVER_SCRIPT"
+            echo "Added 'onie' import to $SERVER_SCRIPT"
+        fi
+
+        # --- 2. Add entry to register_dbus() mod_dict ---
+        if grep -q "'onie':" "$SERVER_SCRIPT"; then
+            echo "Registration entry already present in $SERVER_SCRIPT, skipping."
+        else
+            # Insert entry after 'config' entry in mod_dict
+            sudo sed -i "/'config': config_engine.Config('config'),/a\\        'onie': onie.Onie('onie')," "$SERVER_SCRIPT"
+            echo "Added 'onie' registration entry to $SERVER_SCRIPT"
+        fi
+    fi
+    echo "Detected SONiC build version from $SONIC_VERSION_FILE, using modules directory: $MODULES_DIR"
+fi
+
+
+
+echo "Restarting sonic-hostservice..."
+systemctl restart sonic-hostservice.service
+echo "Done."

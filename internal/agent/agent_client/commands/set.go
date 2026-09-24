@@ -21,6 +21,8 @@ func Set() *cobra.Command {
 
 	subcommands := []*cobra.Command{
 		SetInterfaceStatus(printRenderer),
+		ApplySwitchCmd(),
+		DeleteSwitchCmd(),
 	}
 
 	cmd.AddCommand(subcommands...)

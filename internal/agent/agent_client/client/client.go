@@ -5,14 +5,17 @@ package client
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
+	"log"
 	"time"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
 
-	pb "github.com/ironcore-dev/sonic-operator/internal/agent/proto"
 	agent "github.com/ironcore-dev/sonic-operator/internal/agent/types"
+	pb "github.com/ironcore-dev/sonic-operator/pkg/agent/proto"
 )
 
 type SwitchAgentClient interface {
@@ -28,17 +31,29 @@ type SwitchAgentClient interface {
 	ListPorts(ctx context.Context) (*agent.PortList, error)
 
 	SaveConfig(ctx context.Context) error
+	Reboot(ctx context.Context) error
+	OnieBootModeInstall(ctx context.Context) error
+	RestartSystemdService(ctx context.Context, serviceName string) error
+	RebootCause(ctx context.Context) (string, error)
+	FactoryReset(ctx context.Context) error
+	GetReadiness(ctx context.Context) (bool, error)
+	Reprovision(ctx context.Context) error
+
+	ApplySwitch(ctx context.Context, device string, cfg *pb.SwitchConfig) error
+	// DeleteSwitch triggers async reprovision. Returns the state string:
+	// "" = done (or not yet started), "Reprovisioning" = in progress.
+	DeleteSwitch(ctx context.Context, device string) (state string, err error)
+	// EnsureReprovision calls DeleteSwitch in a loop until state is "" (done).
+	EnsureReprovision(ctx context.Context, device string) error
 }
 
 type defaultSwitchAgentClient struct {
 	Address        string
 	ConnectTimeout time.Duration
-
-	opts   []grpc.DialOption // Options for the gRPC connection
-	client pb.SwitchAgentServiceClient
+	plainMode      bool
 }
 
-func NewDefaultSwitchAgentClient(address string, connectTimeout time.Duration) (SwitchAgentClient, error) {
+func NewDefaultSwitchAgentClient(address string, connectTimeout time.Duration, plainMode bool) (SwitchAgentClient, error) {
 	if address == "" {
 		address = "localhost:50051"
 	}
@@ -50,39 +65,60 @@ func NewDefaultSwitchAgentClient(address string, connectTimeout time.Duration) (
 	c := defaultSwitchAgentClient{
 		Address:        address,
 		ConnectTimeout: connectTimeout,
-	}
-
-	// Remove the println from here - flags haven't been parsed yet!
-	c.opts = []grpc.DialOption{
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		plainMode:      plainMode,
 	}
 
 	return &c, nil
 }
 
-func (c *defaultSwitchAgentClient) dial() (func() error, error) {
-	println("connect to ", c.Address)
+func (c *defaultSwitchAgentClient) dial() (pb.SwitchAgentServiceClient, func() error, error) {
+	log.Printf("connecting to %s", c.Address)
 
-	conn, err := grpc.NewClient(c.Address, grpc.WithTransportCredentials(insecure.NewCredentials()))
-
-	// conn, err := grpc.DialContext(dialCtx, c.Address,
-	// 	grpc.WithTransportCredentials(insecure.NewCredentials()),
-	// 	grpc.WithBlock(), // Wait for connection to be ready
-	// )
-	if err != nil {
-		return nil, fmt.Errorf("failed to connect to switch proxy: %w", err)
+	var creds grpc.DialOption
+	if c.plainMode {
+		creds = grpc.WithTransportCredentials(insecure.NewCredentials())
+	} else {
+		creds = grpc.WithTransportCredentials(credentials.NewTLS(&tls.Config{InsecureSkipVerify: true})) //nolint:gosec
 	}
 
-	c.client = pb.NewSwitchAgentServiceClient(conn)
+	conn, err := grpc.NewClient(c.Address, creds)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to connect to switch proxy: %w", err)
+	}
+
+	grpcClient := pb.NewSwitchAgentServiceClient(conn)
 
 	// Return a cleanup function that ensures proper connection termination
-	return func() error {
+	return grpcClient, func() error {
 		return conn.Close()
 	}, nil
 }
 
+func (c *defaultSwitchAgentClient) dialConn() (*grpc.ClientConn, error) {
+	var creds grpc.DialOption
+	if c.plainMode {
+		creds = grpc.WithTransportCredentials(insecure.NewCredentials())
+	} else {
+		creds = grpc.WithTransportCredentials(credentials.NewTLS(&tls.Config{InsecureSkipVerify: true})) //nolint:gosec
+	}
+	conn, err := grpc.NewClient(c.Address, creds)
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to switch proxy: %w", err)
+	}
+	return conn, nil
+}
+
+func (c *defaultSwitchAgentClient) dialFabricSonic() (pb.FabricSonicServiceClient, func() error, error) {
+	log.Printf("connecting to %s", c.Address)
+	conn, err := c.dialConn()
+	if err != nil {
+		return nil, nil, err
+	}
+	return pb.NewFabricSonicServiceClient(conn), conn.Close, nil
+}
+
 func (c *defaultSwitchAgentClient) GetDeviceInfo(ctx context.Context) (*agent.SwitchDevice, error) {
-	cleanup, err := c.dial()
+	grpcClient, cleanup, err := c.dial()
 	if err != nil {
 		return nil, err
 	}
@@ -90,7 +126,7 @@ func (c *defaultSwitchAgentClient) GetDeviceInfo(ctx context.Context) (*agent.Sw
 		_ = cleanup()
 	}()
 
-	resp, err := c.client.GetDeviceInfo(ctx, &pb.GetDeviceInfoRequest{})
+	resp, err := grpcClient.GetDeviceInfo(ctx, &pb.GetDeviceInfoRequest{})
 	if err != nil {
 		return nil, err
 	}
@@ -111,7 +147,7 @@ func (c *defaultSwitchAgentClient) GetDeviceInfo(ctx context.Context) (*agent.Sw
 }
 
 func (c *defaultSwitchAgentClient) ListInterfaces(ctx context.Context) (*agent.InterfaceList, error) {
-	cleanup, err := c.dial()
+	grpcClient, cleanup, err := c.dial()
 	if err != nil {
 		return nil, err
 	}
@@ -119,7 +155,7 @@ func (c *defaultSwitchAgentClient) ListInterfaces(ctx context.Context) (*agent.I
 		_ = cleanup()
 	}()
 
-	resp, err := c.client.ListInterfaces(ctx, &pb.ListInterfacesRequest{})
+	resp, err := grpcClient.ListInterfaces(ctx, &pb.ListInterfacesRequest{})
 	if err != nil {
 		return nil, err
 	}
@@ -130,8 +166,7 @@ func (c *defaultSwitchAgentClient) ListInterfaces(ctx context.Context) (*agent.I
 			TypeMeta: agent.TypeMeta{
 				Kind: agent.InterfaceKind,
 			},
-			Name:            iface.GetName(),
-			NativeName:      iface.GetNativeName(),
+			NativeName:      iface.GetName(),
 			AliasName:       iface.GetAliasName(),
 			MacAddress:      iface.GetMacAddress(),
 			OperationStatus: agent.DeviceStatus(iface.GetOperationalStatus()),
@@ -151,7 +186,7 @@ func (c *defaultSwitchAgentClient) ListInterfaces(ctx context.Context) (*agent.I
 }
 
 func (c *defaultSwitchAgentClient) SetInterfaceAdminStatus(ctx context.Context, iface *agent.Interface) (*agent.Interface, error) {
-	cleanup, err := c.dial()
+	grpcClient, cleanup, err := c.dial()
 	if err != nil {
 		return nil, err
 	}
@@ -159,24 +194,21 @@ func (c *defaultSwitchAgentClient) SetInterfaceAdminStatus(ctx context.Context, 
 		_ = cleanup()
 	}()
 
-	resp, err := c.client.SetInterfaceAdminStatus(ctx, &pb.SetInterfaceAdminStatusRequest{
+	resp, err := grpcClient.SetInterfaceAdminStatus(ctx, &pb.SetInterfaceAdminStatusRequest{
 		InterfaceName: iface.GetName(),
 		AdminStatus:   string(iface.AdminStatus),
 	})
 	if err != nil {
-		fmt.Println("Error occurred while setting interface admin status:", err)
 		return nil, err
 	}
 
 	if resp.GetStatus().Code != 0 {
-		fmt.Println("Error occurred while setting interface admin status:", resp.GetStatus().GetMessage())
 		return &agent.Interface{
 			Status: agent.ProtoStatusToStatus(resp.GetStatus()),
 		}, fmt.Errorf("failed to set interface admin status: %s", resp.GetStatus().GetMessage())
 	}
-	iface.Name = resp.GetInterface().GetName()
+	iface.NativeName = resp.GetInterface().GetName()
 	iface.AliasName = resp.GetInterface().GetAliasName()
-	iface.NativeName = resp.GetInterface().GetNativeName()
 	iface.MacAddress = resp.GetInterface().GetMacAddress()
 	iface.AdminStatus = agent.DeviceStatus(resp.GetInterface().GetAdminStatus())
 	iface.OperationStatus = agent.DeviceStatus(resp.GetInterface().GetOperationalStatus())
@@ -186,7 +218,7 @@ func (c *defaultSwitchAgentClient) SetInterfaceAdminStatus(ctx context.Context, 
 }
 
 func (c *defaultSwitchAgentClient) GetInterfaceByAbstractName(ctx context.Context, iface *agent.Interface) (*agent.Interface, error) {
-	cleanup, err := c.dial()
+	grpcClient, cleanup, err := c.dial()
 	if err != nil {
 		return nil, err
 	}
@@ -194,13 +226,8 @@ func (c *defaultSwitchAgentClient) GetInterfaceByAbstractName(ctx context.Contex
 		_ = cleanup()
 	}()
 
-	nativeName, err := agent.AbstractNameToNativeName(iface.GetName())
-	if err != nil {
-		return nil, err
-	}
-
-	resp, err := c.client.GetInterface(ctx, &pb.GetInterfaceRequest{
-		InterfaceName: nativeName,
+	resp, err := grpcClient.GetInterface(ctx, &pb.GetInterfaceRequest{
+		InterfaceName: iface.GetName(),
 	})
 	if err != nil {
 		return nil, err
@@ -216,9 +243,8 @@ func (c *defaultSwitchAgentClient) GetInterfaceByAbstractName(ctx context.Contex
 		TypeMeta: agent.TypeMeta{
 			Kind: agent.InterfaceKind,
 		},
-		Name:            resp.GetInterface().Name,
-		AliasName:       resp.GetInterface().AliasName,
-		NativeName:      resp.GetInterface().NativeName,
+		NativeName:      resp.GetInterface().GetName(),
+		AliasName:       resp.GetInterface().GetAliasName(),
 		MacAddress:      resp.GetInterface().GetMacAddress(),
 		OperationStatus: agent.DeviceStatus(resp.GetInterface().GetOperationalStatus()),
 		AdminStatus:     agent.DeviceStatus(resp.GetInterface().GetAdminStatus()),
@@ -227,7 +253,7 @@ func (c *defaultSwitchAgentClient) GetInterfaceByAbstractName(ctx context.Contex
 }
 
 func (c *defaultSwitchAgentClient) GetInterfaceNeighbor(ctx context.Context, iface *agent.Interface) (*agent.InterfaceNeighbor, error) {
-	cleanup, err := c.dial()
+	grpcClient, cleanup, err := c.dial()
 	if err != nil {
 		return nil, err
 	}
@@ -235,7 +261,7 @@ func (c *defaultSwitchAgentClient) GetInterfaceNeighbor(ctx context.Context, ifa
 		_ = cleanup()
 	}()
 
-	resp, err := c.client.GetInterfaceNeighbor(ctx, &pb.GetInterfaceNeighborRequest{
+	resp, err := grpcClient.GetInterfaceNeighbor(ctx, &pb.GetInterfaceNeighborRequest{
 		InterfaceName: iface.GetName(),
 	})
 	if err != nil {
@@ -261,7 +287,7 @@ func (c *defaultSwitchAgentClient) GetInterfaceNeighbor(ctx context.Context, ifa
 }
 
 func (c *defaultSwitchAgentClient) ListPorts(ctx context.Context) (*agent.PortList, error) {
-	cleanup, err := c.dial()
+	grpcClient, cleanup, err := c.dial()
 	if err != nil {
 		return nil, err
 	}
@@ -269,7 +295,7 @@ func (c *defaultSwitchAgentClient) ListPorts(ctx context.Context) (*agent.PortLi
 		_ = cleanup()
 	}()
 
-	resp, err := c.client.ListPorts(ctx, &pb.ListPortsRequest{})
+	resp, err := grpcClient.ListPorts(ctx, &pb.ListPortsRequest{})
 	if err != nil {
 		return nil, err
 	}
@@ -297,7 +323,7 @@ func (c *defaultSwitchAgentClient) ListPorts(ctx context.Context) (*agent.PortLi
 }
 
 func (c *defaultSwitchAgentClient) SetInterfaceAliasName(ctx context.Context, iface *agent.Interface) (*agent.Interface, error) {
-	cleanup, err := c.dial()
+	grpcClient, cleanup, err := c.dial()
 	if err != nil {
 		return nil, err
 	}
@@ -305,17 +331,15 @@ func (c *defaultSwitchAgentClient) SetInterfaceAliasName(ctx context.Context, if
 		_ = cleanup()
 	}()
 
-	resp, err := c.client.SetInterfaceAliasName(ctx, &pb.SetInterfaceAliasNameRequest{
+	resp, err := grpcClient.SetInterfaceAliasName(ctx, &pb.SetInterfaceAliasNameRequest{
 		InterfaceName: iface.GetName(),
 		AliasName:     iface.AliasName,
 	})
 	if err != nil {
-		fmt.Println("Error occurred while setting interface alias name:", err)
 		return nil, err
 	}
 
 	if resp.GetStatus().Code != 0 {
-		fmt.Println("Error occurred while setting interface alias name:", resp.GetStatus().GetMessage())
 		return &agent.Interface{
 			Status: agent.ProtoStatusToStatus(resp.GetStatus()),
 		}, fmt.Errorf("failed to set interface alias name: %s", resp.GetStatus().GetMessage())
@@ -329,7 +353,7 @@ func (c *defaultSwitchAgentClient) SetInterfaceAliasName(ctx context.Context, if
 }
 
 func (c *defaultSwitchAgentClient) SaveConfig(ctx context.Context) error {
-	cleanup, err := c.dial()
+	grpcClient, cleanup, err := c.dial()
 	if err != nil {
 		return err
 	}
@@ -337,7 +361,7 @@ func (c *defaultSwitchAgentClient) SaveConfig(ctx context.Context) error {
 		_ = cleanup()
 	}()
 
-	resp, err := c.client.SaveConfig(ctx, &pb.SaveConfigRequest{})
+	resp, err := grpcClient.SaveConfig(ctx, &pb.SaveConfigRequest{})
 	if err != nil {
 		return err
 	}
@@ -347,4 +371,208 @@ func (c *defaultSwitchAgentClient) SaveConfig(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+func (c *defaultSwitchAgentClient) Reboot(ctx context.Context) error {
+	grpcClient, cleanup, err := c.dial()
+	if err != nil {
+		return err
+	}
+	defer func() {
+		_ = cleanup()
+	}()
+
+	resp, err := grpcClient.Reboot(ctx, &pb.RebootRequest{})
+	if err != nil {
+		return err
+	}
+
+	if resp.GetStatus().Code != 0 {
+		return fmt.Errorf("failed to reboot switch: %s", resp.GetStatus().GetMessage())
+	}
+
+	return nil
+}
+
+func (c *defaultSwitchAgentClient) OnieBootModeInstall(ctx context.Context) error {
+	grpcClient, cleanup, err := c.dial()
+	if err != nil {
+		return err
+	}
+	defer func() {
+		_ = cleanup()
+	}()
+
+	resp, err := grpcClient.OnieBootModeInstall(ctx, &pb.OnieBootModeInstallRequest{})
+	if err != nil {
+		return err
+	}
+
+	if resp.GetStatus().Code != 0 {
+		return fmt.Errorf("failed to set ONIE boot mode: %s", resp.GetStatus().GetMessage())
+	}
+
+	return nil
+}
+
+func (c *defaultSwitchAgentClient) RestartSystemdService(ctx context.Context, serviceName string) error {
+	grpcClient, cleanup, err := c.dial()
+	if err != nil {
+		return err
+	}
+	defer func() {
+		_ = cleanup()
+	}()
+
+	resp, err := grpcClient.RestartSystemdService(ctx, &pb.RestartSystemdServiceRequest{
+		ServiceName: serviceName,
+	})
+	if err != nil {
+		return err
+	}
+
+	if resp.GetStatus().Code != 0 {
+		return fmt.Errorf("failed to restart systemd service %s: %s", serviceName, resp.GetStatus().GetMessage())
+	}
+
+	return nil
+}
+
+func (c *defaultSwitchAgentClient) RebootCause(ctx context.Context) (string, error) {
+	grpcClient, cleanup, err := c.dial()
+	if err != nil {
+		return "", err
+	}
+	defer func() {
+		_ = cleanup()
+	}()
+
+	resp, err := grpcClient.RebootCause(ctx, &pb.RebootCauseRequest{})
+	if err != nil {
+		return "", err
+	}
+
+	if resp.GetStatus().Code != 0 {
+		return "", fmt.Errorf("failed to get reboot cause: %s", resp.GetStatus().GetMessage())
+	}
+
+	return resp.GetCause(), nil
+}
+
+func (c *defaultSwitchAgentClient) FactoryReset(ctx context.Context) error {
+	grpcClient, cleanup, err := c.dial()
+	if err != nil {
+		return err
+	}
+	defer func() {
+		_ = cleanup()
+	}()
+
+	resp, err := grpcClient.FactoryReset(ctx, &pb.FactoryResetRequest{})
+	if err != nil {
+		return err
+	}
+
+	if resp.GetStatus().Code != 0 {
+		return fmt.Errorf("failed to factory reset: %s", resp.GetStatus().GetMessage())
+	}
+
+	return nil
+}
+
+func (c *defaultSwitchAgentClient) GetReadiness(ctx context.Context) (bool, error) {
+	grpcClient, cleanup, err := c.dial()
+	if err != nil {
+		return false, err
+	}
+	defer func() {
+		_ = cleanup()
+	}()
+
+	resp, err := grpcClient.GetReadiness(ctx, &pb.GetReadinessRequest{})
+	if err != nil {
+		return false, err
+	}
+
+	if resp.GetStatus().Code != 0 {
+		return false, fmt.Errorf("failed to get readiness: %s", resp.GetStatus().GetMessage())
+	}
+
+	return resp.GetReady(), nil
+}
+
+func (c *defaultSwitchAgentClient) Reprovision(ctx context.Context) error {
+	grpcClient, cleanup, err := c.dial()
+	if err != nil {
+		return err
+	}
+	defer func() {
+		_ = cleanup()
+	}()
+
+	resp, err := grpcClient.Reprovision(ctx, &pb.ReprovisionRequest{})
+	if err != nil {
+		return err
+	}
+
+	if status := resp.GetStatus(); status != nil && status.Code != 0 {
+		return fmt.Errorf("failed to reprovision: %s", status.GetMessage())
+	}
+
+	return nil
+}
+
+func (c *defaultSwitchAgentClient) ApplySwitch(ctx context.Context, device string, cfg *pb.SwitchConfig) error {
+	fabricClient, cleanup, err := c.dialFabricSonic()
+	if err != nil {
+		return err
+	}
+	defer func() {
+		_ = cleanup()
+	}()
+
+	resp, err := fabricClient.ApplySwitch(ctx, &pb.ApplySwitchRequest{
+		Device: device,
+		Config: cfg,
+	})
+	if err != nil {
+		return fmt.Errorf("ApplySwitch RPC failed: %w", err)
+	}
+	_ = resp
+	return nil
+}
+
+func (c *defaultSwitchAgentClient) DeleteSwitch(ctx context.Context, device string) (string, error) {
+	fabricClient, cleanup, err := c.dialFabricSonic()
+	if err != nil {
+		return "", err
+	}
+	defer func() {
+		_ = cleanup()
+	}()
+
+	resp, err := fabricClient.DeleteSwitch(ctx, &pb.DeleteSwitchRequest{Device: device})
+	if err != nil {
+		return "", fmt.Errorf("DeleteSwitch RPC failed: %w", err)
+	}
+	return resp.GetState(), nil
+}
+
+func (c *defaultSwitchAgentClient) EnsureReprovision(ctx context.Context, device string) error {
+	for {
+		state, err := c.DeleteSwitch(ctx, device)
+		if err != nil {
+			return err
+		}
+		if state == "" {
+			return nil
+		}
+		t := time.NewTimer(2 * time.Second)
+		select {
+		case <-ctx.Done():
+			t.Stop()
+			return ctx.Err()
+		case <-t.C:
+		}
+	}
 }

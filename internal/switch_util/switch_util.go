@@ -18,13 +18,13 @@ func NewAgentClientForSwitch(ctx context.Context, s *networkingv1alpha1.Switch) 
 	// TODO: construct client from s.spec.Management
 
 	if s.Spec.Management.Host == "" && s.Spec.Management.Port == "" {
-		agentcli, err := agentCli.NewDefaultSwitchAgentClient("", 0)
+		agentcli, err := agentCli.NewDefaultSwitchAgentClient("", 0, false)
 		return agentcli, err
 	}
 
 	address := s.Spec.Management.Host + ":" + s.Spec.Management.Port
 
-	agentcli, err := agentCli.NewDefaultSwitchAgentClient(address, 0)
+	agentcli, err := agentCli.NewDefaultSwitchAgentClient(address, 0, false)
 	if err != nil {
 		return nil, err
 	}

@@ -1,0 +1,59 @@
+# SPDX-FileCopyrightText: SAP SE or an SAP affiliate company and IronCore contributors
+# SPDX-License-Identifier: Apache-2.0
+
+---
+hostservices_packages_dir: /usr/local/lib/python3.9/dist-packages/host_modules
+handlers:
+  - name: reboot
+    serviceName: org.SONiC.HostService.reboot
+    objectPath: /org/SONiC/HostService/reboot
+    method: issue_reboot
+    builtin: false
+    module: reboot
+    args:
+      - name: reboot_type
+        type: s
+        value: "COLD"
+  - name: save_config
+    serviceName: org.SONiC.HostService.config
+    objectPath: /org/SONiC/HostService/config
+    method: save
+    builtin: true
+    args:
+      - name: default_config
+        type: s
+        value: "/etc/sonic/config_db.json"
+  - name: onie
+    serviceName: org.SONiC.HostService.onie
+    objectPath: /org/SONiC/HostService/onie
+    method: set_install_mode
+    builtin: false
+    module: onie
+  - name: reboot_cause
+    serviceName: org.SONiC.HostService.extension
+    objectPath: /org/SONiC/HostService/extension
+    method: reboot_cause
+    builtin: false
+    module: extension
+  - name: factory_reset
+    serviceName: org.SONiC.HostService.extension
+    objectPath: /org/SONiC/HostService/extension
+    method: factory_reset
+    builtin: false
+    module: extension
+  - name: reprovision
+    serviceName: org.SONiC.HostService.extension
+    objectPath: /org/SONiC/HostService/extension
+    method: reprovision
+    builtin: false
+    module: extension
+  - name: systemd_restart
+    serviceName: org.SONiC.HostService.system_service
+    objectPath: /org/SONiC/HostService/system_service
+    method: restart
+    builtin: true
+    ignore_codes: [-15]
+    args:
+      - name: service_name
+        type: s
+        value: "sonic-hostservices"

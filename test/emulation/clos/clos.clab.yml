@@ -4,16 +4,16 @@ topology:
   nodes:
     sonic-spine1:
       kind: sonic-vm
-      image: dberes/sonic-vs:latest
+      image: dberes/sonic-vs@sha256:93905b775ee53a6f0409f89f5e7dfbb654bda1c87a4e6e08ab2b4106a467de7a
     sonic-spine2:
       kind: sonic-vm
-      image: dberes/sonic-vs:latest 
+      image: dberes/sonic-vs@sha256:93905b775ee53a6f0409f89f5e7dfbb654bda1c87a4e6e08ab2b4106a467de7a 
     sonic-leaf1:
       kind: sonic-vm
-      image: dberes/sonic-vs:latest 
+      image: dberes/sonic-vs@sha256:93905b775ee53a6f0409f89f5e7dfbb654bda1c87a4e6e08ab2b4106a467de7a
     sonic-leaf2:
       kind: sonic-vm
-      image: dberes/sonic-vs:latest 
+      image: dberes/sonic-vs@sha256:93905b775ee53a6f0409f89f5e7dfbb654bda1c87a4e6e08ab2b4106a467de7a 
     client1:
       kind: linux
       image: ghcr.io/hellt/network-multitool:latest
@@ -21,9 +21,9 @@ topology:
       kind: linux
       image: ghcr.io/hellt/network-multitool:latest
   links:
-    - endpoints: ["sonic-spine1:eth1", "sonic-leaf1:eth1"]
-    - endpoints: ["sonic-spine1:eth2", "sonic-leaf2:eth1"]
-    - endpoints: ["sonic-spine2:eth1", "sonic-leaf1:eth2"]
-    - endpoints: ["sonic-spine2:eth2", "sonic-leaf2:eth2"]
-    - endpoints: ["sonic-leaf1:eth3", "client1:eth1"]
-    - endpoints: ["sonic-leaf2:eth3", "client2:eth1"]
+    - endpoints: ["sonic-spine1:eth1", "sonic-leaf1:eth30"]
+    - endpoints: ["sonic-spine1:eth2", "sonic-leaf2:eth30"]
+    - endpoints: ["sonic-spine2:eth1", "sonic-leaf1:eth31"]
+    - endpoints: ["sonic-spine2:eth2", "sonic-leaf2:eth31"]
+    - endpoints: ["sonic-leaf1:eth1", "client1:eth1"]
+    - endpoints: ["sonic-leaf2:eth1", "client2:eth1"]

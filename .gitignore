@@ -5,6 +5,8 @@
 *.so
 *.dylib
 bin/*
+agent
+agent_cli
 Dockerfile.cross
 dev
 

@@ -52,7 +52,7 @@ func RunSetInterfaceStatus(
 		TypeMeta: agent.TypeMeta{
 			Kind: agent.InterfaceKind,
 		},
-		Name:        opts.InterfaceName,
+		NativeName:  opts.InterfaceName,
 		AdminStatus: agent.DeviceStatus(adminStatus),
 	})
 	if err != nil {
