@@ -42,34 +42,6 @@ var schemaYAML = typed.YAMLObject(`types:
         scalar: string
 - name: com.github.ironcore-dev.sonic-operator.api.v1alpha1.OperationState
   scalar: string
-- name: com.github.ironcore-dev.sonic-operator.api.v1alpha1.SwitchCredentials
-  map:
-    fields:
-    - name: apiVersion
-      type:
-        scalar: string
-    - name: data
-      type:
-        map:
-          elementType:
-            scalar: string
-    - name: immutable
-      type:
-        scalar: boolean
-    - name: kind
-      type:
-        scalar: string
-    - name: metadata
-      type:
-        namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
-    - name: stringData
-      type:
-        map:
-          elementType:
-            scalar: string
-    - name: type
-      type:
-        namedType: io.k8s.api.core.v1.SecretType
 - name: com.github.ironcore-dev.sonic-operator.api.v1alpha1.SwitchInterface
   map:
     fields:
@@ -142,8 +114,6 @@ var schemaYAML = typed.YAMLObject(`types:
         scalar: string
       default: ""
     elementRelationship: atomic
-- name: io.k8s.api.core.v1.SecretType
-  scalar: string
 - name: io.k8s.apimachinery.pkg.apis.meta.v1.Condition
   map:
     fields:

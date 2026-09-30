@@ -25,12 +25,4 @@ resources:
   kind: SwitchInterface
   path: github.com/ironcore-dev/sonic-operator/api/v1alpha1
   version: v1alpha1
-- api:
-    crdVersion: v1
-  controller: true
-  domain: sonic.networking.metal.ironcore.dev
-  group: networking
-  kind: SwitchCredentials
-  path: github.com/ironcore-dev/sonic-operator/api/v1alpha1
-  version: v1alpha1
 version: "3"

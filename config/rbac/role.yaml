@@ -16,7 +16,6 @@ rules:
   - sonic.networking.metal.ironcore.dev
   resources:
   - interfaces
-  - switchcredentials
   - switches
   - switchinterfaces
   verbs:
@@ -30,7 +29,6 @@ rules:
 - apiGroups:
   - sonic.networking.metal.ironcore.dev
   resources:
-  - switchcredentials/finalizers
   - switches/finalizers
   - switchinterfaces/finalizers
   verbs:
@@ -38,7 +36,6 @@ rules:
 - apiGroups:
   - sonic.networking.metal.ironcore.dev
   resources:
-  - switchcredentials/status
   - switches/status
   - switchinterfaces/status
   verbs:

@@ -8,7 +8,6 @@ Represents a physical switch and its management connectivity.
 Spec fields:
 - `management.host`: switch management host/IP.
 - `management.port`: management port (string).
-- `management.credentials`: reference to `SwitchCredentials`.
 - `macAddress`: MAC address assigned to the switch.
 - `ports[]`: declared list of physical port names.
 
@@ -31,11 +30,3 @@ Status fields:
 - `adminState`: observed admin state.
 - `operationalState`: observed operational state.
 - `neighbor`: neighbor details (when available).
-
-## SwitchCredentials
-Credentials for accessing switches. Schema mirrors `core/v1.Secret`.
-
-Fields:
-- `data` / `stringData`: secret payload.
-- `type`: secret type.
-- `immutable`: optional immutability flag.

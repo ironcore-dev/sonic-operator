@@ -18,7 +18,6 @@ A Kubernetes-native operator for onboarding and managing bare-metal network swit
 ## CRDs
 - `Switch`: physical switch and management connectivity.
 - `SwitchInterface`: per-interface admin/operational state.
-- `SwitchCredentials`: credentials (Secret-like schema).
 
 ## Docs
 Start at `docs/README.md`.

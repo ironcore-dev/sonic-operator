@@ -21,8 +21,6 @@ func ForKind(kind schema.GroupVersionKind) interface{} {
 	// Group=sonic.networking.metal.ironcore.dev, Version=v1alpha1
 	case v1alpha1.SchemeGroupVersion.WithKind("Neighbor"):
 		return &apiv1alpha1.NeighborApplyConfiguration{}
-	case v1alpha1.SchemeGroupVersion.WithKind("SwitchCredentials"):
-		return &apiv1alpha1.SwitchCredentialsApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("SwitchInterface"):
 		return &apiv1alpha1.SwitchInterfaceApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("SwitchInterfaceSpec"):

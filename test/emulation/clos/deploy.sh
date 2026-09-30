@@ -148,8 +148,6 @@ for service in $(kubectl get -n c9s-clos svc -o jsonpath='{.items[*].metadata.na
         management:
           host: $ip
           port: "57400"
-          credentials:
-            name: switchcredentials-sample
         macAddress: "aa:bb:cc:dd:ee:ff"
 EOF
     fi
