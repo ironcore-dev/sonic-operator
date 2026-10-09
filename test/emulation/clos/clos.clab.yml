@@ -4,16 +4,16 @@ topology:
   nodes:
     sonic-spine1:
       kind: sonic-vm
-      image: dberes/sonic-vs:latest
+      image: dberes/sonic-vs@sha256:93905b775ee53a6f0409f89f5e7dfbb654bda1c87a4e6e08ab2b4106a467de7a
     sonic-spine2:
       kind: sonic-vm
-      image: dberes/sonic-vs:latest 
+      image: dberes/sonic-vs@sha256:93905b775ee53a6f0409f89f5e7dfbb654bda1c87a4e6e08ab2b4106a467de7a
     sonic-leaf1:
       kind: sonic-vm
-      image: dberes/sonic-vs:latest 
+      image: dberes/sonic-vs@sha256:93905b775ee53a6f0409f89f5e7dfbb654bda1c87a4e6e08ab2b4106a467de7a
     sonic-leaf2:
       kind: sonic-vm
-      image: dberes/sonic-vs:latest 
+      image: dberes/sonic-vs@sha256:93905b775ee53a6f0409f89f5e7dfbb654bda1c87a4e6e08ab2b4106a467de7a
     client1:
       kind: linux
       image: ghcr.io/hellt/network-multitool:latest
