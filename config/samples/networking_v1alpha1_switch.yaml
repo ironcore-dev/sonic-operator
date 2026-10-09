@@ -32,8 +32,6 @@ spec:
   management:
     host: 192.0.2.10
     port: "50051"
-    credentials:
-      name: switchcredentials-sample
   macAddress: "aa:bb:cc:dd:ee:ff"
   ports:
     - name: Ethernet0

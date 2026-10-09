@@ -22,13 +22,9 @@ resources:
 # default, aiding admins in cluster management. Those roles are
 # not used by the sonic-operator itself. You can comment the following lines
 # if you do not want those helpers be installed with your Project.
-- switchcredentials_admin_role.yaml
-- switchcredentials_editor_role.yaml
-- switchcredentials_viewer_role.yaml
 - switchinterface_admin_role.yaml
 - switchinterface_editor_role.yaml
 - switchinterface_viewer_role.yaml
 - switch_admin_role.yaml
 - switch_editor_role.yaml
 - switch_viewer_role.yaml
-

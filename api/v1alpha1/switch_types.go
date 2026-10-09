@@ -18,9 +18,8 @@ type PortSpec struct {
 }
 
 type Management struct {
-	Host        string             `json:"host"`
-	Port        string             `json:"port"`
-	Credentials v1.ObjectReference `json:"credentials"`
+	Host string `json:"host"`
+	Port string `json:"port"`
 }
 
 // ZTPConfigMapReference identifies the ConfigMap entry containing a switch's

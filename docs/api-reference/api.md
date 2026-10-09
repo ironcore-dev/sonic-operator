@@ -12,7 +12,6 @@ Package v1alpha1 contains API Schema definitions for the networking v1alpha1 API
 
 ### Resource Types
 - [Switch](#switch)
-- [SwitchCredentials](#switchcredentials)
 - [SwitchInterface](#switchinterface)
 
 
@@ -112,7 +111,6 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `host` _string_ |  |  |  |
 | `port` _string_ |  |  |  |
-| `credentials` _[ObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#objectreference-v1-core)_ |  |  |  |
 
 
 #### Neighbor
@@ -220,27 +218,6 @@ Switch is the Schema for the switch API
 | `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
 | `spec` _[SwitchSpec](#switchspec)_ | spec defines the desired state of Switch |  |  |
 | `status` _[SwitchStatus](#switchstatus)_ | status defines the observed state of Switch |  |  |
-
-
-#### SwitchCredentials
-
-
-
-SwitchCredentials is the Schema for the switchcredentials API
-
-
-
-
-
-| Field | Description | Default | Validation |
-| --- | --- | --- | --- |
-| `apiVersion` _string_ | `sonic.networking.metal.ironcore.dev/v1alpha1` | | |
-| `kind` _string_ | `SwitchCredentials` | | |
-| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
-| `immutable` _boolean_ | Immutable, if set to true, ensures that data stored in the Secret cannot<br />be updated (only object metadata can be modified).<br />If not set to true, the field can be modified at any time.<br />Defaulted to nil. |  |  |
-| `data` _object (keys:string, values:integer array)_ | Data contains the secret data. Each key must consist of alphanumeric<br />characters, '-', '_' or '.'. The serialized form of the secret data is a<br />base64 encoded string, representing the arbitrary (possibly non-string)<br />data value here. Described in https://tools.ietf.org/html/rfc4648#section-4 |  |  |
-| `stringData` _object (keys:string, values:string)_ | stringData allows specifying non-binary secret data in string form.<br />It is provided as a write-only input field for convenience.<br />All keys and values are merged into the data field on write, overwriting any existing values.<br />The stringData field is never output when reading from the API. |  |  |
-| `type` _[SecretType](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#secrettype-v1-core)_ | Used to facilitate programmatic handling of secret data.<br />More info: https://kubernetes.io/docs/concepts/configuration/secret/#secret-types |  |  |
 
 
 #### SwitchInterface

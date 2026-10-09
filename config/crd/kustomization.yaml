@@ -4,7 +4,6 @@
 resources:
 - bases/sonic.networking.metal.ironcore.dev_switches.yaml
 - bases/sonic.networking.metal.ironcore.dev_switchinterfaces.yaml
-- bases/sonic.networking.metal.ironcore.dev_switchcredentials.yaml
 # +kubebuilder:scaffold:crdkustomizeresource
 
 patches:
