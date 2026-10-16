@@ -1,16 +1,14 @@
 # Provisioning (ZTP + ONIE)
 
-The provisioning server serves ZTP scripts and ONIE installer artifacts over HTTP. It can run as part of the controller manager or as a standalone binary.
+The provisioning server embedded in the controller manager serves ZTP scripts and ONIE installer artifacts over HTTP. The standalone provisioning-server binary serves ONIE installer artifacts only.
 
 ## Manager flags
 - `--http-server-address`: bind address for the provisioning server.
-- `--ztp-config-file`: JSON file with ZTP parameters (default `/etc/ztp.json`).
-- `--ztp-mode`: ZTP source: `templates` (default), `configmap`, or `generated`.
+- `--ztp-mode`: ZTP source: `generated` (default) or `configmap`.
 - `--bootstrap-control-kubeconfig-file`: optional control kubeconfig mounted into the operator and made available to opted-in generated containers.
 - `--onie-installer-dir`: directory containing ONIE installer files (default `/var/lib/sonic-operator/onie`).
 
 ## ZTP
-- `templates` renders the static scripts in `internal/ztp/templates` from the JSON ZTP configuration.
 - `configmap` serves the selected ConfigMap key verbatim.
 - `generated` renders one complete script from the matching `Switch` object.
 - The ZTP script is served at `GET /ztp`.

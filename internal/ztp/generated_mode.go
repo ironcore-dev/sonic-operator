@@ -5,6 +5,7 @@ package ztp
 
 import (
 	"bytes"
+	"embed"
 	"encoding/base64"
 	"fmt"
 	"os"
@@ -14,6 +15,9 @@ import (
 
 	networkingv1alpha1 "github.com/ironcore-dev/sonic-operator/api/v1alpha1"
 )
+
+//go:embed templates/generated-mode.sh.gotmpl
+var templateFS embed.FS
 
 var generatedModeTemplate = template.Must(
 	template.New("generated-mode.sh.gotmpl").

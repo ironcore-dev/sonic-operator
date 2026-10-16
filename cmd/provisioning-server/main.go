@@ -10,7 +10,6 @@ import (
 	"os"
 
 	"github.com/ironcore-dev/sonic-operator/internal/onie"
-	"github.com/ironcore-dev/sonic-operator/internal/ztp"
 )
 
 func main() {
@@ -22,26 +21,13 @@ func main() {
 }
 
 func Main() error {
-	if len(os.Args) != 5 {
-		return fmt.Errorf("usage: provisioning-server <listen-addr> <onie-images-dir> <onie-config> <ztp-conf>")
+	if len(os.Args) != 4 {
+		return fmt.Errorf("usage: provisioning-server <listen-addr> <onie-images-dir> <onie-config>")
 	}
 
 	listenAddr := os.Args[1]
 	onieImagesDir := os.Args[2]
 	onieConfigPath := os.Args[3]
-	ztpConfigPath := os.Args[4]
-
-	f, err := os.Open(ztpConfigPath)
-	if err != nil {
-		return fmt.Errorf("unable to open ztp config file: %w", err)
-	}
-
-	var ztpConf ztp.Config
-	err = json.NewDecoder(f).Decode(&ztpConf)
-	if err != nil {
-		return err
-	}
-
 	of, err := os.Open(onieConfigPath)
 	if err != nil {
 		return fmt.Errorf("unable to open onie config file: %w", err)
@@ -54,7 +40,6 @@ func Main() error {
 
 	mux := http.NewServeMux()
 
-	ztp.Register(mux, ztpConf)
 	onie.Register(mux, onieImagesDir, onieConf)
 
 	return http.ListenAndServe(listenAddr, mux)

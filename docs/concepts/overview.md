@@ -15,6 +15,6 @@ sonic-operator is a Kubernetes-native, declarative operator for onboarding and m
 5. Status fields are updated on `Switch`, `SwitchInterface` based on observed state.
 
 ## Provisioning flow
-- ZTP scripts are rendered from templates and served at `GET /ztp`.
+- ZTP scripts are generated from matching `Switch` objects or served from referenced ConfigMaps at `GET /ztp`.
 - ONIE installers are served from a configured directory at HTTP root (`/`).
-- The provisioning server can run embedded in the manager or as a standalone binary.
+- ZTP is served by the provisioning server embedded in the manager. The standalone provisioning-server binary serves ONIE artifacts only.
