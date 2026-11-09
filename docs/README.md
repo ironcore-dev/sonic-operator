@@ -9,7 +9,6 @@ This directory contains the main documentation for sonic-operator.
 ## Usage
 - `usage/getting-started.md` — install, deploy, and first resources.
 - `usage/provisioning.md` — ZTP scripts and ONIE installer delivery.
-- `usage/agent.md` — switch agent deployment and gRPC API behavior.
 
 ## Development
 - `development/dev-workflow.md` — build, lint, test, and docs generation.

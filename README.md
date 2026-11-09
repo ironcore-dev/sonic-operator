@@ -7,13 +7,15 @@ A Kubernetes-native operator for onboarding and managing bare-metal network swit
 
 ## What it does
 - Manages switches and interfaces as declarative Kubernetes resources.
-- Deploys a switch agent on the device to read and enforce state.
 - Serves ZTP scripts and ONIE installer artifacts for zero-touch provisioning.
 
 ## Components
 - **Controller manager**: reconciles CRDs and updates status.
-- **Switch agent**: runs on the switch; gRPC API for device/interface operations.
 - **Provisioning server**: serves ZTP scripts and ONIE installers over HTTP.
+
+The former unauthenticated Sonic agent has been removed. Switch readiness reflects
+declarative acceptance for provisioning; device discovery and interface state
+enforcement are currently unavailable. `SwitchInterface` resources remain `Pending`.
 
 ## CRDs
 - `Switch`: physical switch and management connectivity.

@@ -29,7 +29,7 @@ The following tools must be installed on the host:
 clos/
 ├── clos.clab.yml      - Network topology definition (YAML)
 ├── deploy.sh          - Deployment automation script
-├── init_setup.sh      - Node initialization and agent setup
+├── init_setup.sh      - Node DNS initialization
 ├── destroy.sh         - Infrastructure cleanup script
 └── README.md          - This file
 ```
@@ -81,7 +81,7 @@ Deploy the full topology to Kubernetes:
 - Converts containerlab topology to Kubernetes resources
 - Applies topology configuration to cluster
 - Waits for services to be ready (180 seconds)
-- Configure DNS, Pulls and starts Sonic Agenton port 57400 for each SONiC node via SSH
+- Configure DNS for each SONiC node via SSH
 - Creates CRs for the switches
 - Displays external IPs for all services
 

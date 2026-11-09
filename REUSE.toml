@@ -25,9 +25,6 @@ SPDX-PackageDownloadLocation = "https://github.com/ironcore-dev/sonic-operator"
 	    ".devcontainer/**",
 	    "docs/**",
 	    "README.md",
-	    "internal/agent/hack/**",
-	    "internal/agent/proto/**",
-	    "pkg/agent/proto/**",
 		 "test/emulation/**",
 	]
 precedence = "aggregate"

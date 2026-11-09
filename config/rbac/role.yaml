@@ -15,7 +15,6 @@ rules:
 - apiGroups:
   - sonic.networking.metal.ironcore.dev
   resources:
-  - interfaces
   - switches
   - switchinterfaces
   verbs:

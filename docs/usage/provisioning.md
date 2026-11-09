@@ -88,24 +88,25 @@ current generated Docker runtime supports `hostPath` volumes only:
 ```yaml
 spec:
   volumes:
-  - name: dbus
+  - name: sonic-config
     hostPath:
-      path: /var/run/dbus
+      path: /etc/sonic
       type: Directory
   containers:
-  - name: sonic-agent
-    image: ghcr.io/giluerre/sonic-agent:latest
-    command: ["/switch-agent-server"]
-    args: ["-port", "57400"]
+  - name: diagnostics
+    image: example.invalid/diagnostics:latest
     securityContext:
       runAsUser: 0
     volumeMounts:
-    - name: dbus
-      mountPath: /var/run/dbus
+    - name: sonic-config
+      mountPath: /etc/sonic
+      readOnly: true
 ```
 
+Replace the example diagnostics image with your own container image.
+
 This renders a Docker mount before the image, for example
-`-v /var/run/dbus:/var/run/dbus:rw`. The volume and mount names must match;
+`-v /etc/sonic:/etc/sonic:ro`. The volume and mount names must match;
 host paths and mount paths must be absolute.
 
 ### ONIE boot discovery

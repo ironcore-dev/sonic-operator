@@ -3,7 +3,9 @@
 All CRDs are **cluster-scoped** and reconciled by sonic-operator.
 
 ## Switch
-Represents a physical switch and its management connectivity.
+Represents a physical switch and its management connectivity. `Ready` indicates
+declarative acceptance for provisioning. Device status fields are retained but
+are not currently refreshed.
 
 Spec fields:
 - `management.host`: switch management host/IP.
@@ -19,7 +21,9 @@ Status fields:
 - `ports[]`: observed ports and interface references.
 
 ## SwitchInterface
-Represents a single interface and its admin/operational state.
+Represents a single interface and its admin/operational state. Resources remain
+`Pending` because device observation and admin state enforcement are currently
+unavailable. Existing observed status fields are retained.
 
 Spec fields:
 - `handle`: interface handle on the device (e.g. `Ethernet0`).

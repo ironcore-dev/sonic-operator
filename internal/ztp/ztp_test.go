@@ -106,7 +106,7 @@ func TestGeneratedHandlerRendersCompleteSwitchScript(t *testing.T) {
 		t.Fatal(err)
 	}
 	wireletUID := int64(65532)
-	agentUID := int64(0)
+	diagnosticsUID := int64(0)
 
 	c := fake.NewClientBuilder().WithScheme(scheme).WithObjects(
 		&networkingv1alpha1.Switch{
@@ -130,12 +130,12 @@ func TestGeneratedHandlerRendersCompleteSwitchScript(t *testing.T) {
 						InjectControlKubeconfig: true,
 					},
 					{
-						Name:    "sonic-agent",
-						Image:   "ghcr.io/giluerre/sonic-agent:latest",
-						Command: []string{"/switch-agent-server"},
-						Args:    []string{"-port", "57400"},
+						Name:    "diagnostics",
+						Image:   "example.invalid/diagnostics:latest",
+						Command: []string{"/diagnostics"},
+						Args:    []string{"--verbose"},
 						SecurityContext: &networkingv1alpha1.ContainerSecurityContext{
-							RunAsUser: &agentUID,
+							RunAsUser: &diagnosticsUID,
 						},
 						VolumeMounts: []networkingv1alpha1.VolumeMount{
 							{Name: "dbus", MountPath: "/var/run/dbus"},
@@ -180,7 +180,7 @@ func TestGeneratedHandlerRendersCompleteSwitchScript(t *testing.T) {
 		"-e KUBECONFIG=/var/run/sonic-operator/control-kubeconfig",
 		"-v '/etc/sonic-operator/credentials/wirelet/control-kubeconfig:/var/run/sonic-operator/control-kubeconfig:ro'",
 		"'--name=switch-1' '--interface=Ethernet0'",
-		"docker run -d --name 'sonic-agent' --network host --restart unless-stopped --user '0' -v '/var/run/dbus:/var/run/dbus:rw' -v '/etc/sonic/sonic_version.yml:/etc/sonic/sonic_version.yml:ro' --entrypoint '/switch-agent-server' 'ghcr.io/giluerre/sonic-agent:latest' '-port' '57400'",
+		"docker run -d --name 'diagnostics' --network host --restart unless-stopped --user '0' -v '/var/run/dbus:/var/run/dbus:rw' -v '/etc/sonic/sonic_version.yml:/etc/sonic/sonic_version.yml:ro' --entrypoint '/diagnostics' 'example.invalid/diagnostics:latest' '--verbose'",
 		"What=LABEL=ONIE-BOOT",
 		"sonic-operator-onie-install.service",
 		"set next_entry=ONIE",
