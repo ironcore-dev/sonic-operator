@@ -12,9 +12,6 @@ else
 GOBIN=$(shell go env GOBIN)
 endif
 
-
-PROTO_DIR=./pkg/agent/proto
-
 # CONTAINER_TOOL defines the container tool to be used for building images.
 # Be aware that the target commands are only tested with Docker which is
 # scaffolded by default. However, you might want to replace it to use other
@@ -144,15 +141,6 @@ cleandocs: ## Cleanup local docs Docker artifacts (image + dangling layers).
 	-$(CONTAINER_TOOL) image rm --force $(DOCS_IMAGE)
 	-$(CONTAINER_TOOL) image prune --force --filter "label=project=sonic_operator"
 
-##@ proto
-.PHONY: proto
-proto:
-	@echo "Generating protobuf files..."
-	protoc --go_out=. --go_opt=paths=source_relative \
-		--go-grpc_out=. --go-grpc_opt=paths=source_relative \
-		$(PROTO_DIR)/switch_agent.proto
-
-
 ##@ Build
 
 .PHONY: docs
@@ -160,17 +148,12 @@ docs: crd-ref-docs ## Generate API reference documentation.
 	$(CRD_REF_DOCS) --source-path=./api/v1alpha1 --config=./hack/api-reference/config.yaml --renderer=markdown --output-path=./docs/api-reference/api.md
 
 
-.PHONY: build-agent
-build-agent: fmt vet ## Build agent binary.
-	go build -o bin/agent_server cmd/agent/main.go
-	go build -o bin/agent_cli cmd/agent_cli/main.go
-
 .PHONY: provisioning-server
 provisioning-server: fmt vet ## Build provisioning-server binary.
 	go build -o bin/provisioning-server cmd/provisioning-server/main.go
 
 .PHONY: build
-build: manifests generate fmt vet build-agent provisioning-server ## Build manager binary.
+build: manifests generate fmt vet provisioning-server ## Build manager binary.
 	go build -o bin/manager cmd/main.go
 
 

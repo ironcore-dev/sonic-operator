@@ -145,9 +145,6 @@ for service in $(kubectl get -n c9s-clos svc -o jsonpath='{.items[*].metadata.na
         name: $service
         namespace: c9s-clos    
       spec:
-        management:
-          host: $ip
-          port: "57400"
         macAddress: "aa:bb:cc:dd:ee:ff"
 EOF
     fi

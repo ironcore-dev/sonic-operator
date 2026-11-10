@@ -4,15 +4,16 @@ sonic-operator is a Kubernetes-native, declarative operator for onboarding and m
 
 ## Architecture
 - **Controller manager** runs in the cluster, reconciles CRDs, and maintains status.
-- **Switch agent** runs on the switch and exposes device/port/interface operations via gRPC.
 - **Provisioning server** serves ZTP scripts and ONIE installer artifacts over HTTP.
 
 ## Reconciliation flow
 1. A `Switch` CR is created to represent a physical switch and its management endpoint.
-2. The controller connects to the switch agent and observes device state.
-3. The controller creates/updates `SwitchInterface` CRs based on discovered interfaces.
-4. Interface admin state in `SwitchInterface.spec` is enforced on the device.
-5. Status fields are updated on `Switch`, `SwitchInterface` based on observed state.
+2. The controller marks the `Switch` as `Ready` to indicate declarative acceptance for provisioning.
+3. `SwitchInterface` resources remain `Pending`; device discovery and interface state enforcement are currently unavailable.
+4. Both controllers maintain finalizers and release them on deletion.
+
+The former unauthenticated Sonic agent has been removed. Device status fields are
+retained for API compatibility but are no longer refreshed by the controllers.
 
 ## Provisioning flow
 - ZTP scripts are generated from matching `Switch` objects or served from referenced ConfigMaps at `GET /ztp`.

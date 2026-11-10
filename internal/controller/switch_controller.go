@@ -5,31 +5,16 @@ package controller
 
 import (
 	"context"
-	"fmt"
-	"strings"
-	"time"
 
 	"github.com/go-logr/logr"
 	"github.com/ironcore-dev/controller-utils/clientutils"
 
-	agent "github.com/ironcore-dev/sonic-operator/internal/agent/types"
-
-	switchUtil "github.com/ironcore-dev/sonic-operator/internal/switch_util"
-
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
 	networkingv1alpha1 "github.com/ironcore-dev/sonic-operator/api/v1alpha1"
-	v1alpha1ac "github.com/ironcore-dev/sonic-operator/api/v1alpha1/applyconfiguration/api/v1alpha1"
-	metav1ac "k8s.io/client-go/applyconfigurations/meta/v1"
-)
-
-var (
-	fieldOwner      = client.FieldOwner("switch-controller")
-	agentRetryAfter = time.Minute
 )
 
 // SwitchReconciler reconciles a Switch object
@@ -41,7 +26,6 @@ type SwitchReconciler struct {
 // +kubebuilder:rbac:groups=sonic.networking.metal.ironcore.dev,resources=switches,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=sonic.networking.metal.ironcore.dev,resources=switches/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=sonic.networking.metal.ironcore.dev,resources=switches/finalizers,verbs=update
-// +kubebuilder:rbac:groups=sonic.networking.metal.ironcore.dev,resources=interfaces,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
@@ -83,111 +67,26 @@ func (r *SwitchReconciler) reconcile(ctx context.Context, log logr.Logger, s *ne
 		return ctrl.Result{}, err
 	}
 
-	original := s.DeepCopy()
-	defer func() {
-		if err := r.Status().Patch(ctx, s, client.MergeFrom(original)); err != nil {
-			log.Error(err, "Failed to update Switch status")
-		}
-	}()
-
-	// A Switch is declaratively ready as soon as it is accepted by the
-	// controller. The SONiC agent enriches status when reachable, but agent
-	// availability must not prevent ZTP/bootstrap workflows.
-	if s.Status.State != networkingv1alpha1.SwitchStateReady {
-		s.Status.State = networkingv1alpha1.SwitchStateReady
+	// Readiness reflects declarative acceptance for ZTP/bootstrap workflows.
+	// Device discovery and status observation require a supported backend.
+	if s.Status.State == networkingv1alpha1.SwitchStateReady {
 		return ctrl.Result{}, nil
 	}
 
-	switchAgentClient, err := switchUtil.NewAgentClientForSwitch(ctx, s)
-	if err != nil {
-		log.Info("Switch agent is unavailable; keeping Switch ready", "err", err)
-		return ctrl.Result{RequeueAfter: agentRetryAfter}, nil
-	}
-
-	switchDevice, err := switchAgentClient.GetDeviceInfo(ctx)
-	if err != nil {
-		log.Info("Switch agent is unavailable; keeping Switch ready", "err", err)
-		return ctrl.Result{RequeueAfter: agentRetryAfter}, nil
-	}
-
-	s.Status.MACAddress = switchDevice.LocalMacAddress
-	s.Status.FirmwareVersion = switchDevice.SonicOSVersion
-	s.Status.SKU = switchDevice.Hwsku
-
-	interfaceList, err := switchAgentClient.ListInterfaces(ctx)
-	if err != nil {
-		log.Info("Switch agent is unavailable; keeping Switch ready", "err", err)
-		return ctrl.Result{RequeueAfter: agentRetryAfter}, nil
-	}
-
-	for _, iface := range interfaceList.Items {
-		if err := r.EnsureInterface(ctx, log, s, iface); err != nil {
-			return ctrl.Result{}, err
-		}
-	}
-
-	portList, err := switchAgentClient.ListPorts(ctx)
-	if err != nil {
-		log.Info("Switch agent is unavailable; keeping Switch ready", "err", err)
-		return ctrl.Result{RequeueAfter: agentRetryAfter}, nil
-	}
-
-	if len(portList.Items) > 0 {
-		s.Status.Ports = make([]networkingv1alpha1.PortStatus, 0, len(portList.Items))
-	}
-
-	for _, p := range portList.Items {
-		s.Status.Ports = append(s.Status.Ports, networkingv1alpha1.PortStatus{Name: p.Name})
-	}
-
+	base := client.MergeFrom(s.DeepCopy())
 	s.Status.State = networkingv1alpha1.SwitchStateReady
-
-	// TODO: ensure s.spec is applied
+	if err := r.Status().Patch(ctx, s, base); err != nil {
+		return ctrl.Result{}, err
+	}
 
 	log.Info("Reconciled Switch")
 	return ctrl.Result{}, nil
-}
-
-func (r *SwitchReconciler) EnsureInterface(ctx context.Context, log logr.Logger, s *networkingv1alpha1.Switch, iface agent.Interface) error {
-	log.Info("Ensuring Interface")
-
-	adminState, err := agent.AgentDeviceStatusToAPIAdminState(iface.AdminStatus)
-	if err != nil {
-		return err
-	}
-
-	isController := true
-	blockOwnerDeletion := true
-	ac := v1alpha1ac.SwitchInterface(strings.ToLower(fmt.Sprintf("%s-%s", s.Name, iface.Name))).
-		WithOwnerReferences(
-			metav1ac.OwnerReference().
-				WithAPIVersion(networkingv1alpha1.GroupVersion.String()).
-				WithKind("Switch").
-				WithName(s.Name).
-				WithUID(s.UID).
-				WithController(isController).
-				WithBlockOwnerDeletion(blockOwnerDeletion),
-		).
-		WithSpec(v1alpha1ac.SwitchInterfaceSpec().
-			WithHandle(iface.Name).
-			WithNativeName(iface.NativeName).
-			WithSwitchRef(corev1.LocalObjectReference{Name: s.Name}).
-			WithAdminState(adminState),
-		)
-
-	if err := r.Apply(ctx, ac, client.ForceOwnership, fieldOwner); err != nil {
-		return err
-	}
-
-	log.Info("Ensured Interface")
-	return nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *SwitchReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&networkingv1alpha1.Switch{}).
-		Owns(&networkingv1alpha1.SwitchInterface{}).
 		Named("switch").
 		Complete(r)
 }

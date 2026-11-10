@@ -55,10 +55,10 @@ docker run -d --name 'wirelet' --network host --pid host --privileged --restart 
   echo 'sonic-operator: container wirelet failed; continuing' >&2
 fi
 if ! (
-docker pull 'ghcr.io/giluerre/sonic-agent:latest' &&
-(docker rm -f 'sonic-agent' >/dev/null 2>&1 || true) &&
-docker run -d --name 'sonic-agent' --network host --restart unless-stopped --user '0' -v '/var/run/dbus:/var/run/dbus:rw' -v '/etc/sonic/sonic_version.yml:/etc/sonic/sonic_version.yml:ro' --entrypoint '/switch-agent-server' 'ghcr.io/giluerre/sonic-agent:latest' '-port' '57400'
+docker pull 'example.invalid/diagnostics:latest' &&
+(docker rm -f 'diagnostics' >/dev/null 2>&1 || true) &&
+docker run -d --name 'diagnostics' --network host --restart unless-stopped --user '0' -v '/var/run/dbus:/var/run/dbus:rw' -v '/etc/sonic/sonic_version.yml:/etc/sonic/sonic_version.yml:ro' --entrypoint '/diagnostics' 'example.invalid/diagnostics:latest' '--verbose'
 ); then
-  echo 'sonic-operator: container sonic-agent failed; continuing' >&2
+  echo 'sonic-operator: container diagnostics failed; continuing' >&2
 fi
 sync
