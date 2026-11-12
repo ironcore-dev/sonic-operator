@@ -6,7 +6,7 @@ require (
 	github.com/alicebob/miniredis/v2 v2.40.0
 	github.com/go-logr/logr v1.4.4
 	github.com/ironcore-dev/controller-utils v0.15.1
-	github.com/onsi/ginkgo/v2 v2.33.1
+	github.com/onsi/ginkgo/v2 v2.34.0
 	github.com/onsi/gomega v1.44.0
 	github.com/redis/go-redis/v9 v9.23.0
 	k8s.io/api v0.37.0
